@@ -1,825 +1,1151 @@
-let session = JSON.parse(localStorage.getItem('chs') || 'null');
+let session =
+  JSON.parse(
+    localStorage.getItem('chs') || 'null'
+  );
+
 let watch = null;
 let state = null;
 let pollTimer = null;
 let gpsStarting = false;
-let gpsPositionReceived = false;
 
-const $ = s => document.querySelector(s);
+const $ = s =>
+  document.querySelector(s);
+
+const $$ = s =>
+  [...document.querySelectorAll(s)];
 
 const esc = s =>
-  String(s ?? '').replace(/[&<>"']/g, m => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }[m]));
+  String(s ?? '').replace(
+    /[&<>"']/g,
+    m => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#039;'
+    }[m])
+  );
 
-/* =========================
-   TOAST / MELDUNGEN
-========================= */
 
-const toast = t => {
-  const x = $('#toast');
+/* ========================================
+   LOCAL PROFILE
+======================================== */
 
-  if (!x) {
-    console.log(t);
+let localProfile =
+  JSON.parse(
+    localStorage.getItem('chsProfile') ||
+    JSON.stringify({
+      name:'Elias',
+
+      cars:[
+        {
+          id:'car1',
+          brand:'BMW',
+          model:'E36 328i Coupé',
+          year:'1996',
+          color:'Madeira Violett',
+          active:true
+        }
+      ]
+    })
+  );
+
+
+function saveLocalProfile(){
+
+  localStorage.setItem(
+    'chsProfile',
+    JSON.stringify(localProfile)
+  );
+
+}
+
+
+function activeCar(){
+
+  return (
+    localProfile.cars.find(
+      car => car.active
+    ) ||
+    localProfile.cars[0]
+  );
+
+}
+
+
+function syncProfile(){
+
+  const car = activeCar();
+
+  if($('#name')){
+    $('#name').value =
+      localProfile.name || 'Spieler';
+  }
+
+  if($('#headerName')){
+    $('#headerName').textContent =
+      localProfile.name || 'Spieler';
+  }
+
+  if(car){
+
+    if($('#vehicle')){
+      $('#vehicle').value =
+        `${car.brand} ${car.model}`.trim();
+    }
+
+    if($('#color')){
+      $('#color').value =
+        car.color;
+    }
+
+    if($('#homeVehicle')){
+      $('#homeVehicle').textContent =
+        car.model;
+    }
+
+    if($('#homeColor')){
+      $('#homeColor').textContent =
+        car.color;
+    }
+
+  }
+
+}
+
+
+/* ========================================
+   TOAST
+======================================== */
+
+function toast(message){
+
+  const el = $('#toast');
+
+  if(!el){
+    console.log(message);
     return;
   }
 
-  x.textContent = t;
-  x.classList.add('show');
+  el.textContent = message;
 
-  setTimeout(() => {
-    x.classList.remove('show');
-  }, 2800);
-};
+  el.classList.add('show');
+
+  clearTimeout(el._timer);
+
+  el._timer =
+    setTimeout(
+      () =>
+        el.classList.remove('show'),
+      2800
+    );
+
+}
 
 
-/* =========================
+/* ========================================
+   PAGE NAVIGATION
+======================================== */
+
+function openPage(page){
+
+  $$('.page').forEach(
+    p => p.classList.remove('active')
+  );
+
+  const target =
+    document.getElementById(page);
+
+  if(target){
+    target.classList.add('active');
+  }
+
+
+  $$('.navButton').forEach(btn => {
+
+    btn.classList.toggle(
+      'active',
+      btn.dataset.page === page
+    );
+
+  });
+
+
+  /*
+   During the actual game we don't want
+   normal navigation to distract the user.
+  */
+
+  if($('#bottomNav')){
+
+    $('#bottomNav').classList.toggle(
+      'hidden',
+      page === 'game'
+    );
+
+  }
+
+
+  window.scrollTo({
+    top:0,
+    behavior:'smooth'
+  });
+
+}
+
+
+/* ========================================
    API
-========================= */
+======================================== */
 
-async function api(path, data = {}, method = 'POST') {
+async function api(
+  path,
+  data = {},
+  method = 'POST'
+){
 
-  let url = '/api/' + path;
+  let url =
+    '/api/' + path;
 
-  const opts = {
+  const options = {
     method,
-    headers: {
-      'Content-Type': 'application/json'
+    headers:{
+      'Content-Type':'application/json'
     }
   };
 
-  if (method === 'GET') {
-    url += '?' + new URLSearchParams(data);
-  } else {
-    opts.body = JSON.stringify(data);
+
+  if(method === 'GET'){
+
+    url +=
+      '?' +
+      new URLSearchParams(data);
+
   }
 
-  const r = await fetch(url, opts);
+  else{
 
-  let j;
+    options.body =
+      JSON.stringify(data);
 
-  try {
-    j = await r.json();
-  } catch {
-    throw new Error('Ungültige Serverantwort');
   }
 
-  if (!r.ok) {
-    const e = new Error(j.error || 'Unbekannter Fehler');
-    e.data = j;
-    throw e;
+
+  const response =
+    await fetch(
+      url,
+      options
+    );
+
+
+  let json;
+
+  try{
+
+    json =
+      await response.json();
+
   }
 
-  return j;
+  catch{
+
+    throw new Error(
+      'Serverantwort konnte nicht gelesen werden.'
+    );
+
+  }
+
+
+  if(!response.ok){
+
+    const error =
+      new Error(
+        json.error ||
+        'Unbekannter Fehler'
+      );
+
+    error.data = json;
+
+    throw error;
+
+  }
+
+
+  return json;
+
 }
 
 
-/* =========================
-   SESSION
-========================= */
+/* ========================================
+   SESSION DATA
+======================================== */
 
-const creds = x => ({
-  code: session?.code,
-  userId: session?.userId,
-  ...(x || {})
+const creds = extra => ({
+
+  code:
+    session?.code,
+
+  userId:
+    session?.userId,
+
+  ...(extra || {})
+
 });
 
-const profile = () => ({
-  name: $('#name')?.value.trim() || 'Spieler',
-  vehicle: $('#vehicle')?.value.trim() || 'Unbekannt',
-  color: $('#color')?.value.trim() || 'Unbekannt',
-  mode: $('#mode')?.value || 'PASSENGER'
-});
+
+function profile(){
+
+  const car =
+    activeCar();
+
+  localProfile.name =
+    $('#name')?.value.trim() ||
+    localProfile.name ||
+    'Spieler';
+
+  saveLocalProfile();
 
 
-/* =========================
-   LOBBY ERSTELLEN
-========================= */
+  return {
 
-async function create() {
+    name:
+      localProfile.name,
 
-  try {
+    vehicle:
+      car
+        ? `${car.brand} ${car.model}`.trim()
+        : 'Unbekannt',
 
-    const j = await api('create', {
-      ...profile(),
+    color:
+      car?.color ||
+      'Unbekannt',
 
-      lobbyName:
-        $('#lname')?.value || 'NIGHT HUNT',
+    mode:
+      $('#mode')?.value ||
+      'PASSENGER'
 
-      radius:
-        +$('#radius')?.value || 3000,
+  };
 
-      duration:
-        +$('#duration')?.value || 900,
-
-      headstart:
-        +$('#headstart')?.value || 180,
-
-      escape:
-        +$('#escape')?.value || 15
-    });
-
-    save(j);
-
-    show();
-
-  } catch (e) {
-
-    toast(e.message);
-
-  }
 }
 
 
-/* =========================
-   LOBBY BEITRETEN
-========================= */
+/* ========================================
+   CREATE LOBBY
+======================================== */
 
-async function join() {
+async function create(){
 
-  try {
+  try{
 
-    const lobbyCode =
-      ($('#code')?.value || '')
-        .trim()
-        .toUpperCase();
+    const result =
+      await api(
+        'create',
+        {
 
-    if (!lobbyCode) {
-      toast('Bitte Lobby-Code eingeben.');
-      return;
-    }
+          ...profile(),
 
-    const j = await api('join', {
-      ...profile(),
-      code: lobbyCode
-    });
+          lobbyName:
+            $('#lname')?.value ||
+            'NIGHT HUNT',
 
-    save(j);
+          radius:
+            +$('#radius')?.value ||
+            3000,
 
-    show();
+          duration:
+            +$('#duration')?.value ||
+            900,
 
-  } catch (e) {
+          headstart:
+            +$('#headstart')?.value ||
+            180,
 
-    toast(e.message);
+          escape:
+            +$('#escape')?.value ||
+            15
+
+        }
+      );
+
+
+    saveSession(result);
+
+    showGame();
 
   }
+
+  catch(error){
+
+    toast(
+      error.message
+    );
+
+  }
+
 }
 
 
-/* =========================
-   SESSION SPEICHERN
-========================= */
+/* ========================================
+   JOIN LOBBY
+======================================== */
 
-function save(j) {
+async function join(){
+
+  const lobbyCode =
+    ($('#code')?.value || '')
+      .trim()
+      .toUpperCase();
+
+
+  if(!lobbyCode){
+
+    toast(
+      'Bitte einen Lobby-Code eingeben.'
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    const result =
+      await api(
+        'join',
+        {
+
+          ...profile(),
+
+          code:
+            lobbyCode
+
+        }
+      );
+
+
+    saveSession(result);
+
+    showGame();
+
+  }
+
+  catch(error){
+
+    toast(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* ========================================
+   SAVE SESSION
+======================================== */
+
+function saveSession(result){
 
   session = {
-    code: j.lobby.code,
-    userId: j.userId
+
+    code:
+      result.lobby.code,
+
+    userId:
+      result.userId
+
   };
+
 
   localStorage.setItem(
     'chs',
     JSON.stringify(session)
   );
+
 }
 
 
-/* =========================
+/* ========================================
    GAME SCREEN
-========================= */
+======================================== */
 
-function show() {
+function showGame(){
 
-  $('#home')?.classList.add('hidden');
-  $('#game')?.classList.remove('hidden');
+  openPage('game');
 
   poll();
 
   /*
-   GPS AUTOMATISCH STARTEN
-
-   Der Spieler muss NICHT mehr manuell
-   auf GPS klicken.
+   GPS automatically starts.
   */
 
-  setTimeout(() => {
+  setTimeout(
+    () => {
 
-    if (watch === null && !gpsStarting) {
-      gps();
-    }
+      if(
+        watch === null &&
+        !gpsStarting
+      ){
+        gps();
+      }
 
-  }, 500);
+    },
+    400
+  );
+
 }
 
 
-/* =========================
-   SERVER POLLING
-========================= */
+/* ========================================
+   POLLING
+======================================== */
 
-async function poll() {
+async function poll(){
 
-  clearTimeout(pollTimer);
+  clearTimeout(
+    pollTimer
+  );
 
-  if (!session) return;
 
-  try {
+  if(!session){
+    return;
+  }
 
-    state = await api(
-      'state',
-      creds(),
-      'GET'
-    );
 
-    render();
+  try{
 
-  } catch (e) {
-
-    console.error(e);
-
-    /*
-     Wenn Render neu gestartet wurde,
-     existiert die alte In-Memory-Lobby
-     nicht mehr.
-    */
-
-    if (
-      e.message.includes('Session') ||
-      e.message.includes('Lobby nicht gefunden')
-    ) {
-
-      toast(
-        e.message.includes('Lobby')
-          ? 'Die Lobby existiert nicht mehr.'
-          : 'Deine Sitzung ist nicht mehr gültig.'
+    state =
+      await api(
+        'state',
+        creds(),
+        'GET'
       );
 
-      setTimeout(() => {
-        reset();
-      }, 1500);
+
+    renderGame();
+
+  }
+
+  catch(error){
+
+    console.error(error);
+
+
+    if(
+      error.message.includes(
+        'Lobby nicht gefunden'
+      ) ||
+      error.message.includes(
+        'Session'
+      )
+    ){
+
+      toast(
+        'Die Lobby ist nicht mehr verfügbar.'
+      );
+
+
+      setTimeout(
+        resetGame,
+        1200
+      );
 
       return;
+
     }
 
-    toast(e.message);
+
+    toast(
+      error.message
+    );
+
   }
 
-  pollTimer = setTimeout(
-    poll,
-    1000
-  );
+
+  pollTimer =
+    setTimeout(
+      poll,
+      1000
+    );
+
 }
 
 
-/* =========================
+/* ========================================
    TIMER
-========================= */
+======================================== */
 
-function fmt(sec) {
+function fmt(seconds){
 
-  sec = Math.max(
-    0,
-    Math.ceil(sec)
-  );
+  seconds =
+    Math.max(
+      0,
+      Math.ceil(seconds)
+    );
+
 
   return (
-    `${Math.floor(sec / 60)}:` +
-    `${String(sec % 60).padStart(2, '0')}`
+    `${Math.floor(seconds / 60)}:` +
+    `${String(seconds % 60).padStart(2,'0')}`
   );
+
 }
 
 
-/* =========================
-   RENDER
-========================= */
+/* ========================================
+   GAME RENDER
+======================================== */
 
-function render() {
+function renderGame(){
 
-  if (!state?.lobby) return;
-
-  const l = state.lobby;
-  const me = l.me;
-  const t = state.serverTime;
-
-  if (!me) return;
-
-
-  /* Lobby Informationen */
-
-  if ($('#lobbyName'))
-    $('#lobbyName').textContent = l.name;
-
-  if ($('#lobbyCode'))
-    $('#lobbyCode').textContent = l.code;
-
-  if ($('#state'))
-    $('#state').textContent = l.state;
-
-  if ($('#count'))
-    $('#count').textContent = `${l.players.length}`;
-
-
-  /* Rolle */
-
-  if ($('#role')) {
-
-    $('#role').textContent =
-      me.role === 'SEEKER'
-        ? '🔎 SUCHER'
-        : me.role === 'HIDER'
-        ? '👤 VERSTECKER'
-        : 'OFFEN';
-
+  if(
+    !state ||
+    !state.lobby
+  ){
+    return;
   }
 
 
-  /* Fahrer Warnung */
+  const lobby =
+    state.lobby;
 
-  $('#driverWarning')?.classList.toggle(
-    'hidden',
-    me.mode !== 'DRIVER'
-  );
+  const me =
+    lobby.me;
+
+  const time =
+    state.serverTime;
 
 
-  /* Timer */
+  if(!me){
+    return;
+  }
+
+
+  $('#lobbyName').textContent =
+    lobby.name;
+
+  $('#lobbyCode').textContent =
+    lobby.code;
+
+  $('#state').textContent =
+    lobby.state;
+
+  $('#count').textContent =
+    lobby.players.length;
+
+
+  $('#role').textContent =
+
+    me.role === 'SEEKER'
+      ? '🔎 SUCHER'
+
+      : me.role === 'HIDER'
+      ? '👤 VERSTECKER'
+
+      : 'OFFEN';
+
+
+  $('#driverWarning')
+    .classList.toggle(
+      'hidden',
+      me.mode !== 'DRIVER'
+    );
+
 
   let end;
 
-  if (l.state === 'COUNTDOWN') {
-    end = l.countdownEndsAt;
-  }
 
-  else if (l.state === 'HEADSTART') {
-    end = l.headstartEndsAt;
-  }
+  if(
+    lobby.state === 'COUNTDOWN'
+  ){
 
-  else {
-    end = l.endsAt;
-  }
-
-  if ($('#timer')) {
-
-    $('#timer').textContent =
-      end
-        ? fmt((end - t) / 1000)
-        : '–';
+    end =
+      lobby.countdownEndsAt;
 
   }
 
+  else if(
+    lobby.state === 'HEADSTART'
+  ){
 
-  /* Bereit */
+    end =
+      lobby.headstartEndsAt;
 
-  if ($('#ready')) {
+  }
 
-    $('#ready').textContent =
-      me.ready
-        ? '✓ BEREIT'
-        : 'BEREIT';
+  else{
 
-    $('#ready').classList.toggle(
+    end =
+      lobby.endsAt;
+
+  }
+
+
+  $('#timer').textContent =
+    end
+      ? fmt(
+          (end - time) / 1000
+        )
+      : '–';
+
+
+  /* READY */
+
+  $('#ready').textContent =
+    me.ready
+      ? '✓ BEREIT'
+      : 'BEREIT';
+
+
+  $('#ready')
+    .classList.toggle(
       'active',
       me.ready
     );
 
-    $('#ready').classList.toggle(
+
+  $('#ready')
+    .classList.toggle(
       'hidden',
-      l.state !== 'LOBBY'
+      lobby.state !== 'LOBBY'
     );
 
-  }
 
+  /* GPS */
 
-  /* =========================
-     GPS STATUS
-  ========================= */
-
-  if ($('#gpsDot')) {
-
-    $('#gpsDot').classList.toggle(
+  $('#gpsDot')
+    .classList.toggle(
       'on',
       me.hasLocation
     );
 
-  }
 
-  /*
-   Sobald der Server bestätigt,
-   dass er eine Position besitzt,
-   wissen wir sicher, dass GPS
-   übertragen wurde.
-  */
+  if(me.hasLocation){
 
-  if (me.hasLocation) {
-
-    gpsPositionReceived = true;
-
-    if ($('#gps')) {
-      $('#gps').textContent =
-        'GPS AKTIV ✓';
-    }
+    $('#gps').textContent =
+      'GPS AKTIV ✓';
 
   }
 
 
-  /* =========================
-     MANUELLER STARTPUNKT
-     NICHT MEHR BENÖTIGT
-  ========================= */
+  /* Manual start point hidden */
 
-  if ($('#setStart')) {
-
-    $('#setStart').classList.add(
+  $('#setStart')
+    ?.classList.add(
       'hidden'
     );
 
-  }
+
+  /* START */
+
+  const isHost =
+    lobby.hostId === me.id;
+
+  const enoughPlayers =
+    lobby.players.length >= 2;
+
+  const inLobby =
+    lobby.state === 'LOBBY';
 
 
-  /* =========================
-     SPIEL STARTEN
-  ========================= */
-
-  if ($('#start')) {
-
-    const isHost =
-      l.hostId === me.id;
-
-    const enoughPlayers =
-      l.players.length >= 2;
-
-    const inLobby =
-      l.state === 'LOBBY';
-
-    $('#start').classList.toggle(
+  $('#start')
+    .classList.toggle(
       'hidden',
-      !isHost || !inLobby || !enoughPlayers
+      !isHost ||
+      !inLobby ||
+      !enoughPlayers
     );
 
-    /*
-     Start erst erlauben,
-     wenn Host GPS besitzt.
-    */
 
-    $('#start').disabled =
-      isHost &&
-      inLobby &&
-      enoughPlayers &&
-      !me.hasLocation;
+  $('#start').disabled =
+    isHost &&
+    enoughPlayers &&
+    inLobby &&
+    !me.hasLocation;
 
-    if (
-      isHost &&
-      inLobby &&
-      enoughPlayers &&
-      !me.hasLocation
-    ) {
 
-      $('#start').textContent =
-        'POSITION WIRD ERMITTELT...';
+  if(
+    isHost &&
+    enoughPlayers &&
+    inLobby &&
+    !me.hasLocation
+  ){
 
-    }
+    $('#start').textContent =
+      'POSITION WIRD ERMITTELT...';
 
-    else {
+  }
 
-      $('#start').textContent =
-        'SPIEL STARTEN';
+  else{
 
-    }
+    $('#start').textContent =
+      'SPIEL STARTEN';
 
   }
 
 
-  /* =========================
-     NÄHE / GEGNER
-  ========================= */
+  /* PROXIMITY */
 
-  const pr = state.proximity;
+  const proximity =
+    state.proximity;
 
-  let txt =
+
+  let proximityText =
     me.hasLocation
-      ? 'GPS aktiv. Warte auf verwertbare Gegnerdaten.'
+      ? 'GPS aktiv · keine Gegnerdaten in direkter Nähe.'
       : 'Standort wird ermittelt...';
 
-  if (pr) {
 
-    if (pr.level === 'VERY_CLOSE') {
+  if(proximity){
 
-      txt =
-        `⚠️ EXTREM NAH · ca. ${pr.distance} m`;
+    if(
+      proximity.level ===
+      'VERY_CLOSE'
+    ){
 
-    }
-
-    else if (pr.level === 'CLOSE') {
-
-      txt =
-        `⚠️ SEHR NAH · ca. ${pr.distance} m`;
+      proximityText =
+        `⚠ EXTREM NAH · ca. ${proximity.distance} m`;
 
     }
 
-    else if (pr.level === 'NEAR') {
+    else if(
+      proximity.level ===
+      'CLOSE'
+    ){
 
-      txt =
-        `⚠️ JEMAND NÄHERT SICH · ca. ${pr.distance} m`;
-
-    }
-
-    else {
-
-      txt =
-        `Kein Gegner in direkter Nähe · ca. ${pr.distance} m`;
+      proximityText =
+        `⚠ SEHR NAH · ca. ${proximity.distance} m`;
 
     }
 
+    else if(
+      proximity.level ===
+      'NEAR'
+    ){
 
-    if ($('#enemyDot')) {
+      proximityText =
+        `⚠ JEMAND NÄHERT SICH · ca. ${proximity.distance} m`;
 
-      $('#enemyDot').classList.remove(
+    }
+
+    else{
+
+      proximityText =
+        `Kein Gegner in direkter Nähe · ca. ${proximity.distance} m`;
+
+    }
+
+
+    $('#enemyDot')
+      .classList.remove(
         'hidden'
       );
 
-      const px =
-        Math.min(
-          115,
-          25 + pr.distance / 2
-        );
 
-      $('#enemyDot').style.transform =
-        `translate(` +
-        `${Math.cos(t / 700) * px}px,` +
-        `${Math.sin(t / 700) * px}px)`;
+    const distance =
+      Math.min(
+        115,
+        25 +
+        proximity.distance / 2
+      );
 
-    }
+
+    $('#enemyDot').style.transform =
+      `translate(` +
+      `${Math.cos(time / 700) * distance}px,` +
+      `${Math.sin(time / 700) * distance}px)`;
+
 
   }
 
-  else {
+  else{
 
-    $('#enemyDot')?.classList.add(
-      'hidden'
-    );
+    $('#enemyDot')
+      .classList.add(
+        'hidden'
+      );
 
   }
 
 
-  if ($('#proximity')) {
+  $('#proximity').textContent =
+    proximityText;
 
-    $('#proximity').textContent = txt;
 
-    $('#proximity').classList.toggle(
+  $('#proximity')
+    .classList.toggle(
       'hot',
-      !!pr && pr.distance < 50
+      !!proximity &&
+      proximity.distance < 50
     );
 
-  }
 
+  /* ESCAPE */
 
-  /* =========================
-     ESCAPE TIMER
-  ========================= */
-
-  const escLeft =
+  const escapeLeft =
     Math.ceil(
-      (state.escapeUntil - t) / 1000
+      (
+        state.escapeUntil -
+        time
+      ) / 1000
     );
 
-  if ($('#escapeBox')) {
 
-    $('#escapeBox').classList.toggle(
+  $('#escapeBox')
+    .classList.toggle(
       'hidden',
       !(
-        escLeft > 0 &&
+        escapeLeft > 0 &&
         me.role === 'HIDER'
       )
     );
 
-  }
 
-  if ($('#escapeTimer')) {
-
-    $('#escapeTimer').textContent =
-      Math.max(
-        0,
-        escLeft
-      );
-
-  }
+  $('#escapeTimer').textContent =
+    Math.max(
+      0,
+      escapeLeft
+    );
 
 
-  /* =========================
-     SPIELERLISTE
-  ========================= */
+  /* PLAYERS */
 
-  if ($('#players')) {
+  $('#players').innerHTML =
 
-    $('#players').innerHTML =
-      l.players.map(p => `
+    lobby.players
+      .map(
+        player => `
 
-        <div class="player ${p.found ? 'found' : ''}">
+          <div class="player ${player.found ? 'found' : ''}">
 
-          <div class="avatar">
-            ${
-              p.role === 'SEEKER'
-                ? '🔎'
-                : p.role === 'HIDER'
-                ? '👤'
-                : '🚘'
-            }
-          </div>
+            <div class="avatar">
 
-          <div class="pdata">
-
-            <b>
-              ${esc(p.name)}
               ${
-                p.id === l.hostId
-                  ? '<em>HOST</em>'
+                player.role === 'SEEKER'
+                  ? '🔎'
+
+                  : player.role === 'HIDER'
+                  ? '👤'
+
+                  : '🚘'
+              }
+
+            </div>
+
+            <div class="pdata">
+
+              <b>
+
+                ${esc(player.name)}
+
+                ${
+                  player.id ===
+                  lobby.hostId
+
+                    ? '<em>HOST</em>'
+
+                    : ''
+                }
+
+              </b>
+
+              <small>
+                ${esc(player.vehicle)}
+                ·
+                ${esc(player.color)}
+              </small>
+
+              <small>
+
+                ${
+                  player.connected
+                    ? '● Online'
+                    : '○ Reconnect…'
+                }
+
+                · Lv. ${player.level}
+
+              </small>
+
+            </div>
+
+            <div>
+
+              ${
+                player.ready
+                  ? '✓'
                   : ''
               }
-            </b>
 
-            <small>
-              ${esc(p.vehicle)}
-              ·
-              ${esc(p.color)}
-            </small>
-
-            <small>
               ${
-                p.connected
-                  ? '● Online'
-                  : '○ Reconnect…'
+                player.found
+                  ? ' FOUND'
+                  : ''
               }
-              · Lv. ${p.level}
-            </small>
+
+            </div>
 
           </div>
 
-          <div>
-            ${p.ready ? '✓' : ''}
-            ${p.found ? ' FOUND' : ''}
-          </div>
-
-        </div>
-
-      `).join('');
-
-  }
+        `
+      )
+      .join('');
 
 
-  /* =========================
-     FUNDZIELE
-  ========================= */
+  /* FIND TARGETS */
 
   const targets =
-    l.players.filter(
-      p =>
-        p.role === 'HIDER' &&
-        !p.found
+    lobby.players.filter(
+      player =>
+        player.role === 'HIDER' &&
+        !player.found
     );
+
 
   const canFind =
     me.role === 'SEEKER' &&
-    l.state === 'ACTIVE';
+    lobby.state === 'ACTIVE';
 
 
-  $('#targets')?.classList.toggle(
-    'hidden',
-    !canFind
-  );
-
-
-  if ($('#targetButtons')) {
-
-    $('#targetButtons').innerHTML =
-      targets.map(p => `
-
-        <button
-          class="danger"
-          onclick="found('${p.id}')"
-        >
-          🚘
-          ${esc(p.vehicle)}
-          ·
-          ${esc(p.color)}
-        </button>
-
-      `).join('');
-
-  }
-
-
-  /* Fund Cooldown */
-
-  const cd =
-    Math.ceil(
-      (state.cooldownUntil - t) / 1000
-    );
-
-  if ($('#cooldown')) {
-
-    $('#cooldown').textContent =
-      cd > 0
-        ? `Nächster Fundversuch in ${fmt(cd)}`
-        : '';
-
-  }
-
-
-  /* =========================
-     RESULT
-  ========================= */
-
-  $('#result')?.classList.toggle(
-    'hidden',
-    l.state !== 'RESULT'
-  );
-
-
-  if (l.state === 'RESULT') {
-
-    const win =
-      l.result?.seekersWin;
-
-    if ($('#resultTitle')) {
-
-      $('#resultTitle').textContent =
-        win
-          ? 'SUCHER GEWINNEN'
-          : 'VERSTECKER GEWINNEN';
-
-    }
-
-
-    if ($('#resultText')) {
-
-      $('#resultText').textContent =
-        `${l.result?.found || 0} von ` +
-        `${l.result?.totalHiders || 0} ` +
-        `Versteckern gefunden.`;
-
-    }
-
-
-    if ($('#xpGain')) {
-
-      $('#xpGain').textContent =
-        me.role === 'SEEKER'
-          ? 100 +
-            (l.result?.found || 0) * 80
-          : me.found
-          ? 140
-          : 280;
-
-    }
-
-
-    $('#rematch')?.classList.toggle(
+  $('#targets')
+    .classList.toggle(
       'hidden',
-      l.hostId !== me.id
+      !canFind
     );
+
+
+  $('#targetButtons').innerHTML =
+
+    targets
+      .map(
+        player => `
+
+          <button
+            class="danger"
+            onclick="found('${player.id}')"
+          >
+
+            🚘
+            ${esc(player.vehicle)}
+            ·
+            ${esc(player.color)}
+
+          </button>
+
+        `
+      )
+      .join('');
+
+
+  /* COOLDOWN */
+
+  const cooldown =
+    Math.ceil(
+      (
+        state.cooldownUntil -
+        time
+      ) / 1000
+    );
+
+
+  $('#cooldown').textContent =
+
+    cooldown > 0
+      ? `Nächster Fundversuch in ${fmt(cooldown)}`
+      : '';
+
+
+  /* RESULT */
+
+  $('#result')
+    .classList.toggle(
+      'hidden',
+      lobby.state !== 'RESULT'
+    );
+
+
+  if(
+    lobby.state === 'RESULT'
+  ){
+
+    const seekerWin =
+      lobby.result?.seekersWin;
+
+
+    $('#resultTitle').textContent =
+
+      seekerWin
+        ? 'SUCHER GEWINNEN'
+        : 'VERSTECKER GEWINNEN';
+
+
+    $('#resultText').textContent =
+
+      `${lobby.result?.found || 0} von ` +
+      `${lobby.result?.totalHiders || 0} ` +
+      `Versteckern gefunden.`;
+
+
+    $('#xpGain').textContent =
+
+      me.role === 'SEEKER'
+
+        ? 100 +
+          (
+            lobby.result?.found ||
+            0
+          ) * 80
+
+        : me.found
+        ? 140
+        : 280;
+
+
+    $('#rematch')
+      .classList.toggle(
+        'hidden',
+        lobby.hostId !== me.id
+      );
 
   }
 
 }
 
 
-/* =========================
+/* ========================================
    GPS
-========================= */
+======================================== */
 
-function gps() {
+function gps(){
 
-  if (!navigator.geolocation) {
+  if(
+    !navigator.geolocation
+  ){
 
     toast(
       'Dieses Gerät unterstützt keine Standortabfrage.'
     );
 
     return;
+
   }
 
 
-  if (watch !== null || gpsStarting) {
+  if(
+    watch !== null ||
+    gpsStarting
+  ){
     return;
   }
 
 
   gpsStarting = true;
 
-  if ($('#gps')) {
 
-    $('#gps').textContent =
-      'GPS WIRD ERMITTELT...';
+  $('#gps').textContent =
+    'GPS WIRD ERMITTELT...';
 
-  }
-
-
-  /*
-   watchPosition bleibt aktiv und
-   liefert laufend neue Positionen.
-  */
 
   watch =
     navigator.geolocation.watchPosition(
@@ -828,48 +1154,48 @@ function gps() {
 
         gpsStarting = false;
 
-        const coords =
-          position.coords;
 
-        try {
+        try{
 
           await api(
             'location',
             creds({
-              lat: coords.latitude,
-              lng: coords.longitude,
+
+              lat:
+                position.coords.latitude,
+
+              lng:
+                position.coords.longitude,
+
               accuracy:
-                coords.accuracy,
+                position.coords.accuracy,
+
               altitude:
-                coords.altitude,
+                position.coords.altitude,
+
               speed:
-                coords.speed
+                position.coords.speed
+
             })
           );
 
 
-          gpsPositionReceived = true;
+          $('#gps').textContent =
+            'GPS AKTIV ✓';
 
 
-          if ($('#gps')) {
-
-            $('#gps').textContent =
-              'GPS AKTIV ✓';
-
-          }
-
-
-          $('#gpsDot')?.classList.add(
-            'on'
-          );
+          $('#gpsDot')
+            .classList.add(
+              'on'
+            );
 
         }
 
-        catch (e) {
+        catch(error){
 
           console.error(
-            'Standortübertragung fehlgeschlagen:',
-            e
+            'Standortübertragung fehlgeschlagen',
+            error
           );
 
         }
@@ -880,53 +1206,56 @@ function gps() {
       error => {
 
         console.error(
-          'GPS Fehler:',
+          'GPS:',
           error
         );
 
+
         gpsStarting = false;
 
-        /*
-         Watch zurücksetzen,
-         damit erneut versucht werden kann.
-        */
 
-        if (watch !== null) {
+        if(
+          watch !== null
+        ){
 
-          navigator.geolocation.clearWatch(
-            watch
-          );
+          navigator.geolocation
+            .clearWatch(
+              watch
+            );
 
         }
+
 
         watch = null;
 
 
-        if ($('#gps')) {
-
-          $('#gps').textContent =
-            'GPS ERNEUT VERSUCHEN';
-
-        }
+        $('#gps').textContent =
+          'GPS ERNEUT VERSUCHEN';
 
 
-        if (error.code === 1) {
+        if(
+          error.code === 1
+        ){
 
           toast(
-            'Standortzugriff wurde nicht erlaubt. Bitte Standort für diese Webseite freigeben.'
+            'Standortzugriff nicht erlaubt. Bitte Standort für diese Webseite freigeben.'
           );
 
         }
 
-        else if (error.code === 2) {
+        else if(
+          error.code === 2
+        ){
 
           toast(
-            'Deine aktuelle Position konnte nicht bestimmt werden.'
+            'Aktuelle Position konnte nicht bestimmt werden.'
           );
 
         }
 
-        else if (error.code === 3) {
+        else if(
+          error.code === 3
+        ){
 
           toast(
             'GPS benötigt länger. Bitte erneut versuchen.'
@@ -934,10 +1263,11 @@ function gps() {
 
         }
 
-        else {
+        else{
 
           toast(
-            'GPS: ' + error.message
+            'GPS: ' +
+            error.message
           );
 
         }
@@ -946,21 +1276,9 @@ function gps() {
 
 
       {
-        enableHighAccuracy: true,
-
-        /*
-         Keine alte gecachte Position
-         verwenden.
-        */
-
-        maximumAge: 0,
-
-        /*
-         Bis zu 20 Sekunden auf
-         GPS warten.
-        */
-
-        timeout: 20000
+        enableHighAccuracy:true,
+        maximumAge:0,
+        timeout:20000
       }
 
     );
@@ -968,98 +1286,75 @@ function gps() {
 }
 
 
-/* =========================
+/* ========================================
    READY
-========================= */
+======================================== */
 
-async function ready() {
+async function ready(){
 
-  if (!state?.lobby?.me) return;
+  if(
+    !state?.lobby?.me
+  ){
+    return;
+  }
 
-  try {
+
+  try{
 
     await api(
       'ready',
       creds({
+
         ready:
           !state.lobby.me.ready
+
       })
     );
+
 
     poll();
 
   }
 
-  catch (e) {
-
-    toast(e.message);
-
-  }
-
-}
-
-
-/* =========================
-   STARTPUNKT
-   Nur noch Fallback.
-========================= */
-
-async function setStart() {
-
-  try {
-
-    await api(
-      'startpoint',
-      creds()
-    );
+  catch(error){
 
     toast(
-      '📍 Startpunkt aktualisiert'
+      error.message
     );
-
-  }
-
-  catch (e) {
-
-    toast(e.message);
 
   }
 
 }
 
 
-/* =========================
-   SPIEL STARTEN
-========================= */
+/* ========================================
+   START GAME
+======================================== */
 
-async function start() {
+async function start(){
 
-  try {
+  if(
+    !state?.lobby?.me?.hasLocation
+  ){
 
-    /*
-     Zusätzliche Prüfung im Frontend.
-    */
+    toast(
+      'Aktuelle Position wird noch ermittelt.'
+    );
 
-    if (
-      !state?.lobby?.me?.hasLocation
-    ) {
 
-      toast(
-        'Aktuelle Position wird noch ermittelt.'
-      );
-
-      /*
-       Falls GPS aus irgendeinem Grund
-       noch nicht läuft, erneut starten.
-      */
-
-      if (watch === null) {
-        gps();
-      }
-
-      return;
+    if(
+      watch === null
+    ){
+      gps();
     }
 
+
+    return;
+
+  }
+
+
+  try{
 
     await api(
       'start',
@@ -1076,24 +1371,28 @@ async function start() {
 
   }
 
-  catch (e) {
+  catch(error){
 
-    toast(e.message);
+    toast(
+      error.message
+    );
 
   }
 
 }
 
 
-/* =========================
-   FUND BESTÄTIGEN
-========================= */
+/* ========================================
+   FIND
+======================================== */
 
-async function found(targetId) {
+async function found(
+  targetId
+){
 
-  try {
+  try{
 
-    const j =
+    const result =
       await api(
         'found',
         creds({
@@ -1103,7 +1402,7 @@ async function found(targetId) {
 
 
     toast(
-      `✅ FUND BESTÄTIGT · ${j.distance} m`
+      `✓ FUND BESTÄTIGT · ${result.distance} m`
     );
 
 
@@ -1111,13 +1410,13 @@ async function found(targetId) {
 
   }
 
-  catch (e) {
+  catch(error){
 
     toast(
-      `❌ ${e.message}` +
+      `✕ ${error.message}` +
       (
-        e.data?.distance != null
-          ? ` · ${e.data.distance} m`
+        error.data?.distance != null
+          ? ` · ${error.data.distance} m`
           : ''
       )
     );
@@ -1127,43 +1426,47 @@ async function found(targetId) {
 }
 
 
-/* =========================
+/* ========================================
    REMATCH
-========================= */
+======================================== */
 
-async function rematch() {
+async function rematch(){
 
-  try {
+  try{
 
     await api(
       'rematch',
       creds()
     );
 
+
     toast(
       'Neue Runde vorbereitet'
     );
+
 
     poll();
 
   }
 
-  catch (e) {
+  catch(error){
 
-    toast(e.message);
+    toast(
+      error.message
+    );
 
   }
 
 }
 
 
-/* =========================
-   LOBBY VERLASSEN
-========================= */
+/* ========================================
+   LEAVE
+======================================== */
 
-async function leave() {
+async function leave(){
 
-  try {
+  try{
 
     await api(
       'leave',
@@ -1172,43 +1475,46 @@ async function leave() {
 
   }
 
-  catch (e) {
+  catch(error){
 
-    console.error(e);
+    console.error(
+      error
+    );
 
   }
 
-  reset();
+
+  resetGame();
 
 }
 
 
-/* =========================
-   RESET
-========================= */
+/* ========================================
+   RESET GAME
+======================================== */
 
-function reset() {
+function resetGame(){
 
   clearTimeout(
     pollTimer
   );
 
 
-  if (
+  if(
     watch !== null &&
     navigator.geolocation
-  ) {
+  ){
 
-    navigator.geolocation.clearWatch(
-      watch
-    );
+    navigator.geolocation
+      .clearWatch(
+        watch
+      );
 
   }
 
 
   watch = null;
   gpsStarting = false;
-  gpsPositionReceived = false;
   state = null;
   session = null;
 
@@ -1218,44 +1524,260 @@ function reset() {
   );
 
 
-  location.reload();
+  openPage(
+    'home'
+  );
 
 }
 
 
-/* =========================
-   BUTTON EVENTS
-========================= */
+/* ========================================
+   GARAGE
+======================================== */
 
-if ($('#create'))
-  $('#create').onclick = create;
+function openCarModal(){
 
-if ($('#join'))
-  $('#join').onclick = join;
+  $('#carModal')
+    .classList.remove(
+      'hidden'
+    );
 
-if ($('#gps'))
-  $('#gps').onclick = gps;
-
-if ($('#ready'))
-  $('#ready').onclick = ready;
-
-if ($('#setStart'))
-  $('#setStart').onclick = setStart;
-
-if ($('#start'))
-  $('#start').onclick = start;
-
-if ($('#rematch'))
-  $('#rematch').onclick = rematch;
-
-if ($('#leave'))
-  $('#leave').onclick = leave;
+}
 
 
-/* =========================
-   BESTEHENDE SESSION
-========================= */
+function closeCarModal(){
 
-if (session) {
-  show();
+  $('#carModal')
+    .classList.add(
+      'hidden'
+    );
+
+}
+
+
+function saveCar(){
+
+  const brand =
+    $('#newCarBrand')
+      .value
+      .trim();
+
+  const model =
+    $('#newCarModel')
+      .value
+      .trim();
+
+  const year =
+    $('#newCarYear')
+      .value
+      .trim();
+
+  const color =
+    $('#newCarColor')
+      .value
+      .trim();
+
+
+  if(
+    !brand ||
+    !model ||
+    !color
+  ){
+
+    toast(
+      'Bitte Marke, Modell und Farbe angeben.'
+    );
+
+    return;
+
+  }
+
+
+  /*
+   For now the new vehicle becomes
+   the active vehicle.
+  */
+
+  localProfile.cars.forEach(
+    car =>
+      car.active = false
+  );
+
+
+  localProfile.cars.push({
+
+    id:
+      'car_' +
+      Date.now(),
+
+    brand,
+    model,
+    year,
+    color,
+
+    active:true
+
+  });
+
+
+  saveLocalProfile();
+
+  syncProfile();
+
+  closeCarModal();
+
+
+  toast(
+    'Fahrzeug gespeichert ✓'
+  );
+
+
+  /*
+   Backend accounts will later replace
+   localStorage persistence.
+  */
+
+}
+
+
+/* ========================================
+   EVENT LISTENERS
+======================================== */
+
+$$('[data-page]')
+  .forEach(button => {
+
+    button.addEventListener(
+      'click',
+      () => {
+
+        openPage(
+          button.dataset.page
+        );
+
+      }
+    );
+
+  });
+
+
+$('#openPlay')
+  ?.addEventListener(
+    'click',
+    () =>
+      openPage('play')
+  );
+
+
+$('#navPlay')
+  ?.addEventListener(
+    'click',
+    () =>
+      openPage('play')
+  );
+
+
+$('#create')
+  ?.addEventListener(
+    'click',
+    create
+  );
+
+
+$('#join')
+  ?.addEventListener(
+    'click',
+    join
+  );
+
+
+$('#gps')
+  ?.addEventListener(
+    'click',
+    gps
+  );
+
+
+$('#ready')
+  ?.addEventListener(
+    'click',
+    ready
+  );
+
+
+$('#start')
+  ?.addEventListener(
+    'click',
+    start
+  );
+
+
+$('#rematch')
+  ?.addEventListener(
+    'click',
+    rematch
+  );
+
+
+$('#leave')
+  ?.addEventListener(
+    'click',
+    leave
+  );
+
+
+$('#addCar')
+  ?.addEventListener(
+    'click',
+    openCarModal
+  );
+
+
+$('#garageAddCar')
+  ?.addEventListener(
+    'click',
+    openCarModal
+  );
+
+
+$('#closeCarModal')
+  ?.addEventListener(
+    'click',
+    closeCarModal
+  );
+
+
+$('.modalBackdrop')
+  ?.addEventListener(
+    'click',
+    closeCarModal
+  );
+
+
+$('#saveCar')
+  ?.addEventListener(
+    'click',
+    saveCar
+  );
+
+
+/* ========================================
+   INITIALIZE
+======================================== */
+
+syncProfile();
+
+
+if(session){
+
+  showGame();
+
+}
+
+else{
+
+  openPage(
+    'home'
+  );
+
 }
