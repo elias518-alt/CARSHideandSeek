@@ -1,5 +1,5 @@
 const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
-const PORT=process.env.PORT||3000,ROOT=path.join(__dirname,'public'),lobbies=new Map();
+const PORT=process.env.PORT||3000,ROOT=__dirname,lobbies=new Map();
 const uid=()=>crypto.randomUUID(), now=()=>Date.now(), clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const send=(r,s,o)=>{r.writeHead(s,{'Content-Type':'application/json','Cache-Control':'no-store'});r.end(JSON.stringify(o))};
 const body=req=>new Promise((res,rej)=>{let d='';req.on('data',c=>d+=c);req.on('end',()=>{try{res(d?JSON.parse(d):{})}catch(e){rej(e)}})});
