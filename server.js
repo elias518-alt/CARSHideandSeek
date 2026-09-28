@@ -26,6 +26,39 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,'htt
  if(u.pathname==='/api/rematch'&&req.method==='POST'){if(l.hostId!==id)return send(res,403,{error:'Nur Host'});for(const x of l.players.values()){x.role=null;x.found=false;x.ready=false;x.escapeUntil=0;x.cooldownUntil=0}l.state='LOBBY';l.result=null;return send(res,200,{ok:true})}
  if(u.pathname==='/api/leave'&&req.method==='POST'){l.players.delete(id);host(l);if(!l.players.size)lobbies.delete(c);return send(res,200,{ok:true})}
  return send(res,404,{error:'API nicht gefunden'})}
- let file=u.pathname==='/'?'index.html':u.pathname.slice(1);file=path.join(ROOT,file);if(!file.startsWith(ROOT)||!fs.existsSync(file)){res.writeHead(404);return res.end('Not found')}const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res)
-}catch(e){send(res,500,{error:e.message})}});
-server.listen(PORT,'0.0.0.0',()=>console.log(`CAR HIDE & SEEK v0.5: http://localhost:${PORT}`));
+const staticFiles = {
+  '/': 'index.html',
+  '/index.html': 'index.html',
+  '/app.js': 'app.js',
+  '/style.css': 'style.css'
+};
+
+const fileName = staticFiles[u.pathname];
+
+if (!fileName) {
+  res.writeHead(404);
+  return res.end('Not found');
+}
+
+const file = path.join(__dirname, fileName);
+
+if (!fs.existsSync(file)) {
+  console.error('Datei fehlt:', file);
+  res.writeHead(404);
+  return res.end('File not found: ' + fileName);
+}
+
+const types = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml'
+};
+
+res.writeHead(200, {
+  'Content-Type': types[path.extname(file)] || 'application/octet-stream',
+  'Cache-Control': 'no-store'
+});
+
+fs.createReadStream(file).pipe(res);
