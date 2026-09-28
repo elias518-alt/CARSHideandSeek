@@ -62,3 +62,12 @@ res.writeHead(200, {
 });
 
 fs.createReadStream(file).pipe(res);
+
+}catch(e){
+  console.error(e);
+  send(res,500,{error:e.message});
+}});
+
+server.listen(PORT,'0.0.0.0',()=>{
+  console.log(`CAR HIDE & SEEK v0.5: http://localhost:${PORT}`);
+});
