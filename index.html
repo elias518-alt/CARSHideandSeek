@@ -1,8 +1,1193 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080b10"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><title>CAR HIDE & SEEK</title></head><body><main><header><div class="logo">CAR <b>HIDE & SEEK</b></div><div class="badge">PLAYABLE 0.5</div></header>
-<section id="home"><div class="hero"><span>REAL CARS · REAL PLACES</span><h1>HIDE.<br><i>SEEK.</i><br>DRIVE.</h1><p>Das GPS-Multiplayer-Versteckspiel mit echten Fahrzeugen.</p></div><div class="card"><h3>DEIN PROFIL</h3><div class="grid2"><label>Name<input id="name" value="Elias"></label><label>Modus<select id="mode"><option value="PASSENGER">👤 Beifahrer</option><option value="DRIVER">🚗 Fahrer</option></select></label></div><label>Fahrzeug<input id="vehicle" value="BMW E36 328i Coupé"></label><label>Farbe<input id="color" value="Madeira Violett"></label></div><div class="card"><h3>SPIEL ERSTELLEN</h3><label>Lobby-Name<input id="lname" value="BMW NIGHT HUNT"></label><div class="grid2"><label>Radius<select id="radius"><option value="1000">1 km</option><option value="2000">2 km</option><option value="3000" selected>3 km</option><option value="5000">5 km</option><option value="10000">10 km</option></select></label><label>Spielzeit<select id="duration"><option value="600">10 min</option><option value="900" selected>15 min</option><option value="1200">20 min</option><option value="1800">30 min</option></select></label><label>Headstart<select id="headstart"><option value="30">30 sek (Test)</option><option value="60">1 min</option><option value="180" selected>3 min</option></select></label><label>Escape<select id="escape"><option value="10">10 sek</option><option value="15" selected>15 sek</option><option value="30">30 sek</option></select></label></div><button id="create" class="primary">PRIVATE LOBBY ERSTELLEN</button><div class="or">ODER MIT CODE BEITRETEN</div><div class="join"><input id="code" maxlength="5" placeholder="X7K9P"><button id="join">BEITRETEN</button></div></div></section>
-<section id="game" class="hidden"><div class="card top"><div class="row"><div><small id="stateLabel">LOBBY</small><h2 id="lobbyName">–</h2></div><button id="leave" class="icon">×</button></div><div class="codebox"><span>LOBBY CODE</span><b id="lobbyCode">-----</b></div><div class="statusgrid"><div><small>STATUS</small><b id="state">–</b></div><div><small>ZEIT</small><b id="timer">–</b></div><div><small>ROLLE</small><b id="role">–</b></div></div></div>
-<div id="driverWarning" class="warning hidden">🚗 FAHRER-MODUS · Smartphone während der Fahrt nicht bedienen. Fund nur im sicheren Stand melden.</div>
-<div class="card"><div class="row"><h3>LIVE GAME</h3><span id="gpsDot" class="dot"></span></div><div class="radar"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div id="meDot" class="meDot">YOU</div><div id="enemyDot" class="enemyDot hidden">!</div></div><div id="proximity" class="proximity">GPS noch nicht aktiv.</div><div id="escapeBox" class="escape hidden">ESCAPE <b id="escapeTimer">15</b>s</div><button id="gps">GPS AKTIVIEREN</button><button id="setStart" class="secondary hidden">📍 STARTPUNKT HIER SETZEN</button></div>
-<div class="card"><div class="row"><h3>SPIELER <span id="count"></span></h3><button id="ready" class="smallbtn">BEREIT</button></div><div id="players"></div><button id="start" class="primary hidden">RUNDE STARTEN</button></div>
-<div id="targets" class="card hidden"><h3>FAHRZEUG ERKANNT?</h3><p class="muted">Wähle nur das Fahrzeug, das du tatsächlich vor dir gefunden hast.</p><div id="targetButtons"></div><small id="cooldown"></small></div>
-<div id="result" class="card result hidden"><div id="resultIcon">🏁</div><h2 id="resultTitle">RUNDE BEENDET</h2><p id="resultText"></p><div class="xp">+<span id="xpGain">0</span> XP</div><button id="rematch" class="primary hidden">NOCH EINE RUNDE</button></div></section><div id="toast"></div></main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050608">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+
+  <title>CAR HIDE & SEEK</title>
+</head>
+
+<body>
+
+<div id="app">
+
+  <!-- =========================
+       HEADER
+  ========================== -->
+
+  <header class="appHeader">
+
+    <button class="brand" data-page="home">
+      <span class="brandCar">CAR</span>
+      <span>HIDE & SEEK</span>
+    </button>
+
+    <button class="profileMini" data-page="profile">
+      <div class="miniLevel">12</div>
+
+      <div class="miniProfileText">
+        <strong id="headerName">Elias</strong>
+        <span>1.240 XP</span>
+      </div>
+
+      <div class="miniAvatar">
+        EP
+      </div>
+    </button>
+
+  </header>
+
+
+  <!-- =========================
+       HOME
+  ========================== -->
+
+  <main id="home" class="page active">
+
+    <section class="welcome">
+
+      <div>
+        <span class="eyebrow">
+          BEREIT FÜR DIE NÄCHSTE RUNDE?
+        </span>
+
+        <h1>
+          HIDE.<br>
+          <span>SEEK.</span><br>
+          DRIVE.
+        </h1>
+      </div>
+
+      <div class="onlinePill">
+        <i></i>
+        ONLINE
+      </div>
+
+    </section>
+
+
+    <!-- Active Car -->
+
+    <section class="activeCarCard">
+
+      <div class="carGlow"></div>
+
+      <div class="cardTop">
+        <span>AKTIVES FAHRZEUG</span>
+        <button class="textButton" data-page="garage">
+          ÄNDERN
+        </button>
+      </div>
+
+      <div class="carVisual">
+        <div class="carIcon">🚘</div>
+      </div>
+
+      <div class="carInfo">
+
+        <div>
+          <span>BMW</span>
+          <h2 id="homeVehicle">
+            E36 328i Coupé
+          </h2>
+
+          <p id="homeColor">
+            Madeira Violett
+          </p>
+        </div>
+
+        <div class="carStatus">
+          AKTIV
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- Play -->
+
+    <button id="openPlay" class="playHero">
+
+      <div class="playIcon">
+        ▶
+      </div>
+
+      <div>
+        <span>CAR HIDE & SEEK</span>
+        <strong>SPIELEN</strong>
+        <small>
+          Lobby erstellen oder Freunden beitreten
+        </small>
+      </div>
+
+      <div class="playArrow">
+        ›
+      </div>
+
+    </button>
+
+
+    <!-- Quick Stats -->
+
+    <section class="quickStats">
+
+      <div>
+        <span class="statIcon">🏁</span>
+        <strong>24</strong>
+        <small>RUNDEN</small>
+      </div>
+
+      <div>
+        <span class="statIcon">🏆</span>
+        <strong>14</strong>
+        <small>SIEGE</small>
+      </div>
+
+      <div>
+        <span class="statIcon">🚘</span>
+        <strong>31</strong>
+        <small>FUNDE</small>
+      </div>
+
+    </section>
+
+
+    <!-- Progress -->
+
+    <section class="panel">
+
+      <div class="panelTitle">
+        <div>
+          <span>FORTSCHRITT</span>
+          <h3>LEVEL 12</h3>
+        </div>
+
+        <strong class="orangeText">
+          1.240 XP
+        </strong>
+      </div>
+
+      <div class="progress">
+        <div style="width:62%"></div>
+      </div>
+
+      <div class="progressLabels">
+        <span>1.000 XP</span>
+        <span>2.000 XP</span>
+      </div>
+
+    </section>
+
+
+    <!-- Friends -->
+
+    <section class="panel">
+
+      <div class="panelTitle">
+
+        <div>
+          <span>FREUNDE</span>
+          <h3>GERADE ONLINE</h3>
+        </div>
+
+        <button
+          class="textButton"
+          data-page="friends">
+          ALLE
+        </button>
+
+      </div>
+
+      <div class="friendPreview">
+
+        <div class="friendAvatar">
+          MK
+          <i></i>
+        </div>
+
+        <div>
+          <strong>MaxK</strong>
+          <small>Online · BMW M3</small>
+        </div>
+
+        <button class="inviteSmall">
+          EINLADEN
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       PLAY
+  ========================== -->
+
+  <main id="play" class="page">
+
+    <div class="pageHeading">
+
+      <button class="backButton" data-page="home">
+        ‹
+      </button>
+
+      <div>
+        <span>GAME MODE</span>
+        <h1>SPIELEN</h1>
+      </div>
+
+    </div>
+
+
+    <section class="panel">
+
+      <span class="sectionEyebrow">
+        DEIN SPIELER
+      </span>
+
+      <div class="inputGrid">
+
+        <label>
+          USERNAME
+          <input
+            id="name"
+            value="Elias"
+            maxlength="24">
+        </label>
+
+        <label>
+          DEINE ROLLE IM AUTO
+
+          <select id="mode">
+            <option value="PASSENGER">
+              👤 Beifahrer
+            </option>
+
+            <option value="DRIVER">
+              🚗 Fahrer
+            </option>
+          </select>
+
+        </label>
+
+      </div>
+
+
+      <!-- Required by existing backend -->
+
+      <input
+        id="vehicle"
+        type="hidden"
+        value="BMW E36 328i Coupé">
+
+      <input
+        id="color"
+        type="hidden"
+        value="Madeira Violett">
+
+    </section>
+
+
+    <!-- Create -->
+
+    <section class="panel">
+
+      <div class="modeHeader">
+
+        <div class="modeIcon">
+          ＋
+        </div>
+
+        <div>
+          <span>PRIVATE GAME</span>
+          <h2>LOBBY ERSTELLEN</h2>
+        </div>
+
+      </div>
+
+      <label>
+        LOBBY NAME
+
+        <input
+          id="lname"
+          value="NIGHT HUNT">
+      </label>
+
+
+      <div class="settingsGrid">
+
+        <label>
+          RADIUS
+
+          <select id="radius">
+            <option value="1000">1 km</option>
+            <option value="2000">2 km</option>
+            <option value="3000" selected>3 km</option>
+            <option value="5000">5 km</option>
+            <option value="10000">10 km</option>
+          </select>
+
+        </label>
+
+
+        <label>
+          SPIELZEIT
+
+          <select id="duration">
+            <option value="300">5 min</option>
+            <option value="600">10 min</option>
+            <option value="900" selected>15 min</option>
+            <option value="1200">20 min</option>
+            <option value="1800">30 min</option>
+            <option value="3600">60 min</option>
+          </select>
+
+        </label>
+
+
+        <label>
+          HEADSTART
+
+          <select id="headstart">
+            <option value="30">30 Sek.</option>
+            <option value="60">1 Min.</option>
+            <option value="180" selected>3 Min.</option>
+            <option value="300">5 Min.</option>
+          </select>
+
+        </label>
+
+
+        <label>
+          ESCAPE
+
+          <select id="escape">
+            <option value="10">10 Sek.</option>
+            <option value="15" selected>15 Sek.</option>
+            <option value="30">30 Sek.</option>
+          </select>
+
+        </label>
+
+      </div>
+
+
+      <button id="create" class="primaryButton">
+        PRIVATE LOBBY ERSTELLEN
+      </button>
+
+    </section>
+
+
+    <!-- Join -->
+
+    <section class="panel joinPanel">
+
+      <div>
+
+        <span class="sectionEyebrow">
+          EINLADUNG ERHALTEN?
+        </span>
+
+        <h2>LOBBY BEITRETEN</h2>
+
+      </div>
+
+      <div class="joinBox">
+
+        <input
+          id="code"
+          maxlength="5"
+          placeholder="X7K9P">
+
+        <button id="join">
+          BEITRETEN
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       GARAGE
+  ========================== -->
+
+  <main id="garage" class="page">
+
+    <div class="pageHeading">
+
+      <div>
+        <span>DEINE FAHRZEUGE</span>
+        <h1>GARAGE</h1>
+      </div>
+
+      <button
+        id="addCar"
+        class="roundAction">
+        ＋
+      </button>
+
+    </div>
+
+
+    <section class="garageCar activeVehicle">
+
+      <div class="garageCarTop">
+
+        <span class="activeTag">
+          AKTIVES FAHRZEUG
+        </span>
+
+        <button class="moreButton">
+          •••
+        </button>
+
+      </div>
+
+      <div class="garageVehicleVisual">
+        🚘
+      </div>
+
+      <span class="manufacturer">
+        BMW
+      </span>
+
+      <h2>
+        E36 328i Coupé
+      </h2>
+
+      <div class="vehicleDetails">
+
+        <span>
+          <i
+            class="colorDot"
+            style="background:#3c254f">
+          </i>
+          Madeira Violett
+        </span>
+
+        <span>
+          1996
+        </span>
+
+      </div>
+
+    </section>
+
+
+    <button id="garageAddCar" class="addVehicleCard">
+
+      <span>＋</span>
+
+      <div>
+        <strong>FAHRZEUG HINZUFÜGEN</strong>
+        <small>
+          Weiteres Fahrzeug in deiner Garage speichern
+        </small>
+      </div>
+
+    </button>
+
+
+    <section class="infoPanel">
+
+      <span>WARUM DAS FAHRZEUG?</span>
+
+      <p>
+        Dein aktives Fahrzeug wird während einer
+        Runde verwendet, damit andere Spieler wissen,
+        welches echte Fahrzeug sie suchen müssen.
+      </p>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       FRIENDS
+  ========================== -->
+
+  <main id="friends" class="page">
+
+    <div class="pageHeading">
+
+      <div>
+        <span>COMMUNITY</span>
+        <h1>FREUNDE</h1>
+      </div>
+
+      <button class="roundAction">
+        ＋
+      </button>
+
+    </div>
+
+
+    <div class="searchBar">
+      🔎
+      <input
+        placeholder="Spieler suchen">
+    </div>
+
+
+    <div class="friendsTabs">
+
+      <button class="active">
+        FREUNDE
+      </button>
+
+      <button>
+        ANFRAGEN
+      </button>
+
+    </div>
+
+
+    <section class="friendList">
+
+      <div class="friendRow">
+
+        <div class="friendAvatar">
+          MK
+          <i></i>
+        </div>
+
+        <div class="friendData">
+          <strong>MaxK</strong>
+          <span>Online</span>
+          <small>BMW M3 Competition</small>
+        </div>
+
+        <button class="friendAction">
+          EINLADEN
+        </button>
+
+      </div>
+
+
+      <div class="friendRow">
+
+        <div class="friendAvatar offline">
+          TM
+        </div>
+
+        <div class="friendData">
+          <strong>Tim</strong>
+          <span class="offlineText">
+            Offline
+          </span>
+          <small>Audi RS3</small>
+        </div>
+
+        <button class="friendAction disabled">
+          OFFLINE
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <section class="comingSoon">
+
+      <span>FRIENDS SYSTEM</span>
+
+      <h3>
+        Wird mit dem Account-System verbunden
+      </h3>
+
+      <p>
+        Freundschaftsanfragen, Online-Status und
+        Spieleinladungen werden mit den permanenten
+        Benutzerkonten aktiviert.
+      </p>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       PROFILE
+  ========================== -->
+
+  <main id="profile" class="page">
+
+    <section class="profileHero">
+
+      <button class="settingsButton">
+        ⚙
+      </button>
+
+      <div class="profileAvatar">
+        EP
+
+        <span>
+          12
+        </span>
+      </div>
+
+      <h1>Elias</h1>
+
+      <p>
+        MEMBER SINCE 2026
+      </p>
+
+
+      <div class="profileProgress">
+
+        <div>
+          <span>LEVEL 12</span>
+          <span>1.240 / 2.000 XP</span>
+        </div>
+
+        <div class="progress">
+          <div style="width:62%"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section class="profileStats">
+
+      <div>
+        <strong>24</strong>
+        <span>RUNDEN</span>
+      </div>
+
+      <div>
+        <strong>14</strong>
+        <span>SIEGE</span>
+      </div>
+
+      <div>
+        <strong>31</strong>
+        <span>FUNDE</span>
+      </div>
+
+      <div>
+        <strong>58%</strong>
+        <span>WINRATE</span>
+      </div>
+
+    </section>
+
+
+    <section class="panel">
+
+      <div class="panelTitle">
+
+        <div>
+          <span>DEINE</span>
+          <h3>ERFOLGE</h3>
+        </div>
+
+        <button class="textButton">
+          ALLE
+        </button>
+
+      </div>
+
+
+      <div class="achievementGrid">
+
+        <div class="achievement unlocked">
+          <span>🏁</span>
+          <strong>ERSTE RUNDE</strong>
+        </div>
+
+        <div class="achievement unlocked">
+          <span>🔎</span>
+          <strong>ERSTER FUND</strong>
+        </div>
+
+        <div class="achievement">
+          <span>👑</span>
+          <strong>10 SIEGE</strong>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section class="panel">
+
+      <button class="menuRow">
+        <span>👤</span>
+        <div>
+          <strong>ACCOUNT</strong>
+          <small>Profil und Benutzername</small>
+        </div>
+        <b>›</b>
+      </button>
+
+      <button class="menuRow" data-page="garage">
+        <span>🚘</span>
+        <div>
+          <strong>GARAGE</strong>
+          <small>Fahrzeuge verwalten</small>
+        </div>
+        <b>›</b>
+      </button>
+
+      <button class="menuRow">
+        <span>🏆</span>
+        <div>
+          <strong>STATISTIKEN</strong>
+          <small>Deine bisherigen Runden</small>
+        </div>
+        <b>›</b>
+      </button>
+
+      <button class="menuRow">
+        <span>⚙</span>
+        <div>
+          <strong>EINSTELLUNGEN</strong>
+          <small>App, Datenschutz und Sicherheit</small>
+        </div>
+        <b>›</b>
+      </button>
+
+    </section>
+
+
+    <section class="plusCard">
+
+      <span>CAR HIDE & SEEK</span>
+      <h2>PLUS</h2>
+
+      <p>
+        Zusätzliche Cosmetics, Statistiken und
+        weitere Komfortfunktionen.
+      </p>
+
+      <button>
+        BALD VERFÜGBAR
+      </button>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       LIVE GAME
+  ========================== -->
+
+  <main id="game" class="page">
+
+    <section class="gameHeaderCard">
+
+      <div class="row">
+
+        <div>
+          <span class="sectionEyebrow">
+            <span id="stateLabel">
+              LOBBY
+            </span>
+          </span>
+
+          <h2 id="lobbyName">
+            –
+          </h2>
+        </div>
+
+        <button
+          id="leave"
+          class="closeGame">
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="codeBox">
+
+        <div>
+          <span>LOBBY CODE</span>
+          <strong id="lobbyCode">
+            -----
+          </strong>
+        </div>
+
+        <span class="copyIcon">
+          ⧉
+        </span>
+
+      </div>
+
+
+      <div class="gameStats">
+
+        <div>
+          <span>STATUS</span>
+          <strong id="state">–</strong>
+        </div>
+
+        <div>
+          <span>ZEIT</span>
+          <strong id="timer">–</strong>
+        </div>
+
+        <div>
+          <span>ROLLE</span>
+          <strong id="role">–</strong>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <div
+      id="driverWarning"
+      class="driverWarning hidden">
+
+      <span>🚗</span>
+
+      <div>
+        <strong>FAHRER-MODUS</strong>
+        <p>
+          Smartphone während der Fahrt nicht bedienen.
+          Fund nur im sicheren Stand melden.
+        </p>
+      </div>
+
+    </div>
+
+
+    <section class="radarCard">
+
+      <div class="radarHeader">
+
+        <div>
+          <span>LIVE TRACKING</span>
+          <strong>PROXIMITY</strong>
+        </div>
+
+        <div class="gpsStatus">
+          <i id="gpsDot"></i>
+          GPS
+        </div>
+
+      </div>
+
+
+      <div class="radar">
+
+        <div class="radarSweep"></div>
+
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="ring r3"></div>
+
+        <div id="meDot" class="meDot">
+          YOU
+        </div>
+
+        <div
+          id="enemyDot"
+          class="enemyDot hidden">
+          !
+        </div>
+
+      </div>
+
+
+      <div
+        id="proximity"
+        class="proximity">
+
+        Standort wird ermittelt...
+
+      </div>
+
+
+      <div
+        id="escapeBox"
+        class="escape hidden">
+
+        <span>ESCAPE WINDOW</span>
+
+        <strong>
+          <span id="escapeTimer">15</span>s
+        </strong>
+
+      </div>
+
+
+      <button
+        id="gps"
+        class="gpsButton">
+
+        GPS WIRD ERMITTELT...
+
+      </button>
+
+
+      <!-- remains for compatibility -->
+      <button
+        id="setStart"
+        class="hidden">
+      </button>
+
+    </section>
+
+
+    <section class="panel">
+
+      <div class="panelTitle">
+
+        <div>
+          <span>LOBBY</span>
+
+          <h3>
+            SPIELER
+            <span id="count"></span>
+          </h3>
+        </div>
+
+        <button
+          id="ready"
+          class="readyButton">
+
+          BEREIT
+
+        </button>
+
+      </div>
+
+
+      <div id="players"></div>
+
+
+      <button
+        id="start"
+        class="primaryButton hidden">
+
+        SPIEL STARTEN
+
+      </button>
+
+    </section>
+
+
+    <section
+      id="targets"
+      class="panel hidden">
+
+      <span class="sectionEyebrow">
+        FUND BESTÄTIGEN
+      </span>
+
+      <h2>
+        FAHRZEUG ERKANNT?
+      </h2>
+
+      <p class="muted">
+        Wähle nur das Fahrzeug, das du tatsächlich
+        vor dir gefunden hast.
+      </p>
+
+      <div id="targetButtons"></div>
+
+      <small id="cooldown"></small>
+
+    </section>
+
+
+    <section
+      id="result"
+      class="resultCard hidden">
+
+      <div id="resultIcon">
+        🏁
+      </div>
+
+      <span>GAME OVER</span>
+
+      <h2 id="resultTitle">
+        RUNDE BEENDET
+      </h2>
+
+      <p id="resultText"></p>
+
+      <div class="xpReward">
+        +<span id="xpGain">0</span>
+        <small>XP</small>
+      </div>
+
+      <button
+        id="rematch"
+        class="primaryButton hidden">
+
+        NOCH EINE RUNDE
+
+      </button>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       ADD CAR MODAL
+  ========================== -->
+
+  <div id="carModal" class="modal hidden">
+
+    <div class="modalBackdrop"></div>
+
+    <div class="modalSheet">
+
+      <div class="modalHandle"></div>
+
+      <div class="modalHeading">
+
+        <div>
+          <span>GARAGE</span>
+          <h2>FAHRZEUG HINZUFÜGEN</h2>
+        </div>
+
+        <button id="closeCarModal">
+          ×
+        </button>
+
+      </div>
+
+
+      <label>
+        MARKE
+        <input
+          id="newCarBrand"
+          placeholder="z. B. BMW">
+      </label>
+
+
+      <label>
+        MODELL / BAUREIHE
+        <input
+          id="newCarModel"
+          placeholder="z. B. E36 328i Coupé">
+      </label>
+
+
+      <div class="inputGrid">
+
+        <label>
+          BAUJAHR
+          <input
+            id="newCarYear"
+            inputmode="numeric"
+            placeholder="1996">
+        </label>
+
+        <label>
+          FARBE
+          <input
+            id="newCarColor"
+            placeholder="Madeira Violett">
+        </label>
+
+      </div>
+
+
+      <button
+        id="saveCar"
+        class="primaryButton">
+
+        FAHRZEUG SPEICHERN
+
+      </button>
+
+      <p class="modalNote">
+        In dieser Version wird das Fahrzeug lokal auf
+        diesem Gerät gespeichert. Mit dem kommenden
+        Account-System wird die Garage mit deinem
+        Benutzerkonto synchronisiert.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       BOTTOM NAVIGATION
+  ========================== -->
+
+  <nav id="bottomNav">
+
+    <button
+      class="navButton active"
+      data-page="home">
+
+      <span>⌂</span>
+      HOME
+
+    </button>
+
+
+    <button
+      class="navButton"
+      data-page="garage">
+
+      <span>🚘</span>
+      GARAGE
+
+    </button>
+
+
+    <button
+      id="navPlay"
+      class="navPlay">
+
+      <span>▶</span>
+
+    </button>
+
+
+    <button
+      class="navButton"
+      data-page="friends">
+
+      <span>♟</span>
+      FREUNDE
+
+    </button>
+
+
+    <button
+      class="navButton"
+      data-page="profile">
+
+      <span>●</span>
+      PROFIL
+
+    </button>
+
+  </nav>
+
+
+  <div id="toast"></div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
