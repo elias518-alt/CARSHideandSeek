@@ -1,233 +1,847 @@
-let session =
-  JSON.parse(
-    localStorage.getItem('chs') || 'null'
-  );
+const SUPABASE_URL = 'https://yyvljkzitodxhtkilsxm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
 
-let watch = null;
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
+
+const $ = selector => document.querySelector(selector);
+const $$ = selector => [...document.querySelectorAll(selector)];
+
+const esc = value =>
+  String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+
+
+let authSession = null;
+let dbProfile = null;
+
+let gameSession =
+  JSON.parse(localStorage.getItem('chs') || 'null');
+
+let localGarage =
+  JSON.parse(localStorage.getItem('chsGarage') || '[]');
+
 let state = null;
 let pollTimer = null;
+let watch = null;
 let gpsStarting = false;
 
-const $ = s =>
-  document.querySelector(s);
 
-const $$ = s =>
-  [...document.querySelectorAll(s)];
+/* =========================================================
+   HELPERS
+========================================================= */
 
-const esc = s =>
-  String(s ?? '').replace(
-    /[&<>"']/g,
-    m => ({
-      '&':'&amp;',
-      '<':'&lt;',
-      '>':'&gt;',
-      '"':'&quot;',
-      "'":'&#039;'
-    }[m])
-  );
+function toast(message) {
+  const element = $('#toast');
 
-
-/* ========================================
-   LOCAL PROFILE
-======================================== */
-
-let localProfile =
-  JSON.parse(
-    localStorage.getItem('chsProfile') ||
-    JSON.stringify({
-      name:'Elias',
-
-      cars:[
-        {
-          id:'car1',
-          brand:'BMW',
-          model:'E36 328i Coupé',
-          year:'1996',
-          color:'Madeira Violett',
-          active:true
-        }
-      ]
-    })
-  );
-
-
-function saveLocalProfile(){
-
-  localStorage.setItem(
-    'chsProfile',
-    JSON.stringify(localProfile)
-  );
-
-}
-
-
-function activeCar(){
-
-  return (
-    localProfile.cars.find(
-      car => car.active
-    ) ||
-    localProfile.cars[0]
-  );
-
-}
-
-
-function syncProfile(){
-
-  const car = activeCar();
-
-  if($('#name')){
-    $('#name').value =
-      localProfile.name || 'Spieler';
-  }
-
-  if($('#headerName')){
-    $('#headerName').textContent =
-      localProfile.name || 'Spieler';
-  }
-
-  if(car){
-
-    if($('#vehicle')){
-      $('#vehicle').value =
-        `${car.brand} ${car.model}`.trim();
-    }
-
-    if($('#color')){
-      $('#color').value =
-        car.color;
-    }
-
-    if($('#homeVehicle')){
-      $('#homeVehicle').textContent =
-        car.model;
-    }
-
-    if($('#homeColor')){
-      $('#homeColor').textContent =
-        car.color;
-    }
-
-  }
-
-}
-
-
-/* ========================================
-   TOAST
-======================================== */
-
-function toast(message){
-
-  const el = $('#toast');
-
-  if(!el){
+  if (!element) {
     console.log(message);
     return;
   }
 
-  el.textContent = message;
+  element.textContent = message;
+  element.classList.add('show');
 
-  el.classList.add('show');
+  clearTimeout(element._timer);
 
-  clearTimeout(el._timer);
-
-  el._timer =
-    setTimeout(
-      () =>
-        el.classList.remove('show'),
-      2800
-    );
-
+  element._timer = setTimeout(() => {
+    element.classList.remove('show');
+  }, 2800);
 }
 
 
-/* ========================================
-   PAGE NAVIGATION
-======================================== */
+function initials(name) {
+  const parts =
+    String(name || 'Spieler')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
 
-function openPage(page){
+  return (
+    parts
+      .slice(0, 2)
+      .map(part => part[0])
+      .join('') || '?'
+  ).toUpperCase();
+}
 
-  $$('.page').forEach(
-    p => p.classList.remove('active')
+
+function xpRange(level) {
+  const safeLevel = Math.max(1, Number(level) || 1);
+
+  return {
+    start: (safeLevel - 1) * 1000,
+    end: safeLevel * 1000
+  };
+}
+
+
+function activeCar() {
+  return (
+    localGarage.find(car => car.active) ||
+    localGarage[0] ||
+    null
   );
+}
 
-  const target =
-    document.getElementById(page);
 
-  if(target){
+function saveGarage() {
+  localStorage.setItem(
+    'chsGarage',
+    JSON.stringify(localGarage)
+  );
+}
+
+
+function openPage(page) {
+  $$('.page').forEach(element => {
+    element.classList.remove('active');
+  });
+
+  const target = document.getElementById(page);
+
+  if (target) {
     target.classList.add('active');
   }
 
-
-  $$('.navButton').forEach(btn => {
-
-    btn.classList.toggle(
+  $$('.navButton').forEach(button => {
+    button.classList.toggle(
       'active',
-      btn.dataset.page === page
+      button.dataset.page === page
     );
-
   });
 
-
-  /*
-   During the actual game we don't want
-   normal navigation to distract the user.
-  */
-
-  if($('#bottomNav')){
-
-    $('#bottomNav').classList.toggle(
-      'hidden',
-      page === 'game'
-    );
-
-  }
-
+  $('#bottomNav')?.classList.toggle(
+    'hidden',
+    page === 'game'
+  );
 
   window.scrollTo({
-    top:0,
-    behavior:'smooth'
+    top: 0,
+    behavior: 'smooth'
   });
-
 }
 
 
-/* ========================================
-   API
-======================================== */
+/* =========================================================
+   AUTH
+========================================================= */
+
+async function googleLogin() {
+  const button = $('#googleLogin');
+
+  if (button) {
+    button.disabled = true;
+  }
+
+  if ($('#authStatus')) {
+    $('#authStatus').textContent =
+      'Google wird geöffnet…';
+  }
+
+  const { error } =
+    await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+
+      options: {
+        redirectTo:
+          `${window.location.origin}/`
+      }
+    });
+
+  if (error) {
+    console.error(error);
+
+    if (button) {
+      button.disabled = false;
+    }
+
+    if ($('#authStatus')) {
+      $('#authStatus').textContent =
+        error.message;
+    }
+
+    toast(error.message);
+  }
+}
+
+
+async function logout() {
+  clearTimeout(pollTimer);
+
+  if (
+    watch !== null &&
+    navigator.geolocation
+  ) {
+    navigator.geolocation.clearWatch(watch);
+  }
+
+  watch = null;
+  state = null;
+  gameSession = null;
+
+  localStorage.removeItem('chs');
+
+  const { error } =
+    await supabaseClient.auth.signOut();
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
+  authSession = null;
+  dbProfile = null;
+
+  $('#app')?.classList.add('hidden');
+  $('#authGate')?.classList.remove('hidden');
+}
+
+
+async function loadProfile(userId, attempt = 0) {
+  const { data, error } =
+    await supabaseClient
+      .from('profiles')
+      .select(`
+        id,
+        username,
+        player_tag,
+        avatar_url,
+        level,
+        xp,
+        rounds_played,
+        wins,
+        finds,
+        survived_rounds,
+        active_vehicle_id,
+        created_at,
+        updated_at
+      `)
+      .eq('id', userId)
+      .single();
+
+  if (error) {
+    /*
+      Beim allerersten Login kann der Trigger einen
+      kurzen Moment benötigen.
+    */
+
+    if (attempt < 5) {
+      await new Promise(resolve =>
+        setTimeout(resolve, 500)
+      );
+
+      return loadProfile(
+        userId,
+        attempt + 1
+      );
+    }
+
+    throw error;
+  }
+
+  dbProfile = data;
+
+  renderProfile();
+}
+
+
+function renderProfile() {
+  if (
+    !dbProfile ||
+    !authSession?.user
+  ) {
+    return;
+  }
+
+  const name =
+    dbProfile.username || 'Spieler';
+
+  const level =
+    Math.max(
+      1,
+      Number(dbProfile.level) || 1
+    );
+
+  const xp =
+    Math.max(
+      0,
+      Number(dbProfile.xp) || 0
+    );
+
+  const rounds =
+    Number(dbProfile.rounds_played) || 0;
+
+  const wins =
+    Number(dbProfile.wins) || 0;
+
+  const finds =
+    Number(dbProfile.finds) || 0;
+
+  const winrate =
+    rounds > 0
+      ? Math.round((wins / rounds) * 100)
+      : 0;
+
+  const range =
+    xpRange(level);
+
+  const progress =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        ((xp - range.start) /
+          (range.end - range.start)) *
+          100
+      )
+    );
+
+  const avatar =
+    initials(name);
+
+  const setText = (selector, value) => {
+    const element = $(selector);
+
+    if (element) {
+      element.textContent = value;
+    }
+  };
+
+
+  setText('#headerName', name);
+  setText('#headerLevel', level);
+
+  setText(
+    '#headerXp',
+    `${xp.toLocaleString('de-DE')} XP`
+  );
+
+  setText(
+    '#headerAvatar',
+    avatar
+  );
+
+
+  setText(
+    '#homeRounds',
+    rounds
+  );
+
+  setText(
+    '#homeWins',
+    wins
+  );
+
+  setText(
+    '#homeFinds',
+    finds
+  );
+
+  setText(
+    '#homeLevel',
+    `LEVEL ${level}`
+  );
+
+  setText(
+    '#homeXp',
+    `${xp.toLocaleString('de-DE')} XP`
+  );
+
+  setText(
+    '#homeXpStart',
+    `${range.start.toLocaleString('de-DE')} XP`
+  );
+
+  setText(
+    '#homeXpEnd',
+    `${range.end.toLocaleString('de-DE')} XP`
+  );
+
+
+  if ($('#homeProgressBar')) {
+    $('#homeProgressBar').style.width =
+      `${progress}%`;
+  }
+
+
+  setText(
+    '#profileName',
+    name
+  );
+
+  setText(
+    '#profileLevelBadge',
+    level
+  );
+
+  setText(
+    '#profileLevelText',
+    `LEVEL ${level}`
+  );
+
+  setText(
+    '#profileXpText',
+    `${xp.toLocaleString('de-DE')} / ` +
+    `${range.end.toLocaleString('de-DE')} XP`
+  );
+
+  setText(
+    '#profileRounds',
+    rounds
+  );
+
+  setText(
+    '#profileWins',
+    wins
+  );
+
+  setText(
+    '#profileFinds',
+    finds
+  );
+
+  setText(
+    '#profileWinrate',
+    `${winrate}%`
+  );
+
+  setText(
+    '#profileTag',
+    `PLAYER-ID ${
+      dbProfile.player_tag ||
+      authSession.user.id
+        .slice(0, 8)
+        .toUpperCase()
+    }`
+  );
+
+  setText(
+    '#accountEmail',
+    authSession.user.email || 'Google-Konto'
+  );
+
+
+  if ($('#profileAvatar')) {
+    /*
+      Der Level-Badge muss erhalten bleiben.
+    */
+
+    const badge =
+      $('#profileLevelBadge');
+
+    $('#profileAvatar').innerHTML = '';
+
+    $('#profileAvatar').append(
+      document.createTextNode(avatar)
+    );
+
+    if (badge) {
+      $('#profileAvatar').append(badge);
+    }
+  }
+
+
+  if ($('#profileProgressBar')) {
+    $('#profileProgressBar').style.width =
+      `${progress}%`;
+  }
+
+
+  if ($('#name')) {
+    $('#name').value = name;
+  }
+
+
+  syncVehicleUI();
+}
+
+
+/* =========================================================
+   INITIAL AUTH
+========================================================= */
+
+async function initializeAuth() {
+  try {
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    authSession =
+      data.session;
+
+
+    if (!authSession) {
+      $('#app')?.classList.add('hidden');
+
+      $('#authGate')
+        ?.classList.remove('hidden');
+
+      if ($('#authStatus')) {
+        $('#authStatus').textContent =
+          'Anmeldung erforderlich';
+      }
+
+      return;
+    }
+
+
+    $('#authGate')
+      ?.classList.add('hidden');
+
+    $('#app')
+      ?.classList.remove('hidden');
+
+
+    await loadProfile(
+      authSession.user.id
+    );
+
+
+    if (gameSession) {
+      showGame();
+    }
+
+    else {
+      openPage('home');
+    }
+  }
+
+  catch (error) {
+    console.error(
+      'Auth initialization failed:',
+      error
+    );
+
+    $('#app')
+      ?.classList.add('hidden');
+
+    $('#authGate')
+      ?.classList.remove('hidden');
+
+    if ($('#authStatus')) {
+      $('#authStatus').textContent =
+        'Profil konnte nicht geladen werden: ' +
+        error.message;
+    }
+  }
+}
+
+
+supabaseClient.auth.onAuthStateChange(
+  (event, newSession) => {
+
+    authSession =
+      newSession;
+
+    if (event === 'SIGNED_OUT') {
+      $('#app')
+        ?.classList.add('hidden');
+
+      $('#authGate')
+        ?.classList.remove('hidden');
+    }
+
+  }
+);
+
+
+/* =========================================================
+   GARAGE
+========================================================= */
+
+function syncVehicleUI() {
+  const car =
+    activeCar();
+
+
+  if (!car) {
+    if ($('#vehicle')) {
+      $('#vehicle').value = '';
+    }
+
+    if ($('#color')) {
+      $('#color').value = '';
+    }
+
+    if ($('#homeVehicleBrand')) {
+      $('#homeVehicleBrand').textContent =
+        'KEIN FAHRZEUG';
+    }
+
+    if ($('#homeVehicle')) {
+      $('#homeVehicle').textContent =
+        'Fahrzeug hinzufügen';
+    }
+
+    if ($('#homeColor')) {
+      $('#homeColor').textContent =
+        '–';
+    }
+
+    if ($('#homeCarStatus')) {
+      $('#homeCarStatus').textContent =
+        'NICHT GESETZT';
+    }
+  }
+
+  else {
+    if ($('#vehicle')) {
+      $('#vehicle').value =
+        `${car.brand} ${car.model}`.trim();
+    }
+
+    if ($('#color')) {
+      $('#color').value =
+        car.color || '';
+    }
+
+    if ($('#homeVehicleBrand')) {
+      $('#homeVehicleBrand').textContent =
+        car.brand || 'FAHRZEUG';
+    }
+
+    if ($('#homeVehicle')) {
+      $('#homeVehicle').textContent =
+        car.model || '–';
+    }
+
+    if ($('#homeColor')) {
+      $('#homeColor').textContent =
+        car.color || '–';
+    }
+
+    if ($('#homeCarStatus')) {
+      $('#homeCarStatus').textContent =
+        'AKTIV';
+    }
+  }
+
+
+  renderGarage();
+}
+
+
+function renderGarage() {
+  const container =
+    $('#garageCars');
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!localGarage.length) {
+    container.innerHTML = `
+      <section class="infoPanel">
+        <span>NOCH KEIN FAHRZEUG</span>
+        <p>
+          Füge dein erstes Fahrzeug hinzu.
+          Es wird anschließend als aktives
+          Fahrzeug verwendet.
+        </p>
+      </section>
+    `;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    localGarage
+      .map(car => `
+        <section class="garageCar ${
+          car.active
+            ? 'activeVehicle'
+            : ''
+        }">
+
+          <div class="garageCarTop">
+
+            ${
+              car.active
+                ? `
+                  <span class="activeTag">
+                    AKTIVES FAHRZEUG
+                  </span>
+                `
+                : `
+                  <span class="manufacturer">
+                    FAHRZEUG
+                  </span>
+                `
+            }
+
+          </div>
+
+          <div class="garageVehicleVisual">
+            🚘
+          </div>
+
+          <span class="manufacturer">
+            ${esc(car.brand)}
+          </span>
+
+          <h2>
+            ${esc(car.model)}
+          </h2>
+
+          <div class="vehicleDetails">
+
+            <span>
+              ${esc(car.color)}
+            </span>
+
+            <span>
+              ${esc(car.year || '–')}
+            </span>
+
+          </div>
+
+        </section>
+      `)
+      .join('');
+}
+
+
+function openCarModal() {
+  $('#carModal')
+    ?.classList.remove('hidden');
+}
+
+
+function closeCarModal() {
+  $('#carModal')
+    ?.classList.add('hidden');
+}
+
+
+function saveCar() {
+  const brand =
+    $('#newCarBrand')
+      ?.value
+      .trim();
+
+  const model =
+    $('#newCarModel')
+      ?.value
+      .trim();
+
+  const year =
+    $('#newCarYear')
+      ?.value
+      .trim();
+
+  const color =
+    $('#newCarColor')
+      ?.value
+      .trim();
+
+
+  if (
+    !brand ||
+    !model ||
+    !color
+  ) {
+    toast(
+      'Bitte Marke, Modell und Farbe angeben.'
+    );
+
+    return;
+  }
+
+
+  localGarage.forEach(car => {
+    car.active = false;
+  });
+
+
+  localGarage.push({
+    id:
+      crypto.randomUUID
+        ? crypto.randomUUID()
+        : `car_${Date.now()}`,
+
+    brand,
+    model,
+    year,
+    color,
+    active: true
+  });
+
+
+  saveGarage();
+  syncVehicleUI();
+  closeCarModal();
+
+
+  $('#newCarBrand').value = '';
+  $('#newCarModel').value = '';
+  $('#newCarYear').value = '';
+  $('#newCarColor').value = '';
+
+
+  toast(
+    'Fahrzeug gespeichert ✓'
+  );
+}
+
+
+/* =========================================================
+   GAME API
+========================================================= */
 
 async function api(
   path,
   data = {},
   method = 'POST'
-){
-
+) {
   let url =
-    '/api/' + path;
+    `/api/${path}`;
 
   const options = {
     method,
-    headers:{
-      'Content-Type':'application/json'
+
+    headers: {
+      'Content-Type':
+        'application/json',
+
+      ...(authSession?.access_token
+        ? {
+            Authorization:
+              `Bearer ${authSession.access_token}`
+          }
+        : {})
     }
   };
 
 
-  if(method === 'GET'){
-
+  if (method === 'GET') {
     url +=
       '?' +
       new URLSearchParams(data);
-
   }
 
-  else{
-
+  else {
     options.body =
       JSON.stringify(data);
-
   }
 
 
@@ -240,109 +854,97 @@ async function api(
 
   let json;
 
-  try{
-
+  try {
     json =
       await response.json();
-
   }
 
-  catch{
-
+  catch {
     throw new Error(
       'Serverantwort konnte nicht gelesen werden.'
     );
-
   }
 
 
-  if(!response.ok){
-
+  if (!response.ok) {
     const error =
       new Error(
         json.error ||
         'Unbekannter Fehler'
       );
 
-    error.data = json;
+    error.data =
+      json;
 
     throw error;
-
   }
 
 
   return json;
-
 }
 
 
-/* ========================================
-   SESSION DATA
-======================================== */
+const gameCredentials =
+  extra => ({
+    code:
+      gameSession?.code,
 
-const creds = extra => ({
+    userId:
+      gameSession?.userId,
 
-  code:
-    session?.code,
-
-  userId:
-    session?.userId,
-
-  ...(extra || {})
-
-});
+    ...(extra || {})
+  });
 
 
-function profile(){
-
+function playerData() {
   const car =
     activeCar();
 
-  localProfile.name =
-    $('#name')?.value.trim() ||
-    localProfile.name ||
-    'Spieler';
 
-  saveLocalProfile();
+  if (!dbProfile) {
+    throw new Error(
+      'Profil ist noch nicht geladen.'
+    );
+  }
+
+
+  if (!car) {
+    throw new Error(
+      'Bitte zuerst ein Fahrzeug in der Garage hinzufügen.'
+    );
+  }
 
 
   return {
-
     name:
-      localProfile.name,
+      dbProfile.username ||
+      'Spieler',
 
     vehicle:
-      car
-        ? `${car.brand} ${car.model}`.trim()
-        : 'Unbekannt',
+      `${car.brand} ${car.model}`.trim(),
 
     color:
-      car?.color ||
+      car.color ||
       'Unbekannt',
 
     mode:
       $('#mode')?.value ||
       'PASSENGER'
-
   };
-
 }
 
 
-/* ========================================
-   CREATE LOBBY
-======================================== */
+/* =========================================================
+   CREATE / JOIN
+========================================================= */
 
-async function create(){
-
-  try{
-
+async function create() {
+  try {
     const result =
       await api(
         'create',
         {
-
-          ...profile(),
+          ...playerData(),
 
           lobbyName:
             $('#lname')?.value ||
@@ -363,188 +965,135 @@ async function create(){
           escape:
             +$('#escape')?.value ||
             15
-
         }
       );
 
 
-    saveSession(result);
-
+    saveGameSession(result);
     showGame();
-
   }
 
-  catch(error){
-
+  catch (error) {
     toast(
       error.message
     );
-
   }
-
 }
 
 
-/* ========================================
-   JOIN LOBBY
-======================================== */
-
-async function join(){
-
+async function join() {
   const lobbyCode =
     ($('#code')?.value || '')
       .trim()
       .toUpperCase();
 
 
-  if(!lobbyCode){
-
+  if (!lobbyCode) {
     toast(
       'Bitte einen Lobby-Code eingeben.'
     );
 
     return;
-
   }
 
 
-  try{
-
+  try {
     const result =
       await api(
         'join',
         {
-
-          ...profile(),
-
-          code:
-            lobbyCode
-
+          ...playerData(),
+          code: lobbyCode
         }
       );
 
 
-    saveSession(result);
-
+    saveGameSession(result);
     showGame();
-
   }
 
-  catch(error){
-
+  catch (error) {
     toast(
       error.message
     );
-
   }
-
 }
 
 
-/* ========================================
-   SAVE SESSION
-======================================== */
-
-function saveSession(result){
-
-  session = {
-
+function saveGameSession(result) {
+  gameSession = {
     code:
       result.lobby.code,
 
     userId:
       result.userId
-
   };
 
 
   localStorage.setItem(
     'chs',
-    JSON.stringify(session)
+    JSON.stringify(gameSession)
   );
-
 }
 
 
-/* ========================================
-   GAME SCREEN
-======================================== */
+/* =========================================================
+   GAME
+========================================================= */
 
-function showGame(){
-
+function showGame() {
   openPage('game');
 
   poll();
 
-  /*
-   GPS automatically starts.
-  */
 
-  setTimeout(
-    () => {
-
-      if(
-        watch === null &&
-        !gpsStarting
-      ){
-        gps();
-      }
-
-    },
-    400
-  );
-
+  setTimeout(() => {
+    if (
+      watch === null &&
+      !gpsStarting
+    ) {
+      gps();
+    }
+  }, 400);
 }
 
 
-/* ========================================
-   POLLING
-======================================== */
-
-async function poll(){
-
-  clearTimeout(
-    pollTimer
-  );
+async function poll() {
+  clearTimeout(pollTimer);
 
 
-  if(!session){
+  if (!gameSession) {
     return;
   }
 
 
-  try{
-
+  try {
     state =
       await api(
         'state',
-        creds(),
+        gameCredentials(),
         'GET'
       );
 
 
     renderGame();
-
   }
 
-  catch(error){
-
+  catch (error) {
     console.error(error);
 
 
-    if(
+    if (
       error.message.includes(
         'Lobby nicht gefunden'
       ) ||
       error.message.includes(
         'Session'
       )
-    ){
-
+    ) {
       toast(
         'Die Lobby ist nicht mehr verfügbar.'
       );
-
 
       setTimeout(
         resetGame,
@@ -552,14 +1101,12 @@ async function poll(){
       );
 
       return;
-
     }
 
 
     toast(
       error.message
     );
-
   }
 
 
@@ -568,16 +1115,10 @@ async function poll(){
       poll,
       1000
     );
-
 }
 
 
-/* ========================================
-   TIMER
-======================================== */
-
-function fmt(seconds){
-
+function formatTime(seconds) {
   seconds =
     Math.max(
       0,
@@ -587,22 +1128,17 @@ function fmt(seconds){
 
   return (
     `${Math.floor(seconds / 60)}:` +
-    `${String(seconds % 60).padStart(2,'0')}`
+    `${String(seconds % 60)
+      .padStart(2, '0')}`
   );
-
 }
 
 
-/* ========================================
-   GAME RENDER
-======================================== */
-
-function renderGame(){
-
-  if(
+function renderGame() {
+  if (
     !state ||
     !state.lobby
-  ){
+  ) {
     return;
   }
 
@@ -613,11 +1149,11 @@ function renderGame(){
   const me =
     lobby.me;
 
-  const time =
+  const serverTime =
     state.serverTime;
 
 
-  if(!me){
+  if (!me) {
     return;
   }
 
@@ -631,66 +1167,59 @@ function renderGame(){
   $('#state').textContent =
     lobby.state;
 
+  $('#stateLabel').textContent =
+    lobby.state;
+
   $('#count').textContent =
     lobby.players.length;
 
 
   $('#role').textContent =
-
     me.role === 'SEEKER'
       ? '🔎 SUCHER'
-
       : me.role === 'HIDER'
-      ? '👤 VERSTECKER'
-
-      : 'OFFEN';
+        ? '👤 VERSTECKER'
+        : 'OFFEN';
 
 
   $('#driverWarning')
-    .classList.toggle(
+    ?.classList.toggle(
       'hidden',
       me.mode !== 'DRIVER'
     );
 
 
-  let end;
+  let endTime = null;
 
 
-  if(
+  if (
     lobby.state === 'COUNTDOWN'
-  ){
-
-    end =
+  ) {
+    endTime =
       lobby.countdownEndsAt;
-
   }
 
-  else if(
+  else if (
     lobby.state === 'HEADSTART'
-  ){
-
-    end =
+  ) {
+    endTime =
       lobby.headstartEndsAt;
-
   }
 
-  else{
-
-    end =
+  else {
+    endTime =
       lobby.endsAt;
-
   }
 
 
   $('#timer').textContent =
-    end
-      ? fmt(
-          (end - time) / 1000
+    endTime
+      ? formatTime(
+          (endTime - serverTime) /
+          1000
         )
       : '–';
 
-
-  /* READY */
 
   $('#ready').textContent =
     me.ready
@@ -699,45 +1228,31 @@ function renderGame(){
 
 
   $('#ready')
-    .classList.toggle(
+    ?.classList.toggle(
       'active',
       me.ready
     );
 
 
   $('#ready')
-    .classList.toggle(
+    ?.classList.toggle(
       'hidden',
       lobby.state !== 'LOBBY'
     );
 
 
-  /* GPS */
-
   $('#gpsDot')
-    .classList.toggle(
+    ?.classList.toggle(
       'on',
       me.hasLocation
     );
 
 
-  if(me.hasLocation){
-
+  if (me.hasLocation) {
     $('#gps').textContent =
       'GPS AKTIV ✓';
-
   }
 
-
-  /* Manual start point hidden */
-
-  $('#setStart')
-    ?.classList.add(
-      'hidden'
-    );
-
-
-  /* START */
 
   const isHost =
     lobby.hostId === me.id;
@@ -750,7 +1265,7 @@ function renderGame(){
 
 
   $('#start')
-    .classList.toggle(
+    ?.classList.toggle(
       'hidden',
       !isHost ||
       !inLobby ||
@@ -765,27 +1280,16 @@ function renderGame(){
     !me.hasLocation;
 
 
-  if(
-    isHost &&
-    enoughPlayers &&
-    inLobby &&
-    !me.hasLocation
-  ){
+  $('#start').textContent =
+    (
+      isHost &&
+      enoughPlayers &&
+      inLobby &&
+      !me.hasLocation
+    )
+      ? 'POSITION WIRD ERMITTELT...'
+      : 'SPIEL STARTEN';
 
-    $('#start').textContent =
-      'POSITION WIRD ERMITTELT...';
-
-  }
-
-  else{
-
-    $('#start').textContent =
-      'SPIEL STARTEN';
-
-  }
-
-
-  /* PROXIMITY */
 
   const proximity =
     state.proximity;
@@ -797,75 +1301,48 @@ function renderGame(){
       : 'Standort wird ermittelt...';
 
 
-  if(proximity){
-
-    if(
+  if (proximity) {
+    if (
       proximity.level ===
       'VERY_CLOSE'
-    ){
-
+    ) {
       proximityText =
         `⚠ EXTREM NAH · ca. ${proximity.distance} m`;
-
     }
 
-    else if(
+    else if (
       proximity.level ===
       'CLOSE'
-    ){
-
+    ) {
       proximityText =
         `⚠ SEHR NAH · ca. ${proximity.distance} m`;
-
     }
 
-    else if(
+    else if (
       proximity.level ===
       'NEAR'
-    ){
-
+    ) {
       proximityText =
         `⚠ JEMAND NÄHERT SICH · ca. ${proximity.distance} m`;
-
     }
 
-    else{
-
+    else {
       proximityText =
         `Kein Gegner in direkter Nähe · ca. ${proximity.distance} m`;
-
     }
 
 
     $('#enemyDot')
-      .classList.remove(
+      ?.classList.remove(
         'hidden'
       );
-
-
-    const distance =
-      Math.min(
-        115,
-        25 +
-        proximity.distance / 2
-      );
-
-
-    $('#enemyDot').style.transform =
-      `translate(` +
-      `${Math.cos(time / 700) * distance}px,` +
-      `${Math.sin(time / 700) * distance}px)`;
-
-
   }
 
-  else{
-
+  else {
     $('#enemyDot')
-      .classList.add(
+      ?.classList.add(
         'hidden'
       );
-
   }
 
 
@@ -874,26 +1351,24 @@ function renderGame(){
 
 
   $('#proximity')
-    .classList.toggle(
+    ?.classList.toggle(
       'hot',
       !!proximity &&
       proximity.distance < 50
     );
 
 
-  /* ESCAPE */
-
   const escapeLeft =
     Math.ceil(
       (
-        state.escapeUntil -
-        time
+        (state.escapeUntil || 0) -
+        serverTime
       ) / 1000
     );
 
 
   $('#escapeBox')
-    .classList.toggle(
+    ?.classList.toggle(
       'hidden',
       !(
         escapeLeft > 0 &&
@@ -909,91 +1384,74 @@ function renderGame(){
     );
 
 
-  /* PLAYERS */
-
   $('#players').innerHTML =
-
     lobby.players
-      .map(
-        player => `
+      .map(player => `
+        <div class="player ${
+          player.found
+            ? 'found'
+            : ''
+        }">
 
-          <div class="player ${player.found ? 'found' : ''}">
-
-            <div class="avatar">
-
-              ${
-                player.role === 'SEEKER'
-                  ? '🔎'
-
-                  : player.role === 'HIDER'
+          <div class="avatar">
+            ${
+              player.role === 'SEEKER'
+                ? '🔎'
+                : player.role === 'HIDER'
                   ? '👤'
-
                   : '🚘'
-              }
+            }
+          </div>
 
-            </div>
+          <div class="pdata">
 
-            <div class="pdata">
-
-              <b>
-
-                ${esc(player.name)}
-
-                ${
-                  player.id ===
-                  lobby.hostId
-
-                    ? '<em>HOST</em>'
-
-                    : ''
-                }
-
-              </b>
-
-              <small>
-                ${esc(player.vehicle)}
-                ·
-                ${esc(player.color)}
-              </small>
-
-              <small>
-
-                ${
-                  player.connected
-                    ? '● Online'
-                    : '○ Reconnect…'
-                }
-
-                · Lv. ${player.level}
-
-              </small>
-
-            </div>
-
-            <div>
+            <b>
+              ${esc(player.name)}
 
               ${
-                player.ready
-                  ? '✓'
+                player.id ===
+                lobby.hostId
+                  ? '<em>HOST</em>'
                   : ''
               }
+            </b>
 
+            <small>
+              ${esc(player.vehicle)}
+              ·
+              ${esc(player.color)}
+            </small>
+
+            <small>
               ${
-                player.found
-                  ? ' FOUND'
-                  : ''
+                player.connected
+                  ? '● Online'
+                  : '○ Reconnect…'
               }
 
-            </div>
+              · Lv. ${player.level}
+            </small>
 
           </div>
 
-        `
-      )
+          <div>
+            ${
+              player.ready
+                ? '✓'
+                : ''
+            }
+
+            ${
+              player.found
+                ? ' FOUND'
+                : ''
+            }
+          </div>
+
+        </div>
+      `)
       .join('');
 
-
-  /* FIND TARGETS */
 
   const targets =
     lobby.players.filter(
@@ -1009,139 +1467,116 @@ function renderGame(){
 
 
   $('#targets')
-    .classList.toggle(
+    ?.classList.toggle(
       'hidden',
       !canFind
     );
 
 
   $('#targetButtons').innerHTML =
-
     targets
-      .map(
-        player => `
+      .map(player => `
+        <button
+          class="danger"
+          onclick="found('${player.id}')">
 
-          <button
-            class="danger"
-            onclick="found('${player.id}')"
-          >
+          🚘
+          ${esc(player.vehicle)}
+          ·
+          ${esc(player.color)}
 
-            🚘
-            ${esc(player.vehicle)}
-            ·
-            ${esc(player.color)}
-
-          </button>
-
-        `
-      )
+        </button>
+      `)
       .join('');
 
-
-  /* COOLDOWN */
 
   const cooldown =
     Math.ceil(
       (
-        state.cooldownUntil -
-        time
+        (state.cooldownUntil || 0) -
+        serverTime
       ) / 1000
     );
 
 
   $('#cooldown').textContent =
-
     cooldown > 0
-      ? `Nächster Fundversuch in ${fmt(cooldown)}`
+      ? `Nächster Fundversuch in ${formatTime(cooldown)}`
       : '';
 
 
-  /* RESULT */
-
   $('#result')
-    .classList.toggle(
+    ?.classList.toggle(
       'hidden',
       lobby.state !== 'RESULT'
     );
 
 
-  if(
+  if (
     lobby.state === 'RESULT'
-  ){
-
+  ) {
     const seekerWin =
       lobby.result?.seekersWin;
 
 
     $('#resultTitle').textContent =
-
       seekerWin
         ? 'SUCHER GEWINNEN'
         : 'VERSTECKER GEWINNEN';
 
 
     $('#resultText').textContent =
-
       `${lobby.result?.found || 0} von ` +
       `${lobby.result?.totalHiders || 0} ` +
       `Versteckern gefunden.`;
 
 
     $('#xpGain').textContent =
-
       me.role === 'SEEKER'
-
         ? 100 +
           (
             lobby.result?.found ||
             0
           ) * 80
-
         : me.found
-        ? 140
-        : 280;
+          ? 140
+          : 280;
 
 
     $('#rematch')
-      .classList.toggle(
+      ?.classList.toggle(
         'hidden',
         lobby.hostId !== me.id
       );
-
   }
-
 }
 
 
-/* ========================================
+/* =========================================================
    GPS
-======================================== */
+========================================================= */
 
-function gps(){
-
-  if(
+function gps() {
+  if (
     !navigator.geolocation
-  ){
-
+  ) {
     toast(
       'Dieses Gerät unterstützt keine Standortabfrage.'
     );
 
     return;
-
   }
 
 
-  if(
+  if (
     watch !== null ||
     gpsStarting
-  ){
+  ) {
     return;
   }
 
 
   gpsStarting = true;
-
 
   $('#gps').textContent =
     'GPS WIRD ERMITTELT...';
@@ -1151,16 +1586,13 @@ function gps(){
     navigator.geolocation.watchPosition(
 
       async position => {
-
         gpsStarting = false;
 
 
-        try{
-
+        try {
           await api(
             'location',
-            creds({
-
+            gameCredentials({
               lat:
                 position.coords.latitude,
 
@@ -1175,7 +1607,6 @@ function gps(){
 
               speed:
                 position.coords.speed
-
             })
           );
 
@@ -1185,26 +1616,21 @@ function gps(){
 
 
           $('#gpsDot')
-            .classList.add(
+            ?.classList.add(
               'on'
             );
-
         }
 
-        catch(error){
-
+        catch (error) {
           console.error(
             'Standortübertragung fehlgeschlagen',
             error
           );
-
         }
-
       },
 
 
       error => {
-
         console.error(
           'GPS:',
           error
@@ -1214,15 +1640,13 @@ function gps(){
         gpsStarting = false;
 
 
-        if(
+        if (
           watch !== null
-        ){
-
+        ) {
           navigator.geolocation
             .clearWatch(
               watch
             );
-
         }
 
 
@@ -1233,132 +1657,93 @@ function gps(){
           'GPS ERNEUT VERSUCHEN';
 
 
-        if(
-          error.code === 1
-        ){
-
+        if (error.code === 1) {
           toast(
             'Standortzugriff nicht erlaubt. Bitte Standort für diese Webseite freigeben.'
           );
-
         }
 
-        else if(
-          error.code === 2
-        ){
-
+        else if (error.code === 2) {
           toast(
             'Aktuelle Position konnte nicht bestimmt werden.'
           );
-
         }
 
-        else if(
-          error.code === 3
-        ){
-
+        else if (error.code === 3) {
           toast(
             'GPS benötigt länger. Bitte erneut versuchen.'
           );
-
         }
 
-        else{
-
+        else {
           toast(
-            'GPS: ' +
-            error.message
+            `GPS: ${error.message}`
           );
-
         }
-
       },
 
 
       {
-        enableHighAccuracy:true,
-        maximumAge:0,
-        timeout:20000
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 20000
       }
-
     );
-
 }
 
 
-/* ========================================
-   READY
-======================================== */
+/* =========================================================
+   GAME ACTIONS
+========================================================= */
 
-async function ready(){
-
-  if(
-    !state?.lobby?.me
-  ){
+async function ready() {
+  if (!state?.lobby?.me) {
     return;
   }
 
 
-  try{
-
+  try {
     await api(
       'ready',
-      creds({
-
+      gameCredentials({
         ready:
           !state.lobby.me.ready
-
       })
     );
 
 
     poll();
-
   }
 
-  catch(error){
-
+  catch (error) {
     toast(
       error.message
     );
-
   }
-
 }
 
 
-/* ========================================
-   START GAME
-======================================== */
-
-async function start(){
-
-  if(
+async function start() {
+  if (
     !state?.lobby?.me?.hasLocation
-  ){
-
+  ) {
     toast(
       'Aktuelle Position wird noch ermittelt.'
     );
 
 
-    if(
-      watch === null
-    ){
+    if (watch === null) {
       gps();
     }
 
-
     return;
-
   }
 
 
-  try{
-
+  try {
     await api(
       'start',
-      creds()
+      gameCredentials()
     );
 
 
@@ -1368,34 +1753,22 @@ async function start(){
 
 
     poll();
-
   }
 
-  catch(error){
-
+  catch (error) {
     toast(
       error.message
     );
-
   }
-
 }
 
 
-/* ========================================
-   FIND
-======================================== */
-
-async function found(
-  targetId
-){
-
-  try{
-
+async function found(targetId) {
+  try {
     const result =
       await api(
         'found',
-        creds({
+        gameCredentials({
           targetId
         })
       );
@@ -1407,11 +1780,9 @@ async function found(
 
 
     poll();
-
   }
 
-  catch(error){
-
+  catch (error) {
     toast(
       `✕ ${error.message}` +
       (
@@ -1420,23 +1791,15 @@ async function found(
           : ''
       )
     );
-
   }
-
 }
 
 
-/* ========================================
-   REMATCH
-======================================== */
-
-async function rematch(){
-
-  try{
-
+async function rematch() {
+  try {
     await api(
       'rematch',
-      creds()
+      gameCredentials()
     );
 
 
@@ -1446,77 +1809,54 @@ async function rematch(){
 
 
     poll();
-
   }
 
-  catch(error){
-
+  catch (error) {
     toast(
       error.message
     );
-
   }
-
 }
 
 
-/* ========================================
-   LEAVE
-======================================== */
-
-async function leave(){
-
-  try{
-
+async function leave() {
+  try {
     await api(
       'leave',
-      creds()
+      gameCredentials()
     );
-
   }
 
-  catch(error){
-
-    console.error(
-      error
-    );
-
+  catch (error) {
+    console.error(error);
   }
 
 
   resetGame();
-
 }
 
 
-/* ========================================
-   RESET GAME
-======================================== */
-
-function resetGame(){
-
+function resetGame() {
   clearTimeout(
     pollTimer
   );
 
 
-  if(
+  if (
     watch !== null &&
     navigator.geolocation
-  ){
-
+  ) {
     navigator.geolocation
       .clearWatch(
         watch
       );
-
   }
 
 
   watch = null;
   gpsStarting = false;
   state = null;
-  session = null;
+  gameSession = null;
 
 
   localStorage.removeItem(
@@ -1527,122 +1867,12 @@ function resetGame(){
   openPage(
     'home'
   );
-
 }
 
 
-/* ========================================
-   GARAGE
-======================================== */
-
-function openCarModal(){
-
-  $('#carModal')
-    .classList.remove(
-      'hidden'
-    );
-
-}
-
-
-function closeCarModal(){
-
-  $('#carModal')
-    .classList.add(
-      'hidden'
-    );
-
-}
-
-
-function saveCar(){
-
-  const brand =
-    $('#newCarBrand')
-      .value
-      .trim();
-
-  const model =
-    $('#newCarModel')
-      .value
-      .trim();
-
-  const year =
-    $('#newCarYear')
-      .value
-      .trim();
-
-  const color =
-    $('#newCarColor')
-      .value
-      .trim();
-
-
-  if(
-    !brand ||
-    !model ||
-    !color
-  ){
-
-    toast(
-      'Bitte Marke, Modell und Farbe angeben.'
-    );
-
-    return;
-
-  }
-
-
-  /*
-   For now the new vehicle becomes
-   the active vehicle.
-  */
-
-  localProfile.cars.forEach(
-    car =>
-      car.active = false
-  );
-
-
-  localProfile.cars.push({
-
-    id:
-      'car_' +
-      Date.now(),
-
-    brand,
-    model,
-    year,
-    color,
-
-    active:true
-
-  });
-
-
-  saveLocalProfile();
-
-  syncProfile();
-
-  closeCarModal();
-
-
-  toast(
-    'Fahrzeug gespeichert ✓'
-  );
-
-
-  /*
-   Backend accounts will later replace
-   localStorage persistence.
-  */
-
-}
-
-
-/* ========================================
-   EVENT LISTENERS
-======================================== */
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
 $$('[data-page]')
   .forEach(button => {
@@ -1650,11 +1880,9 @@ $$('[data-page]')
     button.addEventListener(
       'click',
       () => {
-
         openPage(
           button.dataset.page
         );
-
       }
     );
 
@@ -1664,16 +1892,32 @@ $$('[data-page]')
 $('#openPlay')
   ?.addEventListener(
     'click',
-    () =>
-      openPage('play')
+    () => openPage('play')
   );
 
 
 $('#navPlay')
   ?.addEventListener(
     'click',
-    () =>
-      openPage('play')
+    () => openPage('play')
+  );
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+$('#googleLogin')
+  ?.addEventListener(
+    'click',
+    googleLogin
+  );
+
+
+$('#logout')
+  ?.addEventListener(
+    'click',
+    logout
   );
 
 
@@ -1761,23 +2005,10 @@ $('#saveCar')
   );
 
 
-/* ========================================
-   INITIALIZE
-======================================== */
+/* =========================================================
+   START
+========================================================= */
 
-syncProfile();
+syncVehicleUI();
 
-
-if(session){
-
-  showGame();
-
-}
-
-else{
-
-  openPage(
-    'home'
-  );
-
-}
+initializeAuth();
