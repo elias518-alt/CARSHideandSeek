@@ -21,8 +21,28 @@ const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,'htt
  if(u.pathname==='/api/ready'&&req.method==='POST'){if(l.state!=='LOBBY')return send(res,409,{error:'Nur in der Lobby'});p.ready=!!b.ready;return send(res,200,{ok:true})}
  if(u.pathname==='/api/location'&&req.method==='POST'){if(!Number.isFinite(+b.lat)||!Number.isFinite(+b.lng))return send(res,400,{error:'Ungültige Position'});const prev=p.loc,loc={lat:+b.lat,lng:+b.lng,accuracy:+b.accuracy||999,altitude:Number.isFinite(+b.altitude)?+b.altitude:null,speed:Number.isFinite(+b.speed)?+b.speed:null,ts:now()};if(prev){const dt=(loc.ts-prev.ts)/1000,d=dist(prev,loc);loc.impliedSpeed=dt>0?d/dt:0;loc.suspicious=loc.impliedSpeed>80}p.loc=loc;if(!l.start&&l.hostId===id)l.start={lat:loc.lat,lng:loc.lng};if(l.state==='ACTIVE'&&p.role==='HIDER'){const pr=proximity(l,p);if(pr&&pr.distance<50&&!p.escapeUntil)p.escapeUntil=now()+l.settings.escape*1000;if(p.escapeUntil&&now()>p.escapeUntil)p.escapeUntil=0}return send(res,200,{ok:true,...gameView(l,p)})}
  if(u.pathname==='/api/startpoint'&&req.method==='POST'){if(l.hostId!==id)return send(res,403,{error:'Nur Host'});if(!p.loc)return send(res,409,{error:'Zuerst GPS aktivieren'});l.start={lat:p.loc.lat,lng:p.loc.lng};return send(res,200,{ok:true})}
- if(u.pathname==='/api/start'&&req.method==='POST'){if(l.hostId!==id)return send(res,403,{error:'Nur Host'});if(!l.start)return send(res,409,{error:'Startpunkt fehlt'});roles(l);return send(res,200,{ok:true})}
- if(u.pathname==='/api/found'&&req.method==='POST'){if(l.state!=='ACTIVE'||p.role!=='SEEKER')return send(res,409,{error:'Fundversuch derzeit nicht möglich'});if(now()<p.cooldownUntil)return send(res,429,{error:'Fund-Cooldown aktiv'});const target=l.players.get(b.targetId);if(!target||target.role!=='HIDER'||target.found)return send(res,400,{error:'Ungültiges Ziel'});if(!p.loc||!target.loc)return send(res,409,{error:'GPS-Daten fehlen'});if(now()-p.loc.ts>12000||now()-target.loc.ts>12000)return send(res,409,{error:'GPS-Daten zu alt'});if(p.loc.accuracy>60||target.loc.accuracy>60)return send(res,409,{error:'GPS zu ungenau'});if(p.loc.suspicious||target.loc.suspicious)return send(res,409,{error:'Positionsverlauf unplausibel'});const d=dist(p.loc,target.loc);if(d>35){p.failCount=(p.failCount||0)+1;p.cooldownUntil=now()+[30000,90000,180000][Math.min(2,p.failCount-1)];return send(res,409,{error:'Fund nicht bestätigt',distance:Math.round(d)})}target.found=true;target.escapeUntil=0;p.failCount=0;tick(l);return send(res,200,{ok:true,distance:Math.round(d)})}
+if(u.pathname==='/api/start'&&req.method==='POST'){
+  if(l.hostId!==id)
+    return send(res,403,{error:'Nur Host'});
+
+  if(!p.loc)
+    return send(res,409,{
+      error:'Aktuelle Position wird noch ermittelt. Bitte GPS aktivieren und kurz warten.'
+    });
+
+  // Aktuelle GPS-Position des Hosts automatisch als Startpunkt verwenden
+  l.start={
+    lat:p.loc.lat,
+    lng:p.loc.lng
+  };
+
+  roles(l);
+
+  return send(res,200,{
+    ok:true,
+    start:l.start
+  });
+} if(u.pathname==='/api/found'&&req.method==='POST'){if(l.state!=='ACTIVE'||p.role!=='SEEKER')return send(res,409,{error:'Fundversuch derzeit nicht möglich'});if(now()<p.cooldownUntil)return send(res,429,{error:'Fund-Cooldown aktiv'});const target=l.players.get(b.targetId);if(!target||target.role!=='HIDER'||target.found)return send(res,400,{error:'Ungültiges Ziel'});if(!p.loc||!target.loc)return send(res,409,{error:'GPS-Daten fehlen'});if(now()-p.loc.ts>12000||now()-target.loc.ts>12000)return send(res,409,{error:'GPS-Daten zu alt'});if(p.loc.accuracy>60||target.loc.accuracy>60)return send(res,409,{error:'GPS zu ungenau'});if(p.loc.suspicious||target.loc.suspicious)return send(res,409,{error:'Positionsverlauf unplausibel'});const d=dist(p.loc,target.loc);if(d>35){p.failCount=(p.failCount||0)+1;p.cooldownUntil=now()+[30000,90000,180000][Math.min(2,p.failCount-1)];return send(res,409,{error:'Fund nicht bestätigt',distance:Math.round(d)})}target.found=true;target.escapeUntil=0;p.failCount=0;tick(l);return send(res,200,{ok:true,distance:Math.round(d)})}
  if(u.pathname==='/api/rematch'&&req.method==='POST'){if(l.hostId!==id)return send(res,403,{error:'Nur Host'});for(const x of l.players.values()){x.role=null;x.found=false;x.ready=false;x.escapeUntil=0;x.cooldownUntil=0}l.state='LOBBY';l.result=null;return send(res,200,{ok:true})}
  if(u.pathname==='/api/leave'&&req.method==='POST'){l.players.delete(id);host(l);if(!l.players.size)lobbies.delete(c);return send(res,200,{ok:true})}
  return send(res,404,{error:'API nicht gefunden'})}
