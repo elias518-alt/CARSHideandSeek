@@ -3,6 +3,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const https = require('node:https');
 
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
@@ -300,43 +301,78 @@ async function route(action, data, authId) {
   fail(404, 'Unbekannte Funktion.');
 }
 async function removeVehicleBackground(data) {
-  if (!REMOVE_BG_API_KEY) fail(503, 'Bildfreistellung ist noch nicht eingerichtet. REMOVE_BG_API_KEY fehlt auf dem Server.');
+  if (!REMOVE_BG_API_KEY) {
+    fail(503, 'Bildfreistellung nicht eingerichtet: In Render fehlt REMOVE_BG_API_KEY.');
+  }
+
   const value = String(data.image || '');
   const match = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(value);
   if (!match) fail(400, 'Ungültiges Fahrzeugbild.');
 
-  const mime = match[1] === 'jpeg' ? 'image/jpeg' : `image/${match[1]}`;
-  const buffer = Buffer.from(match[2], 'base64');
-  if (!buffer.length || buffer.length > 3 * 1024 * 1024) fail(413, 'Das vorbereitete Fahrzeugbild ist zu groß.');
+  const base64 = match[2];
+  const approxBytes = Math.floor(base64.length * 0.75);
+  if (!approxBytes || approxBytes > 3 * 1024 * 1024) {
+    fail(413, 'Das vorbereitete Fahrzeugbild ist zu groß.');
+  }
 
-  const form = new FormData();
-  form.append('size', 'auto');
-  form.append('image_file', new Blob([buffer], { type: mime }), `vehicle.${match[1] === 'jpeg' ? 'jpg' : match[1]}`);
+  const boundary = `----chs${crypto.randomBytes(12).toString('hex')}`;
+  const parts = [
+    `--${boundary}\r\nContent-Disposition: form-data; name="image_file_b64"\r\n\r\n${base64}\r\n`,
+    `--${boundary}\r\nContent-Disposition: form-data; name="size"\r\n\r\npreview\r\n`,
+    `--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\ncar\r\n`,
+    `--${boundary}--\r\n`
+  ];
+  const body = Buffer.from(parts.join(''), 'utf8');
 
-  let response;
-  try {
-    response = await fetch('https://api.remove.bg/v1.0/removebg', {
+  const response = await new Promise((resolve, reject) => {
+    const request = https.request({
+      hostname: 'api.remove.bg',
+      path: '/v1.0/removebg',
       method: 'POST',
-      headers: { 'X-Api-Key': REMOVE_BG_API_KEY },
-      body: form,
-      signal: AbortSignal.timeout(45000)
+      headers: {
+        'X-Api-Key': REMOVE_BG_API_KEY,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length,
+        'Accept': 'image/png'
+      },
+      timeout: 45000
+    }, res => {
+      const chunks = [];
+      let total = 0;
+      res.on('data', chunk => {
+        total += chunk.length;
+        if (total <= 10 * 1024 * 1024) chunks.push(chunk);
+        else request.destroy(new Error('Antwort der Bildfreistellung ist zu groß.'));
+      });
+      res.on('end', () => resolve({ status: res.statusCode || 500, headers: res.headers, body: Buffer.concat(chunks) }));
     });
-  } catch (error) {
+
+    request.on('timeout', () => request.destroy(new Error('Zeitüberschreitung bei remove.bg.')));
+    request.on('error', reject);
+    request.end(body);
+  }).catch(error => {
     console.error('remove.bg request failed:', error);
     fail(502, 'Bildfreistellung ist gerade nicht erreichbar. Bitte erneut versuchen.');
+  });
+
+  if (!response || response.status < 200 || response.status >= 300) {
+    const detail = response?.body?.toString('utf8') || '';
+    console.error('remove.bg error:', response?.status, detail.slice(0, 800));
+    if (response?.status === 400) fail(400, 'remove.bg konnte dieses Foto nicht verarbeiten. Bitte ein anderes Foto testen.');
+    if (response?.status === 402) fail(503, 'Das remove.bg-Kontingent ist aufgebraucht.');
+    if (response?.status === 403) fail(503, 'REMOVE_BG_API_KEY ist ungültig oder nicht freigeschaltet.');
+    if (response?.status === 429) fail(503, 'Zu viele Bildanfragen. Bitte kurz warten.');
+    fail(502, `Bildfreistellung fehlgeschlagen${response?.status ? ` (HTTP ${response.status})` : ''}.`);
   }
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('remove.bg error:', response.status, detail.slice(0, 500));
-    if (response.status === 402) fail(503, 'Das Kontingent für die Bildfreistellung ist aufgebraucht.');
-    if (response.status === 403) fail(503, 'Der Schlüssel für die Bildfreistellung ist ungültig.');
-    fail(502, 'Das Fahrzeug konnte nicht freigestellt werden. Bitte ein anderes Foto versuchen.');
+  const contentType = String(response.headers['content-type'] || '');
+  if (!contentType.includes('image/')) {
+    console.error('remove.bg unexpected content-type:', contentType, response.body.toString('utf8').slice(0, 500));
+    fail(502, 'remove.bg hat kein Bild zurückgegeben.');
   }
 
-  const output = Buffer.from(await response.arrayBuffer());
-  if (!output.length || output.length > 8 * 1024 * 1024) fail(502, 'Das freigestellte Bild ist ungültig oder zu groß.');
-  return { image: `data:image/png;base64,${output.toString('base64')}` };
+  if (!response.body.length) fail(502, 'remove.bg hat ein leeres Bild zurückgegeben.');
+  return { image: `data:image/png;base64,${response.body.toString('base64')}` };
 }
 
 const send = (res, status, obj) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); };
