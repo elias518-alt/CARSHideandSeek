@@ -11,6 +11,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yyvljkzitodxhtkilsxm.s
 const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
 const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY || '';
 const lobbies = new Map();
+const lobbyInvites = new Map();
 const authCache = new Map();
 const MAX_PLAYERS = 20;
 const PUBLIC_RANGE_M = 20000;
@@ -169,6 +170,31 @@ function updateLocation(p, data) {
 }
 async function route(action, data, authId) {
   const now = Date.now();
+
+  if (action === 'invites') {
+    const invites = [...lobbyInvites.values()]
+      .filter(invite => invite.targetAuthId === authId && invite.expiresAt > now)
+      .filter(invite => {
+        const lobby = lobbies.get(invite.code);
+        return lobby && lobby.state === 'LOBBY' && lobby.players.length < MAX_PLAYERS;
+      })
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(invite => ({
+        id: invite.id,
+        code: invite.code,
+        lobbyName: invite.lobbyName,
+        senderName: invite.senderName,
+        expiresAt: invite.expiresAt
+      }));
+    return { invites };
+  }
+
+  if (action === 'dismiss-invite') {
+    const invite = lobbyInvites.get(clean(data.inviteId, 80));
+    if (invite && invite.targetAuthId === authId) lobbyInvites.delete(invite.id);
+    return { ok: true };
+  }
+
   if (action === 'public') {
     const position = parsePosition(data);
     return { lobbies: [...lobbies.values()]
@@ -210,10 +236,42 @@ async function route(action, data, authId) {
       player.location = { ...location, at: now };
     }
     lobby.players.push(player);
+    for (const [inviteId, invite] of lobbyInvites) {
+      if (invite.targetAuthId === authId && invite.code === lobby.code) {
+        lobbyInvites.delete(inviteId);
+      }
+    }
     return { userId: player.id, lobby: resultState(lobby, player).lobby };
   }
   const { lobby, me } = getSession(data, authId);
   updateGame(lobby, now);
+
+  if (action === 'invite') {
+    if (lobby.state !== 'LOBBY') fail(409, 'Einladungen sind nur in einer offenen Lobby möglich.');
+    const targetAuthId = clean(data.targetAuthId, 120);
+    if (!targetAuthId) fail(400, 'Freund fehlt.');
+    if (targetAuthId === authId) fail(400, 'Du kannst dich nicht selbst einladen.');
+
+    for (const [inviteId, invite] of lobbyInvites) {
+      if (invite.code === lobby.code && invite.targetAuthId === targetAuthId) {
+        lobbyInvites.delete(inviteId);
+      }
+    }
+
+    const invite = {
+      id: crypto.randomUUID(),
+      targetAuthId,
+      senderAuthId: authId,
+      senderName: me.name,
+      code: lobby.code,
+      lobbyName: lobby.name,
+      createdAt: now,
+      expiresAt: now + 10 * 60 * 1000
+    };
+    lobbyInvites.set(invite.id, invite);
+    return { ok: true, inviteId: invite.id };
+  }
+
   if (action === 'state') return resultState(lobby, me);
   if (action === 'settings') {
     if (me.id !== lobby.hostId) fail(403, 'Nur der Host darf die Lobby ändern.');
@@ -391,8 +449,8 @@ async function handler(req, res) {
         return;
       }
 
-      if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat','settings'].includes(action)) fail(404, 'Unbekannte Funktion.');
-      if (req.method !== (['public','state'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
+      if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat','settings','invite','invites','dismiss-invite'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (req.method !== (['public','state','invites'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
       send(res, 200, await route(action, data, authId));
@@ -416,6 +474,10 @@ setInterval(() => {
   for (const [key, lobby] of lobbies) {
     updateGame(lobby, now);
     if (now - lobby.createdAt > 6 * 60 * 60 * 1000 || (lobby.state === 'LOBBY' && now - Math.max(...lobby.players.map(p => p.lastSeen)) > 10 * 60 * 1000)) lobbies.delete(key);
+  }
+  for (const [inviteId, invite] of lobbyInvites) {
+    const lobby = lobbies.get(invite.code);
+    if (invite.expiresAt <= now || !lobby || lobby.state !== 'LOBBY') lobbyInvites.delete(inviteId);
   }
 }, 30000).unref();
 if (require.main === module) http.createServer(handler).listen(PORT, () => console.log(`Car Hide & Seek auf Port ${PORT}`));

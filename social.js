@@ -185,6 +185,116 @@ async function sendLobbyChat(event) {
     if (button) button.disabled = false;
   }
 }
+
+let lobbyInviteChecking = false;
+
+async function openLobbyInviteDialog() {
+  if (!gameSession || !state?.lobby) {
+    toast('Du bist aktuell in keiner Lobby.');
+    return;
+  }
+
+  const dialog = $('#freshInviteDialog');
+  const list = $('#freshInviteFriends');
+  if (!dialog || !list) return;
+
+  list.innerHTML = '<p class="muted">Freunde werden geladen…</p>';
+  if (!dialog.open) dialog.showModal();
+
+  try {
+    const rows = await socialRpc('chs_social_overview') || [];
+    const friends = rows.filter(row => row.status === 'accepted');
+
+    list.innerHTML = friends.length
+      ? friends.map(row => `
+          <div class="freshInviteFriend">
+            <div class="socialAvatar">${esc((row.username || '?').slice(0, 1).toUpperCase())}</div>
+            <div class="socialPerson">
+              <strong>${esc(row.username || 'Spieler')}</strong>
+              <small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}</small>
+            </div>
+            <button type="button" data-lobby-invite="${esc(row.peer_id)}">EINLADEN</button>
+          </div>
+        `).join('')
+      : '<div class="emptyState">Du hast noch keine angenommenen Freunde.</div>';
+  } catch (error) {
+    list.innerHTML = `<div class="emptyState">${esc(error.message || 'Freunde konnten nicht geladen werden.')}</div>`;
+  }
+}
+
+async function sendLobbyInvite(targetAuthId, button) {
+  if (!gameSession || !targetAuthId) return;
+  if (button) button.disabled = true;
+
+  try {
+    await api('invite', gameCredentials({ targetAuthId }));
+    if (button) {
+      button.textContent = 'GESENDET ✓';
+      setTimeout(() => {
+        if (button.isConnected) {
+          button.disabled = false;
+          button.textContent = 'EINLADEN';
+        }
+      }, 1800);
+    }
+    toast('Lobby-Einladung gesendet.');
+  } catch (error) {
+    if (button) button.disabled = false;
+    socialError(error);
+  }
+}
+
+function renderLobbyInvites(invites) {
+  const box = $('#lobbyInviteInbox');
+  if (!box) return;
+
+  if (gameSession || !invites?.length) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = invites.map(invite => `
+    <section class="lobbyInviteCard">
+      <div>
+        <span>LOBBY-EINLADUNG</span>
+        <strong>${esc(invite.senderName || 'Freund')} lädt dich ein</strong>
+        <small>${esc(invite.lobbyName || 'Lobby')} · Code ${esc(invite.code)}</small>
+      </div>
+      <div class="lobbyInviteActions">
+        <button type="button" data-join-invite="${esc(invite.code)}">BEITRETEN</button>
+        <button type="button" data-dismiss-invite="${esc(invite.id)}">ABLEHNEN</button>
+      </div>
+    </section>
+  `).join('');
+
+  box.classList.remove('hidden');
+}
+
+async function refreshLobbyInvites() {
+  if (!authSession || lobbyInviteChecking) return;
+  lobbyInviteChecking = true;
+
+  try {
+    const result = await api('invites', {}, 'GET');
+    renderLobbyInvites(result.invites || []);
+  } catch (error) {
+    if (error?.status !== 401) console.error('Lobby-Einladungen:', error);
+  } finally {
+    lobbyInviteChecking = false;
+  }
+}
+
+async function dismissLobbyInvite(inviteId) {
+  if (!inviteId) return;
+  try {
+    await api('dismiss-invite', { inviteId });
+    await refreshLobbyInvites();
+  } catch (error) {
+    socialError(error);
+  }
+}
+
 function setupSocial() {
   setupVehicleSearch();
   $('#friendSearch')?.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(searchPlayers, 250); });
@@ -197,6 +307,23 @@ function setupSocial() {
   }));
   $('#closeDm')?.addEventListener('click', () => { activePeer = null; $('#dmPanel').classList.add('hidden'); });
   $('#dmForm')?.addEventListener('submit', sendDm);
+
+  $('#freshInviteButton')?.addEventListener('click', openLobbyInviteDialog);
+  $('#freshInviteClose')?.addEventListener('click', () => $('#freshInviteDialog')?.close());
+  $('#freshInviteFriends')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-lobby-invite]');
+    if (button) sendLobbyInvite(button.dataset.lobbyInvite, button);
+  });
+  $('#lobbyInviteInbox')?.addEventListener('click', event => {
+    const joinButton = event.target.closest('[data-join-invite]');
+    if (joinButton) {
+      join(joinButton.dataset.joinInvite);
+      return;
+    }
+    const dismissButton = event.target.closest('[data-dismiss-invite]');
+    if (dismissButton) dismissLobbyInvite(dismissButton.dataset.dismissInvite);
+  });
+
   const lobbyChatForm = $('#lobbyChatForm');
   if (lobbyChatForm && lobbyChatForm.dataset.chatBound !== '1') {
     lobbyChatForm.dataset.chatBound = '1';
@@ -208,6 +335,9 @@ function setupSocial() {
   setInterval(() => {
     if ($('#friends')?.classList.contains('active')) { loadFriends(); if (activePeer) loadDm(); }
     renderLobbyChat();
+    refreshLobbyInvites();
   }, 4000);
+
+  refreshLobbyInvites();
 }
 setupSocial();
