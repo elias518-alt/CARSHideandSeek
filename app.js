@@ -2278,7 +2278,17 @@ async function shrinkCarPhoto(file) {
     const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm');
     const removeBackground = mod.removeBackground || mod.default;
     if (typeof removeBackground !== 'function') throw new Error('Freistellung konnte nicht geladen werden.');
-    const transparentBlob = await removeBackground(file, { output: { format: 'image/png', quality: 0.9 } });
+    const transparentBlob = await removeBackground(file, {
+      model: 'small',
+      proxyToWorker: false,
+      output: { format: 'image/png', quality: 0.9 },
+      progress: (key, current, total) => {
+        if (!total || !String(key).startsWith('fetch:')) return;
+        const percent = Math.max(1, Math.min(99, Math.round(current / total * 100)));
+        const preview = document.getElementById('newCarPhotoPreview');
+        if (preview) preview.setAttribute('data-processing', `Freistellung ${percent}%`);
+      }
+    });
     const img = await loadImageFromBlob(transparentBlob);
     return cropTransparentVehicle(img);
   } catch (error) {
@@ -2309,7 +2319,7 @@ function setupCarPhotoInput() {
       if (preview) preview.innerHTML = carPhotoMarkup({photo:pendingCarPhoto,brand:'Dein',model:'Fahrzeug'});
       toast('Fahrzeug freigestellt ✓');
     } catch(error) { pendingCarPhoto = ''; toast(error.message); }
-    finally { carPhotoBusy = false; event.target.disabled = false; }
+    finally { carPhotoBusy = false; event.target.disabled = false; preview?.removeAttribute('data-processing'); }
   });
 }
 document.getElementById('garageCars')?.addEventListener('change', async event => {
@@ -2471,6 +2481,18 @@ function setupProfileActions() {
 }
 setupProfileActions();
 
+/* Stabiler mobiler Lobby-Chat: iOS/Android-Tastatur verändert nur die Chat-Höhe,
+   nicht mehr den gesamten Warteraum. */
+function syncFreshChatViewport() {
+  const viewport = window.visualViewport;
+  const height = viewport ? viewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--fresh-chat-vh', `${Math.round(height)}px`);
+}
+syncFreshChatViewport();
+window.addEventListener('resize', syncFreshChatViewport, { passive: true });
+window.visualViewport?.addEventListener('resize', syncFreshChatViewport, { passive: true });
+window.visualViewport?.addEventListener('scroll', syncFreshChatViewport, { passive: true });
+
 const freshLobbyStyle = document.createElement("style");
 freshLobbyStyle.textContent = ``;
 document.head.append(freshLobbyStyle);
@@ -2511,13 +2533,20 @@ function ensureFreshLobby() {
     markFreshChatRead();
     const list = document.getElementById('lobbyMessages');
     if (list) list.scrollTop = list.scrollHeight;
-    document.getElementById('lobbyChatInput')?.focus();
+    // Auf Mobilgeräten den Chat erst öffnen, ohne sofort die Tastatur aufzureißen.
+    // Der Nutzer tippt anschließend bewusst in das Eingabefeld.
+    document.documentElement.classList.add('freshChatOpen');
+    document.body.classList.add('freshChatOpen');
   };
   const closeChat = () => {
     if (!chatDrawer) return;
+    const input = document.getElementById('lobbyChatInput');
+    if (input && document.activeElement === input) input.blur();
     chatDrawer.classList.remove('open');
     chatDrawer.setAttribute('aria-hidden', 'true');
-    chatButton?.focus();
+    document.documentElement.classList.remove('freshChatOpen');
+    document.body.classList.remove('freshChatOpen');
+    chatButton?.focus({ preventScroll: true });
   };
 
   chatButton?.addEventListener('click', openChat);
@@ -2572,8 +2601,10 @@ function paintFreshUnread() {
   const badge=document.getElementById('freshUnread');if(!badge)return;
   badge.textContent=count>99?'99+':String(count);badge.hidden=!count;
   const button=document.getElementById('freshChatButton');
-  button.classList.toggle('hasUnread',count>0);
-  button.setAttribute('aria-label',count?`Lobby-Chat: ${count} ungelesene Nachrichten`:'Lobby-Chat öffnen');
+  if (button) {
+    button.classList.toggle('hasUnread',count>0);
+    button.setAttribute('aria-label',count?`Lobby-Chat: ${count} ungelesene Nachrichten`:'Lobby-Chat öffnen');
+  }
   const announcement=document.getElementById('freshChatAnnouncement');
   const label=count?`${count} ungelesene Chat-Nachrichten`:'';
   if (announcement && announcement.textContent !== label) {
