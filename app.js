@@ -2645,19 +2645,59 @@ function paintFreshUnread() {
   }
 }
 function updateFreshChat() {
-  if(!state?.lobby)return;
-  const code=state.lobby.code, messages=state.chat||[], drawer=document.getElementById('freshChatDrawer');
-  if(freshChatState.code!==code){
-    freshChatState.code=code;freshChatState.seen=new Set(messages.map(message=>message.id));freshChatState.unread.clear();
-    drawer?.classList.remove('open');drawer?.setAttribute('aria-hidden','true');document.getElementById('freshSettingsDialog')?.close();
-  }else{
-    for(const message of messages){
-      if(!freshChatState.seen.has(message.id)&&message.sender!==state.lobby.me.id)freshChatState.unread.add(message.id);
+  if (!state?.lobby) return;
+
+  const code = state.lobby.code;
+  const messages = state.chat || [];
+  const drawer = document.getElementById('freshChatDrawer');
+  const backdrop = document.getElementById('freshChatBackdrop');
+  const game = document.getElementById('game');
+
+  /*
+    Wenn eine Lobby neu geladen wird, muss der komplette Chat-Zustand
+    geschlossen werden. In V5 wurde nur der Drawer geschlossen, der
+    Backdrop blieb aber aktiv. Dadurch lag eine unsichtbare Ebene über
+    Chat-, Einstellungen- und Verlassen-Button und fing die Klicks ab.
+  */
+  if (freshChatState.code !== code) {
+    freshChatState.code = code;
+    freshChatState.seen = new Set(messages.map(message => message.id));
+    freshChatState.unread.clear();
+
+    drawer?.classList.remove('open');
+    drawer?.setAttribute('aria-hidden', 'true');
+    backdrop?.classList.remove('open');
+    document.body.classList.remove('freshChatOpen');
+    game?.classList.remove('chatDrawerOpen');
+
+    const settingsDialog = document.getElementById('freshSettingsDialog');
+    if (settingsDialog?.open) settingsDialog.close();
+  } else {
+    for (const message of messages) {
+      if (!freshChatState.seen.has(message.id) && message.sender !== state.lobby.me.id) {
+        freshChatState.unread.add(message.id);
+      }
       freshChatState.seen.add(message.id);
     }
   }
-  if(drawer?.classList.contains('open')&&document.visibilityState==='visible'&&document.hasFocus())markFreshChatRead();
-  else paintFreshUnread();
+
+  /*
+    Sicherheits-Sync: Ein Backdrop darf niemals aktiv bleiben, wenn der
+    Chat selbst geschlossen ist. Das verhindert auch nach Safari-Resume,
+    Polling oder einem schnellen Lobby-Wechsel blockierte Bedienelemente.
+  */
+  const chatOpen = !!drawer?.classList.contains('open');
+  if (!chatOpen) {
+    backdrop?.classList.remove('open');
+    document.body.classList.remove('freshChatOpen');
+    game?.classList.remove('chatDrawerOpen');
+  }
+
+  if (chatOpen && document.visibilityState === 'visible' && document.hasFocus()) {
+    markFreshChatRead();
+  } else {
+    paintFreshUnread();
+  }
 }
 function freshPlayerColor(id) {
   const colors=['#ac98ff','#76e4cb','#ffb68b','#84bdff','#f7a1d4','#dfec8e'];
