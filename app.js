@@ -45,6 +45,9 @@ let gpsStarting = false;
 let gpsHeartbeat = null;
 let publicSearchBusy = false;
 let publicSearchLastAt = 0;
+let garageSyncBusy = false;
+let gpsPhase = '';
+let lastGpsRequestAt = 0;
 
 
 /* =========================================================
@@ -110,6 +113,196 @@ function saveGarage() {
     'chsGarage',
     JSON.stringify(localGarage)
   );
+}
+
+function vehiclePhotoUrl(photoPath) {
+  if (!photoPath) return '';
+  const { data } = supabaseClient.storage
+    .from('vehicle-images')
+    .getPublicUrl(photoPath);
+  return data?.publicUrl || '';
+}
+
+function vehiclePhotoSource(value) {
+  if (safeCarPhoto(value)) return value;
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function cloudVehicleToLocal(row) {
+  return {
+    id: row.id,
+    brand: row.brand || '',
+    model: row.model || '',
+    year: row.model_year ? String(row.model_year) : '',
+    color: row.color || '',
+    active: !!row.is_active || row.id === dbProfile?.active_vehicle_id,
+    photoPath: row.photo_path || '',
+    photo: row.photo_path ? vehiclePhotoUrl(row.photo_path) : ''
+  };
+}
+
+async function uploadVehiclePhoto(vehicleId, dataUrl) {
+  if (!authSession?.user?.id || !dataUrl) return '';
+  const source = vehiclePhotoSource(dataUrl);
+  if (!source.startsWith('data:image/')) {
+    throw new Error('Ungültiges Fahrzeugbild.');
+  }
+
+  const blob = await (await fetch(source)).blob();
+  if (blob.size > 2 * 1024 * 1024) {
+    throw new Error('Das Fahrzeugbild ist nach der Verarbeitung zu groß.');
+  }
+
+  const extension = blob.type === 'image/png' ? 'png' : 'webp';
+  const path = `${authSession.user.id}/${vehicleId}.${extension}`;
+
+  const { error } = await supabaseClient.storage
+    .from('vehicle-images')
+    .upload(path, blob, {
+      contentType: blob.type || 'image/webp',
+      upsert: true,
+      cacheControl: '3600'
+    });
+
+  if (error) throw error;
+  return path;
+}
+
+async function activateCloudVehicle(vehicleId) {
+  if (!authSession?.user?.id || garageSyncBusy) return;
+  garageSyncBusy = true;
+
+  const previous = localGarage.map(car => ({ ...car }));
+
+  try {
+    const userId = authSession.user.id;
+
+    const { error: clearError } = await supabaseClient
+      .from('vehicles')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('is_active', true);
+    if (clearError) throw clearError;
+
+    const { error: activateError } = await supabaseClient
+      .from('vehicles')
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq('id', vehicleId)
+      .eq('user_id', userId);
+    if (activateError) throw activateError;
+
+    const { error: profileError } = await supabaseClient
+      .from('profiles')
+      .update({ active_vehicle_id: vehicleId, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    if (profileError) throw profileError;
+
+    if (dbProfile) dbProfile.active_vehicle_id = vehicleId;
+    localGarage.forEach(car => { car.active = car.id === vehicleId; });
+    saveGarage();
+    syncVehicleUI();
+    toast('Aktives Fahrzeug geändert ✓');
+  } catch (error) {
+    localGarage = previous;
+    saveGarage();
+    syncVehicleUI();
+    toast(error.message || 'Fahrzeug konnte nicht aktiviert werden.');
+  } finally {
+    garageSyncBusy = false;
+  }
+}
+
+async function importLegacyGarage() {
+  if (!authSession?.user?.id || !localGarage.length) return false;
+  const userId = authSession.user.id;
+  const legacy = localGarage.map(car => ({ ...car }));
+  let activeId = '';
+
+  for (const [index, car] of legacy.entries()) {
+    const vehicleId = crypto.randomUUID();
+    const isActive = car.active || (!legacy.some(item => item.active) && index === 0);
+
+    const { error: insertError } = await supabaseClient
+      .from('vehicles')
+      .insert({
+        id: vehicleId,
+        user_id: userId,
+        brand: String(car.brand || '').slice(0, 60),
+        model: String(car.model || '').slice(0, 80),
+        model_year: Number(car.year) || null,
+        color: String(car.color || '').slice(0, 40),
+        is_active: false
+      });
+    if (insertError) throw insertError;
+
+    let photoPath = '';
+    if (safeCarPhoto(car.photo)) {
+      try {
+        photoPath = await uploadVehiclePhoto(vehicleId, car.photo);
+        const { error: photoError } = await supabaseClient
+          .from('vehicles')
+          .update({ photo_path: photoPath, updated_at: new Date().toISOString() })
+          .eq('id', vehicleId)
+          .eq('user_id', userId);
+        if (photoError) throw photoError;
+      } catch (error) {
+        console.error('Altes Fahrzeugfoto konnte nicht migriert werden:', error);
+      }
+    }
+
+    if (isActive) activeId = vehicleId;
+  }
+
+  if (activeId) {
+    await activateCloudVehicle(activeId);
+  }
+
+  return true;
+}
+
+async function loadCloudGarage({ migrateLocal = true } = {}) {
+  if (!authSession?.user?.id || garageSyncBusy) return;
+  garageSyncBusy = true;
+
+  try {
+    const userId = authSession.user.id;
+    let { data, error } = await supabaseClient
+      .from('vehicles')
+      .select('id,user_id,brand,model,model_year,color,is_active,photo_path,created_at,updated_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (!data?.length && migrateLocal && localGarage.length) {
+      garageSyncBusy = false;
+      await importLegacyGarage();
+      return loadCloudGarage({ migrateLocal: false });
+    }
+
+    localGarage = (data || []).map(cloudVehicleToLocal);
+
+    const profileActive = dbProfile?.active_vehicle_id;
+    if (profileActive && localGarage.some(car => car.id === profileActive)) {
+      localGarage.forEach(car => { car.active = car.id === profileActive; });
+    } else if (localGarage.length && !localGarage.some(car => car.active)) {
+      localGarage[0].active = true;
+    }
+
+    saveGarage();
+    syncVehicleUI();
+  } catch (error) {
+    console.error('Cloud-Garage konnte nicht geladen werden:', error);
+    toast('Garage konnte nicht synchronisiert werden. Lokale Daten bleiben erhalten.');
+    syncVehicleUI();
+  } finally {
+    garageSyncBusy = false;
+  }
 }
 
 
@@ -529,6 +722,8 @@ async function initializeAuth() {
       authSession.user.id
     );
 
+    await loadCloudGarage();
+
 
     if (gameSession) {
       showGame();
@@ -714,7 +909,7 @@ function renderGarage() {
           <label style="display:block;margin:10px 0">FOTO HINZUFÜGEN / ÄNDERN
             <input type="file" accept="image/jpeg,image/png,image/webp" data-car-photo="${esc(car.id)}">
           </label>
-          ${safeCarPhoto(car.photo) ? `<button type="button" class="textButton" data-remove-photo="${esc(car.id)}">FOTO ENTFERNEN</button>` : ''}
+          ${vehiclePhotoSource(car.photo) ? `<button type="button" class="textButton" data-remove-photo="${esc(car.id)}">FOTO ENTFERNEN</button>` : ''}
 
 
           <span class="manufacturer">
@@ -758,80 +953,83 @@ function closeCarModal() {
 }
 
 
-function saveCar() {
-  if (carPhotoBusy) { toast("Bitte warten, bis das Foto verarbeitet ist."); return; }
-  const brand =
-    $('#newCarBrand')
-      ?.value
-      .trim();
-
-  const model =
-    $('#newCarModel')
-      ?.value
-      .trim();
-
-  const year =
-    $('#newCarYear')
-      ?.value
-      .trim();
-
-  const color =
-    $('#newCarColor')
-      ?.value
-      .trim();
-
-
-  if (
-    !brand ||
-    !model ||
-    !color
-  ) {
-    toast(
-      'Bitte Marke, Modell und Farbe angeben.'
-    );
-
+async function saveCar() {
+  if (carPhotoBusy || garageSyncBusy) {
+    toast('Bitte kurz warten, die Garage wird noch synchronisiert.');
     return;
   }
 
+  const brand = $('#newCarBrand')?.value.trim();
+  const model = $('#newCarModel')?.value.trim();
+  const year = $('#newCarYear')?.value.trim();
+  const color = $('#newCarColor')?.value.trim();
 
-  const oldGarage = localGarage.map(car => ({ ...car }));
-  localGarage.forEach(car => {
-    car.active = false;
-  });
+  if (!brand || !model || !color) {
+    toast('Bitte Marke, Modell und Farbe angeben.');
+    return;
+  }
 
+  if (!authSession?.user?.id) {
+    toast('Bitte erneut anmelden.');
+    return;
+  }
 
-  localGarage.push({
-    id:
-      crypto.randomUUID
-        ? crypto.randomUUID()
-        : `car_${Date.now()}`,
+  garageSyncBusy = true;
+  const userId = authSession.user.id;
+  const vehicleId = crypto.randomUUID();
+  let uploadedPath = '';
 
-    brand,
-    model,
-    year,
-    color,
-    photo: pendingCarPhoto,
-    active: true
-  });
+  try {
+    const { error: insertError } = await supabaseClient
+      .from('vehicles')
+      .insert({
+        id: vehicleId,
+        user_id: userId,
+        brand: brand.slice(0, 60),
+        model: model.slice(0, 80),
+        model_year: Number(year) || null,
+        color: color.slice(0, 40),
+        is_active: false
+      });
+    if (insertError) throw insertError;
 
+    if (pendingCarPhoto) {
+      uploadedPath = await uploadVehiclePhoto(vehicleId, pendingCarPhoto);
+      const { error: photoError } = await supabaseClient
+        .from('vehicles')
+        .update({ photo_path: uploadedPath, updated_at: new Date().toISOString() })
+        .eq('id', vehicleId)
+        .eq('user_id', userId);
+      if (photoError) throw photoError;
+    }
 
-  try { saveGarage(); }
-  catch { localGarage = oldGarage; toast('Speicher voll. Bitte ein gespeichertes Foto entfernen.'); return; }
-  pendingCarPhoto = '';
-  resetCarPhotoInput();
-  syncVehicleUI();
-  closeCarModal();
+    garageSyncBusy = false;
+    await activateCloudVehicle(vehicleId);
+    await loadCloudGarage({ migrateLocal: false });
 
+    pendingCarPhoto = '';
+    resetCarPhotoInput();
+    closeCarModal();
 
-  $('#newCarBrand').value = '';
-  $('#newCarModel').value = '';
-  $('#newCarYear').value = '';
-  $('#newCarColor').value = '';
+    $('#newCarBrand').value = '';
+    $('#newCarModel').value = '';
+    $('#newCarYear').value = '';
+    $('#newCarColor').value = '';
 
-
-  toast(
-    'Fahrzeug gespeichert ✓'
-  );
+    toast('Fahrzeug im Konto gespeichert ✓');
+  } catch (error) {
+    if (uploadedPath) {
+      try {
+        await supabaseClient.storage.from('vehicle-images').remove([uploadedPath]);
+      } catch {}
+    }
+    try {
+      await supabaseClient.from('vehicles').delete().eq('id', vehicleId).eq('user_id', userId);
+    } catch {}
+    toast(error.message || 'Fahrzeug konnte nicht gespeichert werden.');
+  } finally {
+    garageSyncBusy = false;
+  }
 }
 
 
@@ -959,6 +1157,9 @@ function playerData() {
       car.color ||
       'Unbekannt',
 
+    photoUrl:
+      vehiclePhotoSource(car.photo),
+
     mode:
       $('#mode')?.value ||
       'PASSENGER'
@@ -973,8 +1174,8 @@ function currentPosition() {
     }
     navigator.geolocation.getCurrentPosition(
       position => {
-        if (position.coords.accuracy > 100) {
-          reject(new Error('GPS ist zu ungenau. Bitte draußen erneut versuchen.'));
+        if (position.coords.accuracy > 200) {
+          reject(new Error('Standort ist zu ungenau. Bitte kurz erneut versuchen.'));
           return;
         }
         resolve({
@@ -984,7 +1185,7 @@ function currentPosition() {
         });
       },
       () => reject(new Error('Standort freigeben, um öffentliche Runden zu finden.')),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+      { enableHighAccuracy: false, maximumAge: 30000, timeout: 12000 }
     );
   });
 }
@@ -1145,10 +1346,7 @@ function showGame() {
 
 
   setTimeout(() => {
-    if (
-      watch === null &&
-      !gpsStarting
-    ) {
+    if (!gpsStarting) {
       gps();
     }
   }, 400);
@@ -1201,10 +1399,17 @@ async function poll() {
   }
 
 
+  const pollDelay =
+    state?.lobby?.state === 'LOBBY'
+      ? 3000
+      : state?.lobby?.state === 'RESULT'
+        ? 5000
+        : 1000;
+
   pollTimer =
     setTimeout(
       poll,
-      1000
+      pollDelay
     );
 }
 
@@ -1645,16 +1850,72 @@ function renderGame() {
 
   renderLobbySettings();
   renderFreshLobby();
-  window.chsMapUpdate?.(state);
+  syncGpsForLobbyState();
+
+  const mapFold = document.getElementById('freshMapFold');
+  if (lobby.state !== 'LOBBY' || mapFold?.open) {
+    window.chsMapUpdate?.(state);
+  }
 }
 
 
 /* =========================================================
-   GPS
+   GPS — ADAPTIV / AKKUSCHONEND
 ========================================================= */
+
+function gpsConfigForState() {
+  const phase = state?.lobby?.state || 'LOBBY';
+
+  if (phase === 'ACTIVE' || phase === 'HEADSTART') {
+    return {
+      phase: 'ACTIVE',
+      interval: 6000,
+      options: {
+        enableHighAccuracy: true,
+        maximumAge: 2500,
+        timeout: 10000
+      }
+    };
+  }
+
+  if (phase === 'COUNTDOWN') {
+    return {
+      phase: 'COUNTDOWN',
+      interval: 10000,
+      options: {
+        enableHighAccuracy: false,
+        maximumAge: 5000,
+        timeout: 10000
+      }
+    };
+  }
+
+  if (phase === 'RESULT') {
+    return {
+      phase: 'RESULT',
+      interval: 60000,
+      options: {
+        enableHighAccuracy: false,
+        maximumAge: 60000,
+        timeout: 10000
+      }
+    };
+  }
+
+  return {
+    phase: 'LOBBY',
+    interval: 30000,
+    options: {
+      enableHighAccuracy: false,
+      maximumAge: 30000,
+      timeout: 10000
+    }
+  };
+}
 
 async function sendGameLocation(position) {
   if (!gameSession) return;
+
   try {
     await api('location', gameCredentials({
       lat: position.coords.latitude,
@@ -1663,122 +1924,85 @@ async function sendGameLocation(position) {
       altitude: position.coords.altitude,
       speed: position.coords.speed
     }));
-    $('#gps').textContent = 'GPS AKTIV ✓';
+
+    const lobbyMode = state?.lobby?.state === 'LOBBY';
+    $('#gps').textContent = lobbyMode ? 'GPS BEREIT ✓' : 'GPS AKTIV ✓';
     $('#gpsDot')?.classList.add('on');
   } catch (error) {
     console.error('Standortübertragung fehlgeschlagen', error);
   }
 }
 
-function gps() {
-  if (
-    !navigator.geolocation
-  ) {
-    toast(
-      'Dieses Gerät unterstützt keine Standortabfrage.'
-    );
+function requestGpsPosition({ force = false } = {}) {
+  if (!navigator.geolocation || !gameSession || gpsStarting) return;
 
+  const config = gpsConfigForState();
+  const now = Date.now();
+
+  if (!force && now - lastGpsRequestAt < Math.max(3000, config.interval - 1000)) {
     return;
   }
-
-
-  if (
-    watch !== null ||
-    gpsStarting
-  ) {
-    return;
-  }
-
 
   gpsStarting = true;
+  lastGpsRequestAt = now;
 
-  if (gpsHeartbeat === null) {
-    gpsHeartbeat = setInterval(() => {
-      if (!gameSession || watch === null) return;
-      navigator.geolocation.getCurrentPosition(
-        position => sendGameLocation(position),
-        error => console.error('GPS-Aktualisierung:', error),
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-      );
-    }, 10000);
-  }
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      gpsStarting = false;
+      sendGameLocation(position);
+    },
+    error => {
+      gpsStarting = false;
+      console.error('GPS:', error);
 
-  $('#gps').textContent =
-    'GPS WIRD ERMITTELT...';
-
-
-  watch =
-    navigator.geolocation.watchPosition(
-
-      position => {
-        gpsStarting = false;
-        sendGameLocation(position);
-      },
-
-
-      error => {
-        console.error(
-          'GPS:',
-          error
-        );
-
-
-        gpsStarting = false;
-
-
-        if (
-          watch !== null
-        ) {
-          navigator.geolocation
-            .clearWatch(
-              watch
-            );
-        }
-
-
-        watch = null;
-        clearInterval(gpsHeartbeat);
-        gpsHeartbeat = null;
-
-
-        $('#gps').textContent =
-          'GPS ERNEUT VERSUCHEN';
-
-
-        if (error.code === 1) {
-          toast(
-            'Standortzugriff nicht erlaubt. Bitte Standort für diese Webseite freigeben.'
-          );
-        }
-
-        else if (error.code === 2) {
-          toast(
-            'Aktuelle Position konnte nicht bestimmt werden.'
-          );
-        }
-
-        else if (error.code === 3) {
-          toast(
-            'GPS benötigt länger. Bitte erneut versuchen.'
-          );
-        }
-
-        else {
-          toast(
-            `GPS: ${error.message}`
-          );
-        }
-      },
-
-
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 20000
+      if (error.code === 1) {
+        $('#gps').textContent = 'GPS FREIGEBEN';
+      } else {
+        $('#gps').textContent = 'GPS ERNEUT VERSUCHEN';
       }
-    );
+    },
+    config.options
+  );
 }
 
+function startGpsSchedule({ force = false } = {}) {
+  if (!navigator.geolocation) {
+    toast('Dieses Gerät unterstützt keine Standortabfrage.');
+    return;
+  }
+
+  const config = gpsConfigForState();
+
+  if (gpsPhase === config.phase && gpsHeartbeat !== null && !force) {
+    return;
+  }
+
+  clearInterval(gpsHeartbeat);
+  gpsHeartbeat = null;
+  gpsPhase = config.phase;
+
+  requestGpsPosition({ force: true });
+
+  if (config.phase !== 'RESULT') {
+    gpsHeartbeat = setInterval(
+      () => {
+        if (document.visibilityState === 'visible' && gameSession) {
+          requestGpsPosition();
+        }
+      },
+      config.interval
+    );
+  }
+}
+
+function syncGpsForLobbyState() {
+  if (!gameSession) return;
+  startGpsSchedule();
+}
+
+function gps() {
+  startGpsSchedule({ force: true });
+}
 
 /* =========================================================
    GAME ACTIONS
@@ -1829,9 +2053,7 @@ async function start() {
     );
 
 
-    if (watch === null) {
-      gps();
-    }
+    gps();
 
     return;
   }
@@ -1982,6 +2204,8 @@ function resetGame() {
 
   watch = null;
   gpsStarting = false;
+  gpsPhase = '';
+  lastGpsRequestAt = 0;
   state = null;
   gameSession = null;
   window.chsMapReset?.();
@@ -2120,10 +2344,7 @@ $('#garageAddCar')
 $('#garageCars')?.addEventListener('click', event => {
   const button = event.target.closest('[data-car-id]');
   if (!button) return;
-  localGarage.forEach(car => { car.active = car.id === button.dataset.carId; });
-  saveGarage();
-  syncVehicleUI();
-  toast('Aktives Fahrzeug geändert ✓');
+  activateCloudVehicle(button.dataset.carId);
 });
 
 
@@ -2278,8 +2499,9 @@ function safeCarPhoto(value) {
   return typeof value === 'string' && value.length <= 900000 && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
 }
 function carPhotoMarkup(car) {
-  return safeCarPhoto(car?.photo)
-    ? `<img src="${car.photo}" alt="Foto von ${esc(`${car.brand} ${car.model}`)}" style="display:block;width:100%;max-height:240px;object-fit:contain">`
+  const source = vehiclePhotoSource(car?.photo);
+  return source
+    ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
     : '<div style="font-size:72px;text-align:center" aria-label="Fahrzeug-Platzhalter">🚘</div>';
 }
 async function loadImageFromBlob(blob) {
@@ -2405,23 +2627,72 @@ function setupCarPhotoInput() {
   });
 }
 document.getElementById('garageCars')?.addEventListener('change', async event => {
-  const input = event.target.closest('[data-car-photo]'); if (!input?.files[0]) return;
-  const car = localGarage.find(item => item.id === input.dataset.carPhoto); if (!car) return;
+  const input = event.target.closest('[data-car-photo]');
+  if (!input?.files[0] || !authSession?.user?.id) return;
+
+  const car = localGarage.find(item => item.id === input.dataset.carPhoto);
+  if (!car) return;
+
   input.disabled = true;
-  const oldPhoto = car.photo;
+
   try {
     const photo = await shrinkCarPhoto(input.files[0]);
-    car.photo = photo;
-    try { saveGarage(); } catch { car.photo = oldPhoto; throw new Error('Speicher voll. Bitte ein anderes Foto entfernen.'); }
-    syncVehicleUI(); toast('Fahrzeugfoto gespeichert.');
-  } catch(error) { toast(error.message); }
-  finally { input.disabled = false; input.value = ''; }
+    const path = await uploadVehiclePhoto(car.id, photo);
+
+    if (car.photoPath && car.photoPath !== path) {
+      await supabaseClient.storage.from('vehicle-images').remove([car.photoPath]);
+    }
+
+    const { error } = await supabaseClient
+      .from('vehicles')
+      .update({ photo_path: path, updated_at: new Date().toISOString() })
+      .eq('id', car.id)
+      .eq('user_id', authSession.user.id);
+    if (error) throw error;
+
+    car.photoPath = path;
+    car.photo = vehiclePhotoUrl(path) + `?v=${Date.now()}`;
+    saveGarage();
+    syncVehicleUI();
+    toast('Fahrzeugfoto im Konto gespeichert ✓');
+  } catch(error) {
+    toast(error.message || 'Fahrzeugfoto konnte nicht gespeichert werden.');
+  } finally {
+    input.disabled = false;
+    input.value = '';
+  }
 });
-document.getElementById('garageCars')?.addEventListener('click', event => {
-  const button = event.target.closest('[data-remove-photo]'); if (!button) return;
-  const car = localGarage.find(item => item.id === button.dataset.removePhoto); if (!car) return;
-  const oldPhoto = car.photo; delete car.photo;
-  try { saveGarage(); syncVehicleUI(); } catch { car.photo = oldPhoto; toast('Foto konnte nicht entfernt werden.'); }
+
+document.getElementById('garageCars')?.addEventListener('click', async event => {
+  const button = event.target.closest('[data-remove-photo]');
+  if (!button || !authSession?.user?.id) return;
+
+  const car = localGarage.find(item => item.id === button.dataset.removePhoto);
+  if (!car) return;
+
+  button.disabled = true;
+
+  try {
+    if (car.photoPath) {
+      await supabaseClient.storage.from('vehicle-images').remove([car.photoPath]);
+    }
+
+    const { error } = await supabaseClient
+      .from('vehicles')
+      .update({ photo_path: null, updated_at: new Date().toISOString() })
+      .eq('id', car.id)
+      .eq('user_id', authSession.user.id);
+    if (error) throw error;
+
+    car.photoPath = '';
+    car.photo = '';
+    saveGarage();
+    syncVehicleUI();
+    toast('Fahrzeugfoto entfernt.');
+  } catch (error) {
+    button.disabled = false;
+    toast(error.message || 'Foto konnte nicht entfernt werden.');
+  }
 });
 
 /* Profil bearbeiten und gespeicherte Statistiken anzeigen. */
@@ -2804,12 +3075,13 @@ function lobbyCarColor(color) {
   return '#737981';
 }
 function lobbyCarMarkup(player,mine=false){
-  if(mine){
-    const car=activeCar();
-    if(car&&typeof safeCarPhoto==='function'&&safeCarPhoto(car.photo)){
-      return `<img class="lobbyModelCar" src="${car.photo}" alt="${esc(`${car.brand||''} ${car.model||''}`.trim())}" draggable="false">`;
-    }
+  const ownPhoto = mine ? vehiclePhotoSource(activeCar()?.photo) : '';
+  const source = vehiclePhotoSource(player?.photoUrl) || ownPhoto;
+
+  if (source) {
+    return `<img class="lobbyModelCar" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
+
   return `<div class="lobbyCarFallback" role="img" aria-label="${esc(player.vehicle||'Fahrzeug')}"></div>`;
 }
 function renderFreshLobby() {

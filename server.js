@@ -16,7 +16,10 @@ const authCache = new Map();
 const MAX_PLAYERS = 20;
 const PUBLIC_RANGE_M = 20000;
 const FIND_RANGE_M = 35;
-const LOCATION_MAX_AGE_MS = 15000;
+const ACTIVE_LOCATION_MAX_AGE_MS = 15000;
+const LOBBY_LOCATION_MAX_AGE_MS = 45000;
+const LOBBY_MAX_ACCURACY_M = 200;
+const ACTIVE_MAX_ACCURACY_M = 100;
 const FIND_MAX_ACCURACY_M = 25;
 
 class HttpError extends Error {
@@ -32,8 +35,11 @@ const distance = (a, b) => {
   const v = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
   return Math.round(12742000 * Math.asin(Math.min(1, Math.sqrt(v))));
 };
-const fresh = (p, now = Date.now()) => !!p?.location && now - p.location.at <= LOCATION_MAX_AGE_MS;
-const goodFindFix = (p, now) => fresh(p, now) && p.location.accuracy <= FIND_MAX_ACCURACY_M;
+const fresh = (p, now = Date.now(), maxAge = ACTIVE_LOCATION_MAX_AGE_MS) =>
+  !!p?.location && now - p.location.at <= maxAge;
+const goodFindFix = (p, now) =>
+  fresh(p, now, ACTIVE_LOCATION_MAX_AGE_MS) &&
+  p.location.accuracy <= FIND_MAX_ACCURACY_M;
 const withinFindRange = (a, b) => distance(a.location, b.location) + a.location.accuracy + b.location.accuracy <= FIND_RANGE_M;
 const code = () => {
   let candidate;
@@ -97,6 +103,17 @@ function getSession(data, authId) {
   me.lastSeen = Date.now();
   return { lobby, me };
 }
+function safePhotoUrl(value) {
+  const url = clean(value, 700);
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? parsed.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function newPlayer(data, authId) {
   const name = clean(data.name, 24);
   const vehicle = clean(data.vehicle, 70);
@@ -104,16 +121,18 @@ function newPlayer(data, authId) {
   return {
     id: crypto.randomUUID(), authId, name, vehicle,
     color: clean(data.color, 30) || 'Unbekannt',
+    photoUrl: safePhotoUrl(data.photoUrl),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: 1, role: null, ready: false, found: false, location: null,
     lastSeen: Date.now(), cooldownUntil: 0
   };
 }
-function publicPlayer(p, now) {
+function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
-    id: p.id, name: p.name, vehicle: p.vehicle, color: p.color, mode: p.mode,
+    id: p.id, name: p.name, vehicle: p.vehicle, color: p.color,
+    photoUrl: p.photoUrl || '', mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found,
-    connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now)
+    connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge)
   };
 }
 function updateGame(lobby, now = Date.now()) {
@@ -135,7 +154,12 @@ function finish(lobby, seekersWin) {
 function resultState(lobby, me) {
   const now = Date.now();
   updateGame(lobby, now);
-  const opponents = lobby.players.filter(p => p.id !== me.id && !p.found && fresh(p, now) && p.role && p.role !== me.role);
+  const locationMaxAge = lobby.state === 'LOBBY'
+    ? LOBBY_LOCATION_MAX_AGE_MS
+    : ACTIVE_LOCATION_MAX_AGE_MS;
+  const opponents = lobby.players.filter(
+    p => p.id !== me.id && !p.found && fresh(p, now, locationMaxAge) && p.role && p.role !== me.role
+  );
   const nearest = fresh(me, now)
     ? opponents.map(p => ({ p, meters: distance(me.location, p.location) })).sort((a, b) => a.meters - b.meters)[0]
     : null;
@@ -152,7 +176,7 @@ function resultState(lobby, me) {
     map: {
       center: lobby.origin ? { lat: lobby.origin.lat, lng: lobby.origin.lng } : null,
       radius: lobby.radius,
-      positions: lobby.players.filter(p => fresh(p, now)).map(p => ({
+      positions: lobby.players.filter(p => fresh(p, now, locationMaxAge)).map(p => ({
         id: p.id, name: p.name, role: p.role, found: p.found,
         lat: p.location.lat, lng: p.location.lng,
         accuracy: p.location.accuracy, updatedAt: p.location.at
@@ -162,8 +186,9 @@ function resultState(lobby, me) {
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility,
       settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, revision: lobby.settingsRevision || 0 },
-      state: lobby.state, hostId: lobby.hostId, players: lobby.players.map(p => publicPlayer(p, now)),
-      me: publicPlayer(me, now), countdownEndsAt: lobby.countdownEndsAt,
+      state: lobby.state, hostId: lobby.hostId,
+      players: lobby.players.map(p => publicPlayer(p, now, locationMaxAge)),
+      me: publicPlayer(me, now, locationMaxAge), countdownEndsAt: lobby.countdownEndsAt,
       headstartEndsAt: lobby.headstartEndsAt, endsAt: lobby.endsAt, result: lobby.result
     }
   };
@@ -174,8 +199,8 @@ function parsePosition(data, maxAccuracy = 100) {
     fail(400, 'GPS-Position zu ungenau oder ungültig.');
   return p;
 }
-function updateLocation(p, data) {
-  const point = parsePosition(data);
+function updateLocation(p, data, maxAccuracy = ACTIVE_MAX_ACCURACY_M) {
+  const point = parsePosition(data, maxAccuracy);
   const now = Date.now();
   if (p.location) {
     const seconds = (now - p.location.at) / 1000;
@@ -188,7 +213,7 @@ function updateLocation(p, data) {
 async function route(action, data, authId) {
   const now = Date.now();
   if (action === 'public') {
-    const position = parsePosition(data);
+    const position = parsePosition(data, LOBBY_MAX_ACCURACY_M);
     return { lobbies: [...lobbies.values()]
       .filter(l => l.visibility === 'PUBLIC' && l.state === 'LOBBY' && l.players.length < MAX_PLAYERS && l.origin)
       .map(l => ({ lobby: l, meters: distance(position, l.origin) }))
@@ -244,7 +269,7 @@ async function route(action, data, authId) {
   if (action === 'create') {
     const player = newPlayer(data, authId);
     const visibility = data.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE';
-    const origin = visibility === 'PUBLIC' ? parsePosition(data) : null;
+    const origin = visibility === 'PUBLIC' ? parsePosition(data, LOBBY_MAX_ACCURACY_M) : null;
     if (origin) player.location = { ...origin, at: now };
     const lobby = {
       code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
@@ -266,12 +291,18 @@ async function route(action, data, authId) {
     if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
     const existing = lobby.players.find(p => p.authId === authId);
     if (existing) {
+      existing.name = clean(data.name, 24) || existing.name;
+      existing.vehicle = clean(data.vehicle, 70) || existing.vehicle;
+      existing.color = clean(data.color, 30) || existing.color;
+      existing.photoUrl = safePhotoUrl(data.photoUrl) || existing.photoUrl || '';
+      existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
+      existing.lastSeen = now;
       clearLobbyInvitesFor(authId, lobby.code);
       return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
     }
     const player = newPlayer(data, authId);
     if (lobby.visibility === 'PUBLIC') {
-      const location = parsePosition(data);
+      const location = parsePosition(data, LOBBY_MAX_ACCURACY_M);
       if (distance(location, lobby.origin) > Math.min(PUBLIC_RANGE_M, lobby.radius)) fail(403, 'Diese öffentliche Runde ist zu weit entfernt.');
       player.location = { ...location, at: now };
     }
@@ -317,7 +348,10 @@ async function route(action, data, authId) {
     return { ok: true };
   }
   if (action === 'location') {
-    updateLocation(me, data);
+    const maxAccuracy = lobby.state === 'LOBBY'
+      ? LOBBY_MAX_ACCURACY_M
+      : ACTIVE_MAX_ACCURACY_M;
+    updateLocation(me, data, maxAccuracy);
     if (!lobby.origin && me.id === lobby.hostId) lobby.origin = me.location;
     return { ok: true };
   }
@@ -330,8 +364,17 @@ async function route(action, data, authId) {
     if (me.id !== lobby.hostId) fail(403, 'Nur der Host kann starten.');
     if (lobby.state !== 'LOBBY') fail(409, 'Runde läuft bereits.');
     if (lobby.players.length < 2) fail(409, 'Mindestens zwei Spieler nötig.');
-    if (!lobby.players.every(p => fresh(p, now))) fail(409, 'Alle Spieler brauchen aktuelles GPS.');
-    if (lobby.origin && !lobby.players.every(p => distance(p.location, lobby.origin) <= lobby.radius)) fail(409, 'Mindestens ein Spieler ist außerhalb des Spielradius.');
+    if (!lobby.players.every(p => fresh(p, now, LOBBY_LOCATION_MAX_AGE_MS))) {
+      fail(409, 'Alle Spieler brauchen einen aktuellen Standort.');
+    }
+    if (
+      lobby.origin &&
+      !lobby.players.every(
+        p => distance(p.location, lobby.origin) <= lobby.radius + Math.min(LOBBY_MAX_ACCURACY_M, p.location.accuracy || 0)
+      )
+    ) {
+      fail(409, 'Mindestens ein Spieler ist außerhalb des Spielradius.');
+    }
     if (!lobby.players.every(p => p.id === me.id || p.ready)) fail(409, 'Noch nicht alle Spieler sind bereit.');
     for (const p of lobby.players) { p.role = p.id === lobby.hostId ? 'SEEKER' : 'HIDER'; p.found = false; }
     lobby.state = 'COUNTDOWN'; lobby.countdownEndsAt = now + 5000;
