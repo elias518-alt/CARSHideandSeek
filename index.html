@@ -17,7 +17,7 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260929-5">
+    href="style.css?v=20260929-10">
 
   <link
     rel="stylesheet"
@@ -1515,6 +1515,19 @@
       <div class="freshToolButtons">
 
         <button
+          id="freshInviteButton"
+          type="button"
+          aria-label="Freunde in die Lobby einladen">
+
+          👥
+          <span>
+            FREUNDE
+          </span>
+
+        </button>
+
+
+        <button
           id="freshSettingsButton"
           type="button"
           aria-label="Lobby Einstellungen">
@@ -1816,6 +1829,55 @@
       </form>
 
     </aside>
+
+
+
+    <!-- ==================================================
+         FREUNDE EINLADEN
+    ================================================== -->
+
+    <dialog
+      id="freshInviteDialog"
+      class="freshSettingsDialog freshInviteDialog">
+
+      <div class="freshDrawerHeader">
+
+        <div>
+
+          <span>
+            LOBBY
+          </span>
+
+          <h3>
+            FREUNDE EINLADEN
+          </h3>
+
+        </div>
+
+
+        <button
+          id="freshInviteClose"
+          type="button"
+          aria-label="Freundeliste schließen">
+
+          ✕
+
+        </button>
+
+      </div>
+
+
+      <div
+        id="freshInviteFriends"
+        class="freshInviteFriends">
+
+        <p class="muted">
+          Freunde werden geladen…
+        </p>
+
+      </div>
+
+    </dialog>
 
 
 
@@ -2669,15 +2731,21 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="app.js?v=20260929-5"></script>
+<script src="app.js?v=20260929-10"></script>
 
-<script src="social.js?v=20260929-5"></script>
+<script src="social.js?v=20260929-10"></script>
 
 <script
   type="module"
-  src="map.js?v=20260929-5">
+  src="map.js?v=20260929-10">
 </script>
 
+
+  <div
+    id="lobbyInviteInbox"
+    class="lobbyInviteInbox hidden"
+    aria-live="polite">
+  </div>
 
 </body>
 </html>
