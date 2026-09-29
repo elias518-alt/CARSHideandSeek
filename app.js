@@ -35,6 +35,8 @@ let gameSession =
 let localGarage =
   JSON.parse(localStorage.getItem('chsGarage') || '[]');
 
+let pendingCarPhoto = '';
+let carPhotoBusy = false;
 let state = null;
 let pollTimer = null;
 let watch = null;
@@ -470,6 +472,7 @@ function renderProfile() {
   }
 
 
+  paintProfileAvatars();
   syncVehicleUI();
 }
 
@@ -638,6 +641,8 @@ function syncVehicleUI() {
   }
 
 
+  const visual = document.querySelector('.activeCarCard .carVisual');
+  if (visual) visual.innerHTML = carPhotoMarkup(car);
   renderGarage();
 }
 
@@ -694,9 +699,14 @@ function renderGarage() {
 
           </div>
 
-          <div class="garageVehicleVisual">
-            🚘
+          <div class="garageVehicleVisual" style="height:auto;min-height:140px">
+            ${carPhotoMarkup(car)}
           </div>
+          <label style="display:block;margin:10px 0">FOTO HINZUFÜGEN / ÄNDERN
+            <input type="file" accept="image/jpeg,image/png,image/webp" data-car-photo="${esc(car.id)}">
+          </label>
+          ${safeCarPhoto(car.photo) ? `<button type="button" class="textButton" data-remove-photo="${esc(car.id)}">FOTO ENTFERNEN</button>` : ''}
+
 
           <span class="manufacturer">
             ${esc(car.brand)}
@@ -727,6 +737,7 @@ function renderGarage() {
 
 
 function openCarModal() {
+  setupCarPhotoInput();
   $('#carModal')
     ?.classList.remove('hidden');
 }
@@ -739,6 +750,7 @@ function closeCarModal() {
 
 
 function saveCar() {
+  if (carPhotoBusy) { toast("Bitte warten, bis das Foto verarbeitet ist."); return; }
   const brand =
     $('#newCarBrand')
       ?.value
@@ -773,6 +785,7 @@ function saveCar() {
   }
 
 
+  const oldGarage = localGarage.map(car => ({ ...car }));
   localGarage.forEach(car => {
     car.active = false;
   });
@@ -788,11 +801,15 @@ function saveCar() {
     model,
     year,
     color,
+    photo: pendingCarPhoto,
     active: true
   });
 
 
-  saveGarage();
+  try { saveGarage(); }
+  catch { localGarage = oldGarage; toast('Speicher voll. Bitte ein gespeichertes Foto entfernen.'); return; }
+  pendingCarPhoto = '';
+  resetCarPhotoInput();
   syncVehicleUI();
   closeCarModal();
 
@@ -2200,3 +2217,214 @@ if (document.readyState === 'loading') {
 } else {
   addSmallLobbyRadii();
 }
+
+
+/* Eigene Fahrzeugfotos: verkleinert, ohne EXIF, nur lokal wie die Garage. */
+function safeCarPhoto(value) {
+  return typeof value === 'string' && value.length <= 250000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value);
+}
+function carPhotoMarkup(car) {
+  return safeCarPhoto(car?.photo)
+    ? `<img src="${car.photo}" alt="Foto von ${esc(`${car.brand} ${car.model}`)}" style="display:block;width:100%;max-height:240px;object-fit:contain;border-radius:12px">`
+    : '<div style="font-size:72px;text-align:center" aria-label="Fahrzeug-Platzhalter">🚘</div>';
+}
+async function shrinkCarPhoto(file) {
+  if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Bitte JPG, PNG oder WebP wählen. iPhone-HEIC-Fotos vorher als JPG exportieren.');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Bitte ein Foto unter 15 MB wählen.');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.')); img.src = url; });
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 720 / Math.max(img.naturalWidth, img.naturalHeight));
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#202a34'; context.fillRect(0,0,canvas.width,canvas.height);
+    context.drawImage(img,0,0,canvas.width,canvas.height);
+    let result = canvas.toDataURL('image/jpeg', 0.72);
+    if (result.length > 250000) result = canvas.toDataURL('image/jpeg', 0.45);
+    if (!safeCarPhoto(result)) throw new Error('Dieses Foto ist zu groß. Bitte einen kleineren Ausschnitt wählen.');
+    return result;
+  } finally { URL.revokeObjectURL(url); }
+}
+function resetCarPhotoInput() {
+  const input = document.getElementById('newCarPhoto');
+  if (input) input.value = '';
+  const preview = document.getElementById('newCarPhotoPreview');
+  if (preview) preview.replaceChildren();
+}
+function setupCarPhotoInput() {
+  if (document.getElementById('newCarPhoto')) return;
+  const box = document.createElement('div');
+  box.innerHTML = `<label>EIGENES AUTOFOTO (OPTIONAL)<input id="newCarPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><div id="newCarPhotoPreview"></div><button type="button" id="clearNewCarPhoto" class="textButton">FOTO ENTFERNEN</button><p class="muted">Foto und Garage bleiben in diesem Browser. Nutze eigene Bilder oder Bilder, die du verwenden darfst.</p>`;
+  document.getElementById('saveCar').before(box);
+  document.getElementById('clearNewCarPhoto').addEventListener('click', () => { if (!carPhotoBusy) { pendingCarPhoto = ''; resetCarPhotoInput(); } });
+  document.getElementById('newCarPhoto').addEventListener('change', async event => {
+    const file = event.target.files[0]; if (!file) return;
+    carPhotoBusy = true; event.target.disabled = true;
+    try {
+      pendingCarPhoto = await shrinkCarPhoto(file);
+      document.getElementById('newCarPhotoPreview').innerHTML = carPhotoMarkup({photo:pendingCarPhoto,brand:'Dein',model:'Fahrzeug'});
+    } catch(error) { toast(error.message); }
+    finally { carPhotoBusy = false; event.target.disabled = false; }
+  });
+}
+document.getElementById('garageCars')?.addEventListener('change', async event => {
+  const input = event.target.closest('[data-car-photo]'); if (!input?.files[0]) return;
+  const car = localGarage.find(item => item.id === input.dataset.carPhoto); if (!car) return;
+  input.disabled = true;
+  const oldPhoto = car.photo;
+  try {
+    const photo = await shrinkCarPhoto(input.files[0]);
+    car.photo = photo;
+    try { saveGarage(); } catch { car.photo = oldPhoto; throw new Error('Speicher voll. Bitte ein anderes Foto entfernen.'); }
+    syncVehicleUI(); toast('Fahrzeugfoto gespeichert.');
+  } catch(error) { toast(error.message); }
+  finally { input.disabled = false; input.value = ''; }
+});
+document.getElementById('garageCars')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-remove-photo]'); if (!button) return;
+  const car = localGarage.find(item => item.id === button.dataset.removePhoto); if (!car) return;
+  const oldPhoto = car.photo; delete car.photo;
+  try { saveGarage(); syncVehicleUI(); } catch { car.photo = oldPhoto; toast('Foto konnte nicht entfernt werden.'); }
+});
+
+/* Profil bearbeiten und gespeicherte Statistiken anzeigen. */
+function profileImageSource(value) {
+  if (safeCarPhoto(value)) return value;
+  try { const url = new URL(value); return url.protocol === 'https:' ? url.href : ''; }
+  catch { return ''; }
+}
+function paintProfileAvatars() {
+  for (const id of ['headerAvatar', 'profileAvatar']) {
+    const element = document.getElementById(id);
+    if (!element) continue;
+    const badge = id === 'profileAvatar' ? document.getElementById('profileLevelBadge') : null;
+    element.replaceChildren();
+    element.append(document.createTextNode(initials(dbProfile?.username || 'Spieler')));
+    const src = profileImageSource(dbProfile?.avatar_url);
+    if (src) {
+      element.replaceChildren();
+      const image = document.createElement('img');
+      image.src = src; image.alt = 'Dein Profilbild'; image.referrerPolicy = 'no-referrer';
+      image.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block';
+      image.onerror = () => { image.remove(); element.prepend(document.createTextNode(initials(dbProfile?.username || 'Spieler'))); };
+      element.append(image);
+    }
+    if (badge) element.append(badge);
+  }
+}
+function makeProfileDialog(id, title) {
+  let dialog = document.getElementById(id);
+  if (dialog) return dialog;
+  dialog = document.createElement('dialog'); dialog.id = id;
+  dialog.style.cssText = 'position:fixed;inset:0;margin:auto;width:min(94vw,520px);max-height:88dvh;overflow:auto;background:#202c36;color:#f5f7fa;border:1px solid #74828b;border-radius:16px;padding:22px;box-sizing:border-box;z-index:10000';
+  const heading = document.createElement('h2'); heading.textContent = title;
+  const close = document.createElement('button'); close.type = 'button'; close.textContent = 'SCHLIESSEN ×';
+  close.style.cssText = 'float:right;padding:8px;color:white;background:#394957;border:0;border-radius:8px';
+  close.addEventListener('click', () => { if (!dialog._busy) dialog.close(); });
+  dialog.append(close, heading); document.body.append(dialog);
+  return dialog;
+}
+function openProfileEditor() {
+  if (!dbProfile || !authSession?.user) { toast('Bitte warten, bis dein Profil geladen wurde.'); return; }
+  const dialog = makeProfileDialog('profileEditDialog', 'PROFIL BEARBEITEN');
+  if (!dialog.querySelector('form')) {
+    const form = document.createElement('form');
+    form.innerHTML = `<label>SPIELERNAME<input name="username" minlength="2" maxlength="24" required autocomplete="nickname"></label>
+      <label>PROFILBILD<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      <div data-avatar-preview style="width:96px;height:96px;border-radius:50%;overflow:hidden;margin:12px auto;background:#344553;display:grid;place-items:center"></div>
+      <button type="button" data-remove-avatar class="textButton">BILD ENTFERNEN</button>
+      <p class="muted">Name und Profilbild werden in deinem Konto gespeichert. JPG, PNG oder WebP, maximal 15 MB.</p>
+      <p data-profile-error role="alert" style="color:#ffbca4;white-space:pre-wrap"></p>
+      <button type="submit" class="primaryButton">ÄNDERUNGEN SPEICHERN</button>`;
+    dialog.append(form);
+    form.elements.photo.addEventListener('change', async event => {
+      const file = event.target.files[0]; if (!file || dialog._busy) return;
+      dialog._busy = true; setProfileFormBusy(form, true);
+      try {
+        dialog._photo = await shrinkCarPhoto(file);
+        renderProfilePreview(dialog, dialog._photo);
+        form.querySelector('[data-profile-error]').textContent = '';
+      } catch(error) { form.querySelector('[data-profile-error]').textContent = error.message; }
+      finally { dialog._busy = false; setProfileFormBusy(form, false); }
+    });
+    form.querySelector('[data-remove-avatar]').addEventListener('click', () => {
+      dialog._photo = null; form.elements.photo.value = ''; renderProfilePreview(dialog, null);
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (dialog._busy || !form.reportValidity()) return;
+      const name = form.elements.username.value.trim();
+      const errorNode = form.querySelector('[data-profile-error]');
+      if (name.length < 2 || name.length > 24 || /[\x00-\x1f\x7f]/.test(name)) { errorNode.textContent = 'Bitte einen Namen mit 2 bis 24 Zeichen eingeben.'; return; }
+      const userId = authSession?.user?.id;
+      if (!userId || userId !== dialog._userId) { errorNode.textContent = 'Konto gewechselt. Bitte den Profil-Editor erneut öffnen.'; return; }
+      dialog._busy = true; setProfileFormBusy(form, true); errorNode.textContent = 'Wird gespeichert…';
+      try {
+        const { data, error } = await supabaseClient.rpc('chs_update_my_profile', {p_username: name, p_avatar: dialog._photo});
+        if (error) throw new Error(error.code === 'PGRST202' ? 'Bitte zuerst den neuen Profil-SQL-Code einmal in Supabase ausführen.' : error.message);
+        if (authSession?.user?.id !== userId) return;
+        if (!data || typeof data.username !== 'string') throw new Error('Unerwartete Serverantwort. Bitte neu laden.');
+        dbProfile = {...dbProfile, username:data.username, avatar_url:data.avatar_url};
+        renderProfile(); dialog.close(); toast('Profil gespeichert.');
+      } catch(error) { errorNode.textContent = error.message; }
+      finally { dialog._busy = false; setProfileFormBusy(form, false); }
+    });
+    dialog.addEventListener('cancel', event => { if (dialog._busy) event.preventDefault(); });
+  }
+  if (dialog._busy) return;
+  const form = dialog.querySelector('form');
+  dialog._userId = authSession.user.id; dialog._photo = '__KEEP__';
+  form.elements.username.value = dbProfile.username || '';
+  form.elements.photo.value = '';
+  form.querySelector('[data-profile-error]').textContent = '';
+  renderProfilePreview(dialog, dbProfile.avatar_url);
+  if (!dialog.open) dialog.showModal();
+  form.elements.username.focus();
+}
+function setProfileFormBusy(form, busy) {
+  for (const control of form.querySelectorAll('input,button')) control.disabled = busy;
+}
+function renderProfilePreview(dialog, source) {
+  const preview = dialog.querySelector('[data-avatar-preview]'); preview.replaceChildren();
+  const src = profileImageSource(source);
+  if (src) {
+    const image = document.createElement('img'); image.src = src; image.alt = 'Profilbild-Vorschau'; image.referrerPolicy = 'no-referrer';
+    image.style.cssText = 'width:100%;height:100%;object-fit:cover'; preview.append(image);
+  } else preview.textContent = initials(dialog.querySelector('form').elements.username.value || 'Spieler');
+}
+function openProfileStatistics() {
+  if (!dbProfile) { toast('Profil wird noch geladen.'); return; }
+  const dialog = makeProfileDialog('profileStatsDialog', 'DEINE STATISTIKEN');
+  let body = dialog.querySelector('[data-stats]');
+  if (!body) { body = document.createElement('div'); body.dataset.stats = ''; dialog.append(body); }
+  body.replaceChildren();
+  const number = key => Math.max(0, Number(dbProfile[key]) || 0);
+  const rounds = number('rounds_played');
+  const rows = [['Runden',rounds],['Siege',number('wins')],['Funde',number('finds')],['Überlebte Runden',number('survived_rounds')],['Siegquote',rounds ? Math.round(number('wins') / rounds * 100) + '%' : '0%'],['Level',Math.max(1,number('level'))],['XP',number('xp').toLocaleString('de-DE')]];
+  for (const [label,value] of rows) {
+    const row = document.createElement('p'); row.style.cssText = 'display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #53616b;padding:12px 0';
+    const key = document.createElement('span'); key.textContent = label;
+    const val = document.createElement('strong'); val.textContent = value; row.append(key,val); body.append(row);
+  }
+  const hint = document.createElement('p'); hint.textContent = 'Gespeicherte Kontowerte. Eine Liste einzelner vergangener Runden ist noch nicht vorhanden.'; body.append(hint);
+  if (!dialog.open) dialog.showModal();
+}
+function setupProfileActions() {
+  document.querySelector('#profile .settingsButton')?.addEventListener('click', openProfileEditor);
+  document.querySelector('.profileMini')?.addEventListener('click', openProfileEditor);
+  for (const row of document.querySelectorAll('#profile .menuRow')) {
+    const title = row.querySelector('strong')?.textContent.trim();
+    if (title === 'ACCOUNT') row.addEventListener('click', openProfileEditor);
+    if (title === 'STATISTIKEN') row.addEventListener('click', openProfileStatistics);
+  }
+  for (const id of ['profileAvatar','profileName']) {
+    const element = document.getElementById(id); if (!element) continue;
+    element.tabIndex = 0; element.setAttribute('role','button'); element.setAttribute('aria-label','Profil bearbeiten'); element.style.cursor = 'pointer';
+    element.addEventListener('click',openProfileEditor);
+    element.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openProfileEditor();}});
+  }
+}
+setupProfileActions();
