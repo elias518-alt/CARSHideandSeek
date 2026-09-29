@@ -407,6 +407,8 @@
         placeholder="Spieler-ID oder Username suchen">
     </div>
 
+    <div id="friendSearchResults" class="socialList" aria-live="polite"></div>
+
 
     <div class="friendsTabs">
 
@@ -430,20 +432,16 @@
     </section>
 
 
-    <section class="comingSoon">
-
-      <span>FRIENDS SYSTEM</span>
-
-      <h3>
-        Account-System ist vorbereitet
-      </h3>
-
-      <p>
-        Freundschaftsanfragen, Online-Status,
-        Spieleinladungen und Direktnachrichten
-        werden im nächsten Entwicklungsschritt aktiviert.
-      </p>
-
+    <section id="dmPanel" class="panel hidden">
+      <div class="panelTitle">
+        <h3 id="dmTitle">NACHRICHTEN</h3>
+        <button id="closeDm" class="textButton" type="button">SCHLIESSEN</button>
+      </div>
+      <div id="dmMessages" class="messageList" aria-live="polite"></div>
+      <form id="dmForm" class="messageForm">
+        <input id="dmInput" maxlength="1000" placeholder="Private Nachricht schreiben…" required>
+        <button type="submit">SENDEN</button>
+      </form>
     </section>
 
   </main>
@@ -490,7 +488,6 @@
       </div>
 
     </section>
-
 
     <section class="profileStats">
 
@@ -799,6 +796,15 @@
 
       <div id="players"></div>
 
+      <div class="lobbyChat">
+        <h3>LOBBY-CHAT</h3>
+        <div id="lobbyMessages" class="messageList" aria-live="polite"></div>
+        <form id="lobbyChatForm" class="messageForm">
+          <input id="lobbyChatInput" maxlength="500" placeholder="Nachricht an die Lobby…" required>
+          <button type="submit">SENDEN</button>
+        </form>
+      </div>
+
 
       <button
         id="start"
@@ -898,8 +904,10 @@
 
         <input
           id="newCarBrand"
-          placeholder="z. B. BMW">
+          autocomplete="off"
+          placeholder="Marke suchen, z. B. BMW">
       </label>
+      <div id="brandSuggestions" class="vehicleSuggestions"></div>
 
 
       <label>
@@ -907,8 +915,10 @@
 
         <input
           id="newCarModel"
-          placeholder="z. B. E36 328i Coupé">
+          autocomplete="off"
+          placeholder="Modell suchen oder selbst eingeben">
       </label>
+      <div id="modelSuggestions" class="vehicleSuggestions"></div>
 
 
       <div class="inputGrid">
@@ -1014,6 +1024,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
+<script src="social.js"></script>
 
 </body>
 </html>
