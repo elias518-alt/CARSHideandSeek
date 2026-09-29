@@ -129,6 +129,15 @@ function resultState(lobby, me) {
   return {
     serverTime: now, proximity, nearbyTargets,
     chat: lobby.messages.slice(-50),
+    map: {
+      center: lobby.origin ? { lat: lobby.origin.lat, lng: lobby.origin.lng } : null,
+      radius: lobby.radius,
+      positions: lobby.players.filter(p => fresh(p, now)).map(p => ({
+        id: p.id, name: p.name, role: p.role, found: p.found,
+        lat: p.location.lat, lng: p.location.lng,
+        accuracy: p.location.accuracy, updatedAt: p.location.at
+      }))
+    },
     cooldownUntil: me.cooldownUntil, escapeUntil: 0,
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility,
