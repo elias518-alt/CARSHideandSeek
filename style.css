@@ -1,1688 +1,4195 @@
-*{
-  box-sizing:border-box;
+/* =========================================================
+   CAR HIDE & SEEK
+   STYLE.CSS
+   CINEMATIC BLUE GARAGE VERSION
+========================================================= */
+
+* {
+  box-sizing: border-box;
 }
 
-:root{
-  --bg:#050608;
-  --panel:#0d0f12;
-  --panel2:#13161a;
-  --line:#24282e;
-  --text:#f4f4f4;
-  --muted:#888e97;
-  --orange:#ff5a12;
-  --orange2:#ff7a21;
-  --green:#3ee684;
-  --red:#ff4141;
+:root {
+  --bg: #050608;
+  --panel: #0d0f12;
+  --panel2: #13161a;
+  --panel3: #181b20;
+
+  --line: #24282e;
+  --line-soft: rgba(255,255,255,.08);
+
+  --text: #f5f6f7;
+  --muted: #8b919a;
+
+  --orange: #ff5a12;
+  --orange2: #ff7a21;
+
+  --blue: #168cff;
+  --blue2: #45b8ff;
+
+  --green: #3ee684;
+  --red: #ff4141;
+
+  --shadow: 0 24px 70px rgba(0,0,0,.45);
 }
 
-html{
-  background:var(--bg);
+html {
+  background: var(--bg);
+  scroll-behavior: smooth;
 }
 
-body{
-  margin:0;
-  min-height:100vh;
+body {
+  margin: 0;
+  min-height: 100vh;
+
   background:
-    radial-gradient(circle at 70% -10%,rgba(255,90,18,.12),transparent 32%),
+    radial-gradient(
+      circle at 70% -10%,
+      rgba(255,90,18,.12),
+      transparent 32%
+    ),
     var(--bg);
-  color:var(--text);
-  font-family:Arial,Helvetica,sans-serif;
-  padding-bottom:100px;
+
+  color: var(--text);
+
+  font-family:
+    Inter,
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  padding-bottom: 100px;
+
+  overflow-x: hidden;
 }
 
 button,
 input,
-select{
-  font:inherit;
+select {
+  font: inherit;
 }
 
-button{
-  cursor:pointer;
+button {
+  cursor: pointer;
 }
 
-.hidden{
-  display:none !important;
+button:disabled {
+  cursor: not-allowed;
 }
 
+.hidden {
+  display: none !important;
+}
 
-/* AUTH */
+img {
+  max-width: 100%;
+}
 
-.authGate{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
+/* =========================================================
+   AUTH
+========================================================= */
+
+.authGate {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
   background:
-    radial-gradient(circle at 50% 20%,rgba(255,90,18,.18),transparent 32%),
+    radial-gradient(
+      circle at 50% 20%,
+      rgba(255,90,18,.18),
+      transparent 32%
+    ),
     #050608;
 }
 
-.authCard{
-  width:min(100%,440px);
-  padding:36px 26px;
-  border:1px solid var(--line);
-  border-radius:24px;
-  background:rgba(13,15,18,.96);
-  box-shadow:0 30px 80px rgba(0,0,0,.55);
+.authCard {
+  width: min(100%, 440px);
+
+  padding: 36px 26px;
+
+  border: 1px solid var(--line);
+  border-radius: 24px;
+
+  background: rgba(13,15,18,.96);
+
+  box-shadow:
+    0 30px 80px rgba(0,0,0,.55);
 }
 
-.authLogo{
-  margin-bottom:45px;
-  font-size:17px;
-  font-weight:900;
-  letter-spacing:2px;
+.authLogo {
+  margin-bottom: 45px;
+
+  font-size: 17px;
+  font-weight: 900;
+
+  letter-spacing: 2px;
 }
 
-.authLogo span{
-  color:var(--orange);
+.authLogo span {
+  color: var(--orange);
 }
 
-.authCard h1{
-  margin:8px 0 10px;
-  font-size:40px;
-  line-height:1;
-  letter-spacing:-2px;
+.authCard h1 {
+  margin: 8px 0 10px;
+
+  font-size: 40px;
+  line-height: 1;
+
+  letter-spacing: -2px;
 }
 
-.authCard p{
-  color:var(--muted);
-  line-height:1.55;
-  margin-bottom:28px;
+.authCard p {
+  margin-bottom: 28px;
+
+  color: var(--muted);
+
+  line-height: 1.55;
 }
 
-.googleButton{
-  width:100%;
-  min-height:58px;
-  border:0;
-  border-radius:14px;
-  background:#fff;
-  color:#151515;
-  font-weight:900;
-  letter-spacing:.5px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:13px;
+.googleButton {
+  width: 100%;
+  min-height: 58px;
+
+  border: 0;
+  border-radius: 14px;
+
+  background: #fff;
+
+  color: #151515;
+
+  font-weight: 900;
+  letter-spacing: .5px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 13px;
 }
 
-.googleButton:disabled{
-  opacity:.6;
+.googleButton:disabled {
+  opacity: .6;
 }
 
-.googleG{
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  border:1px solid #ddd;
-  display:grid;
-  place-items:center;
-  font-weight:900;
-  color:#4285f4;
+.googleG {
+  width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+  border: 1px solid #ddd;
+
+  font-weight: 900;
+
+  color: #4285f4;
 }
 
-.authStatus{
-  margin-top:18px;
-  text-align:center;
-  color:var(--muted);
-  font-size:13px;
+.authStatus {
+  margin-top: 18px;
+
+  text-align: center;
+
+  color: var(--muted);
+
+  font-size: 13px;
 }
 
+/* =========================================================
+   HEADER
+========================================================= */
 
-/* HEADER */
+.appHeader {
+  height: 68px;
 
-.appHeader{
-  height:68px;
-  position:sticky;
-  top:0;
-  z-index:50;
-  padding:0 18px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:rgba(5,6,8,.94);
-  backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(255,255,255,.06);
+  position: sticky;
+  top: 0;
+
+  z-index: 80;
+
+  padding: 0 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: rgba(5,6,8,.94);
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border-bottom:
+    1px solid rgba(255,255,255,.06);
 }
 
-.brand{
-  border:0;
-  background:none;
-  color:#fff;
-  font-weight:900;
-  letter-spacing:1.2px;
-  padding:0;
+.brand {
+  padding: 0;
+
+  border: 0;
+
+  background: none;
+
+  color: #fff;
+
+  font-weight: 900;
+
+  letter-spacing: 1.2px;
 }
 
-.brandCar{
-  color:var(--orange);
+.brandCar {
+  color: var(--orange);
 }
 
-.profileMini{
-  border:0;
-  background:none;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  gap:9px;
+.profileMini {
+  border: 0;
+
+  background: none;
+
+  color: #fff;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
 }
 
-.miniLevel{
-  color:var(--orange);
-  font-weight:900;
-  font-size:13px;
+.miniLevel {
+  color: var(--orange);
+
+  font-weight: 900;
+
+  font-size: 13px;
 }
 
-.miniProfileText{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
+.miniProfileText {
+  display: flex;
+  flex-direction: column;
+
+  align-items: flex-end;
 }
 
-.miniProfileText strong{
-  font-size:12px;
+.miniProfileText strong {
+  font-size: 12px;
 }
 
-.miniProfileText span{
-  font-size:10px;
-  color:var(--muted);
+.miniProfileText span {
+  font-size: 10px;
+
+  color: var(--muted);
 }
 
-.miniAvatar{
-  width:36px;
-  height:36px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:var(--panel2);
-  border:1px solid var(--line);
-  font-weight:900;
+.miniAvatar {
+  width: 36px;
+  height: 36px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: var(--panel2);
+
+  border: 1px solid var(--line);
+
+  font-weight: 900;
 }
 
+/* =========================================================
+   GENERAL
+========================================================= */
 
-/* GENERAL */
+.page {
+  display: none;
 
-.page{
-  display:none;
-  width:min(100%,720px);
-  margin:auto;
-  padding:24px 18px 35px;
+  width: min(100%,720px);
+
+  margin: auto;
+
+  padding: 24px 18px 35px;
 }
 
-.page.active{
-  display:block;
+.page.active {
+  display: block;
 }
 
 .eyebrow,
-.sectionEyebrow{
-  color:var(--orange);
-  font-size:11px;
-  font-weight:900;
-  letter-spacing:1.5px;
+.sectionEyebrow {
+  color: var(--orange);
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: 1.5px;
 }
 
-.orangeText{
-  color:var(--orange);
+.orangeText {
+  color: var(--orange);
 }
 
-.muted{
-  color:var(--muted);
+.muted {
+  color: var(--muted);
 }
 
-.textButton{
-  border:0;
-  background:none;
-  color:var(--orange);
-  font-size:11px;
-  font-weight:900;
+.textButton {
+  border: 0;
+
+  background: none;
+
+  color: var(--orange);
+
+  font-size: 11px;
+  font-weight: 900;
 }
 
-.pageHeading{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin:5px 0 25px;
+.pageHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin: 5px 0 25px;
 }
 
-.pageHeading>div{
-  flex:1;
+.pageHeading > div {
+  flex: 1;
 }
 
-.pageHeading span{
-  color:var(--orange);
-  font-size:10px;
-  font-weight:900;
-  letter-spacing:1.4px;
+.pageHeading span {
+  color: var(--orange);
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: 1.4px;
 }
 
-.pageHeading h1{
-  margin:3px 0 0;
-  font-size:30px;
+.pageHeading h1 {
+  margin: 3px 0 0;
+
+  font-size: 30px;
 }
 
-.backButton{
-  width:42px;
-  height:42px;
-  margin-right:12px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:var(--panel);
-  color:#fff;
-  font-size:28px;
+.backButton {
+  width: 42px;
+  height: 42px;
+
+  margin-right: 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  background: var(--panel);
+
+  color: #fff;
+
+  font-size: 28px;
 }
 
-.roundAction{
-  width:43px;
-  height:43px;
-  border:0;
-  border-radius:50%;
-  background:var(--orange);
-  color:#fff;
-  font-size:24px;
+.roundAction {
+  width: 43px;
+  height: 43px;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: var(--orange);
+
+  color: #fff;
+
+  font-size: 24px;
 }
 
-
-/* HOME */
-
-.welcome{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  margin:15px 0 25px;
-}
-
-.welcome h1{
-  margin:8px 0 0;
-  font-size:47px;
-  line-height:.88;
-  letter-spacing:-3px;
-}
-
-.welcome h1 span{
-  color:var(--orange);
-}
-
-.onlinePill{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  border:1px solid #1e3427;
-  background:#0d1711;
-  color:var(--green);
-  padding:8px 10px;
-  border-radius:100px;
-  font-size:9px;
-  font-weight:900;
-}
-
-.onlinePill i{
-  width:7px;
-  height:7px;
-  background:var(--green);
-  border-radius:50%;
-}
-
-.activeCarCard{
-  position:relative;
-  overflow:hidden;
-  min-height:260px;
-  padding:20px;
-  border:1px solid var(--line);
-  border-radius:20px;
-  background:
-    linear-gradient(145deg,#15181d,#090b0e);
-  margin-bottom:14px;
-}
-
-.carGlow{
-  position:absolute;
-  width:200px;
-  height:200px;
-  border-radius:50%;
-  background:rgba(255,90,18,.12);
-  filter:blur(40px);
-  right:-40px;
-  top:20px;
-}
-
-.cardTop,
-.panelTitle,
-.row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.cardTop{
-  position:relative;
-  z-index:2;
-  font-size:10px;
-  color:var(--muted);
-  font-weight:900;
-}
-
-.carVisual{
-  height:120px;
-  display:grid;
-  place-items:center;
-}
-
-.carIcon{
-  font-size:75px;
-  filter:drop-shadow(0 15px 25px #000);
-}
-
-.carInfo{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-}
-
-.carInfo span{
-  color:var(--orange);
-  font-size:10px;
-  font-weight:900;
-}
-
-.carInfo h2{
-  margin:4px 0;
-  font-size:23px;
-}
-
-.carInfo p{
-  margin:0;
-  color:var(--muted);
-  font-size:13px;
-}
-
-.carStatus,
-.activeTag{
-  color:var(--green) !important;
-  background:#0e1b13;
-  border:1px solid #1c3c28;
-  border-radius:100px;
-  padding:7px 9px;
-  font-size:9px !important;
-  font-weight:900;
-}
-
-.playHero{
-  width:100%;
-  min-height:95px;
-  padding:18px;
-  border:0;
-  border-radius:18px;
-  background:
-    linear-gradient(120deg,#ff4b0b,#ff7018);
-  color:#fff;
-  display:flex;
-  align-items:center;
-  text-align:left;
-  margin-bottom:14px;
-  box-shadow:0 14px 40px rgba(255,90,18,.18);
-}
-
-.playIcon{
-  width:50px;
-  height:50px;
-  flex:0 0 50px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:rgba(0,0,0,.2);
-  margin-right:15px;
-}
-
-.playHero div:nth-child(2){
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
-.playHero span{
-  font-size:9px;
-  font-weight:900;
-  opacity:.8;
-}
-
-.playHero strong{
-  font-size:25px;
-  line-height:1;
-  margin:3px 0 5px;
-}
-
-.playHero small{
-  opacity:.75;
-}
-
-.playArrow{
-  font-size:35px;
-}
-
-.quickStats{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:9px;
-  margin-bottom:14px;
-}
-
-.quickStats div{
-  min-height:100px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:var(--panel);
-}
-
-.quickStats strong{
-  font-size:24px;
-  margin:5px 0 2px;
-}
-
-.quickStats small{
-  color:var(--muted);
-  font-size:9px;
-  font-weight:900;
-}
-
-.statIcon{
-  font-size:18px;
-}
-
-
-/* PANELS */
+/* =========================================================
+   PANELS
+========================================================= */
 
 .panel,
 .infoPanel,
-.comingSoon{
-  border:1px solid var(--line);
-  background:var(--panel);
-  border-radius:18px;
-  padding:18px;
-  margin-bottom:14px;
+.comingSoon {
+  padding: 18px;
+
+  margin-bottom: 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 18px;
+
+  background: var(--panel);
 }
 
-.panelTitle{
-  margin-bottom:16px;
+.panelTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 16px;
 }
 
-.panelTitle span{
-  color:var(--muted);
-  font-size:9px;
-  font-weight:900;
+.panelTitle span {
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.panelTitle h3{
-  margin:3px 0 0;
+.panelTitle h3 {
+  margin: 3px 0 0;
 }
 
-.progress{
-  height:7px;
-  overflow:hidden;
-  border-radius:20px;
-  background:#202329;
+.emptyState {
+  padding: 20px;
+
+  border: 1px dashed #30343a;
+
+  border-radius: 13px;
+
+  text-align: center;
+
+  color: var(--muted);
+
+  font-size: 13px;
 }
 
-.progress>div{
-  height:100%;
-  background:linear-gradient(90deg,var(--orange),var(--orange2));
-  border-radius:20px;
-  transition:width .3s ease;
+/* =========================================================
+   HOME
+========================================================= */
+
+.appHome {
+  padding-top: 0;
 }
 
-.progressLabels{
-  display:flex;
-  justify-content:space-between;
-  margin-top:7px;
-  color:var(--muted);
-  font-size:9px;
+.homeStage {
+  position: relative;
+
+  min-height: 290px;
+
+  margin:
+    0 -18px 20px;
+
+  padding: 22px;
+
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  background:
+    radial-gradient(
+      circle at 50% 70%,
+      rgba(255,90,18,.16),
+      transparent 32%
+    ),
+    linear-gradient(
+      180deg,
+      #10141a,
+      #050608
+    );
 }
 
-.emptyState{
-  padding:20px;
-  border:1px dashed #30343a;
-  border-radius:13px;
-  text-align:center;
-  color:var(--muted);
-  font-size:13px;
+.homeStage::after {
+  content: "";
+
+  position: absolute;
+
+  width: 380px;
+  height: 180px;
+
+  bottom: -130px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255,90,18,.15);
+
+  filter: blur(50px);
 }
 
+.homeStageTop {
+  position: absolute;
 
-/* FORMS */
+  top: 18px;
+  left: 18px;
+  right: 18px;
 
-label{
-  display:block;
-  color:var(--muted);
-  font-size:9px;
-  font-weight:900;
-  letter-spacing:.7px;
-  margin-bottom:14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stageMark {
+  color: var(--orange);
+
+  font-size: 22px;
+}
+
+.stageSettings {
+  width: 40px;
+  height: 40px;
+
+  border: 1px solid rgba(255,255,255,.1);
+
+  border-radius: 12px;
+
+  background: rgba(0,0,0,.3);
+
+  color: #fff;
+}
+
+.stageLogo {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  line-height: .85;
+}
+
+.stageLogo strong {
+  color: var(--orange);
+
+  font-size: 57px;
+  font-weight: 1000;
+
+  letter-spacing: -4px;
+}
+
+.stageLogo em {
+  color: #fff;
+
+  font-size: 25px;
+  font-weight: 900;
+
+  font-style: normal;
+
+  letter-spacing: 3px;
+}
+
+.stageTagline {
+  position: relative;
+
+  z-index: 2;
+
+  margin-top: 18px;
+
+  color: #777f88;
+
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: 3px;
+}
+
+.stageRoad {
+  position: absolute;
+
+  bottom: -20px;
+
+  width: 180px;
+  height: 100px;
+
+  transform:
+    perspective(150px)
+    rotateX(55deg);
+
+  border-left:
+    1px solid rgba(255,255,255,.09);
+
+  border-right:
+    1px solid rgba(255,255,255,.09);
+}
+
+.homeActions {
+  display: grid;
+
+  gap: 9px;
+
+  margin-bottom: 26px;
+}
+
+.homeAction {
+  min-height: 72px;
+
+  width: 100%;
+
+  padding: 12px 15px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  text-align: left;
+
+  border: 1px solid var(--line);
+  border-radius: 15px;
+
+  background: var(--panel);
+
+  color: #fff;
+}
+
+.homeActionPrimary {
+  min-height: 86px;
+
+  border-color: #6c2d11;
+
+  background:
+    linear-gradient(
+      120deg,
+      #ff4b0b,
+      #ff711c
+    );
+
+  box-shadow:
+    0 14px 40px
+    rgba(255,90,18,.18);
+}
+
+.actionSymbol {
+  width: 43px;
+  height: 43px;
+
+  flex: 0 0 43px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255,255,255,.1);
+}
+
+.actionCopy {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.actionCopy strong {
+  font-size: 15px;
+}
+
+.actionCopy small {
+  color: #9ba0a8;
+
+  font-size: 10px;
+}
+
+.homeActionPrimary .actionCopy small {
+  color:
+    rgba(255,255,255,.72);
+}
+
+.actionChevron {
+  font-size: 27px;
+}
+
+.homeSectionTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin:
+    22px 2px 10px;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: 1px;
+}
+
+.activeCarCard {
+  position: relative;
+
+  overflow: hidden;
+
+  min-height: 260px;
+
+  padding: 20px;
+
+  border: 1px solid var(--line);
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #15181d,
+      #090b0e
+    );
+
+  margin-bottom: 14px;
+}
+
+.carGlow {
+  position: absolute;
+
+  width: 200px;
+  height: 200px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255,90,18,.12);
+
+  filter: blur(40px);
+
+  right: -40px;
+  top: 20px;
+}
+
+.cardTop {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.carVisual {
+  height: 120px;
+
+  display: grid;
+  place-items: center;
+}
+
+.carVisual img {
+  width: 100%;
+  height: 115px;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(
+      0 16px 20px
+      rgba(0,0,0,.6)
+    );
+}
+
+.carIcon {
+  font-size: 75px;
+
+  filter:
+    drop-shadow(
+      0 15px 25px #000
+    );
+}
+
+.carInfo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.carInfo span {
+  color: var(--orange);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.carInfo h2 {
+  margin: 4px 0;
+
+  font-size: 23px;
+}
+
+.carInfo p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 13px;
+}
+
+.carStatus,
+.activeTag {
+  padding: 7px 9px;
+
+  border: 1px solid #1c3c28;
+
+  border-radius: 100px;
+
+  background: #0e1b13;
+
+  color: var(--green) !important;
+
+  font-size: 9px !important;
+
+  font-weight: 900;
+}
+
+.quickStats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap: 9px;
+
+  margin-bottom: 14px;
+}
+
+.quickStats div {
+  min-height: 100px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+
+  background: var(--panel);
+}
+
+.quickStats strong {
+  margin: 5px 0 2px;
+
+  font-size: 24px;
+}
+
+.quickStats small {
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.statIcon {
+  font-size: 18px;
+}
+
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+.progress {
+  height: 7px;
+
+  overflow: hidden;
+
+  border-radius: 20px;
+
+  background: #202329;
+}
+
+.progress > div {
+  height: 100%;
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--orange),
+      var(--orange2)
+    );
+
+  transition:
+    width .3s ease;
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 7px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+}
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+label {
+  display: block;
+
+  margin-bottom: 14px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 900;
+
+  letter-spacing: .7px;
 }
 
 input,
-select{
-  width:100%;
-  height:50px;
-  margin-top:7px;
-  padding:0 14px;
-  border:1px solid var(--line);
-  border-radius:11px;
-  outline:none;
-  background:#080a0c;
-  color:#fff;
+select {
+  width: 100%;
+  height: 50px;
+
+  margin-top: 7px;
+
+  padding: 0 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+
+  outline: none;
+
+  background: #080a0c;
+
+  color: #fff;
 }
 
 input:focus,
-select:focus{
-  border-color:var(--orange);
+select:focus {
+  border-color: var(--orange);
 }
 
-input[readonly]{
-  opacity:.8;
+input[readonly] {
+  opacity: .8;
 }
 
 .inputGrid,
-.settingsGrid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+.settingsGrid {
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 10px;
 }
 
-.primaryButton{
-  width:100%;
-  min-height:52px;
-  border:0;
-  border-radius:12px;
-  background:var(--orange);
-  color:#fff;
-  font-weight:900;
+.primaryButton {
+  width: 100%;
+
+  min-height: 52px;
+
+  border: 0;
+  border-radius: 12px;
+
+  background: var(--orange);
+
+  color: #fff;
+
+  font-weight: 900;
 }
 
-.primaryButton:disabled{
-  opacity:.45;
+.primaryButton:disabled {
+  opacity: .45;
 }
 
-.modeHeader{
-  display:flex;
-  gap:13px;
-  align-items:center;
-  margin-bottom:20px;
+.modeHeader {
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  margin-bottom: 20px;
 }
 
-.modeIcon{
-  width:44px;
-  height:44px;
-  display:grid;
-  place-items:center;
-  border-radius:12px;
-  background:#2a140b;
-  color:var(--orange);
-  font-size:24px;
+.modeIcon {
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 12px;
+
+  background: #2a140b;
+
+  color: var(--orange);
+
+  font-size: 24px;
 }
 
-.modeHeader span{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
+.modeHeader span {
+  color: var(--orange);
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.modeHeader h2{
-  margin:3px 0 0;
-  font-size:19px;
+.modeHeader h2 {
+  margin: 3px 0 0;
+
+  font-size: 19px;
 }
 
-.joinPanel h2{
-  margin:4px 0 15px;
+.joinPanel h2 {
+  margin: 4px 0 15px;
 }
 
-.joinBox{
-  display:flex;
-  gap:8px;
+.joinBox {
+  display: flex;
+
+  gap: 8px;
 }
 
-.joinBox input{
-  margin:0;
-  text-transform:uppercase;
-  font-size:20px;
-  font-weight:900;
-  letter-spacing:4px;
+.joinBox input {
+  margin: 0;
+
+  text-transform: uppercase;
+
+  font-size: 20px;
+  font-weight: 900;
+
+  letter-spacing: 4px;
 }
 
-.joinBox button{
-  border:0;
-  border-radius:11px;
-  padding:0 17px;
-  background:#fff;
-  color:#111;
-  font-weight:900;
+.joinBox button {
+  padding: 0 17px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: #fff;
+
+  color: #111;
+
+  font-weight: 900;
 }
 
+/* =========================================================
+   GARAGE
+========================================================= */
 
-/* GARAGE */
+.addVehicleCard {
+  width: 100%;
 
-.addVehicleCard{
-  width:100%;
-  padding:18px;
-  display:flex;
-  align-items:center;
-  gap:14px;
-  text-align:left;
-  color:#fff;
-  border:1px dashed #3b4047;
-  border-radius:17px;
-  background:transparent;
-  margin-bottom:14px;
+  padding: 18px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  margin-bottom: 14px;
+
+  text-align: left;
+
+  color: #fff;
+
+  border:
+    1px dashed #3b4047;
+
+  border-radius: 17px;
+
+  background: transparent;
 }
 
-.addVehicleCard>span{
-  width:45px;
-  height:45px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:var(--panel2);
-  color:var(--orange);
-  font-size:24px;
+.addVehicleCard > span {
+  width: 45px;
+  height: 45px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: var(--panel2);
+
+  color: var(--orange);
+
+  font-size: 24px;
 }
 
-.addVehicleCard div{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
+.addVehicleCard div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
 }
 
-.addVehicleCard small{
-  color:var(--muted);
+.addVehicleCard small {
+  color: var(--muted);
 }
 
-.garageCar{
-  padding:20px;
-  margin-bottom:12px;
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:var(--panel);
+.garageCar {
+  padding: 20px;
+
+  margin-bottom: 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 18px;
+
+  background: var(--panel);
 }
 
-.garageCar.activeVehicle{
-  border-color:#63301a;
+.garageCar.activeVehicle {
+  border-color: #63301a;
+
+  box-shadow:
+    0 0 35px
+    rgba(255,90,18,.05);
 }
 
-.garageCarTop{
-  min-height:27px;
+.garageCarTop {
+  min-height: 27px;
 }
 
-.garageVehicleVisual{
-  height:105px;
-  display:grid;
-  place-items:center;
-  font-size:70px;
+.garageVehicleVisual {
+  min-height: 140px;
+
+  display: grid;
+  place-items: center;
+
+  font-size: 70px;
 }
 
-.manufacturer{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
+.garageVehicleVisual img {
+  max-height: 180px;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(
+      0 15px 20px
+      rgba(0,0,0,.6)
+    );
 }
 
-.garageCar h2{
-  margin:5px 0 12px;
+.manufacturer {
+  color: var(--orange);
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.vehicleDetails{
-  display:flex;
-  gap:8px;
+.garageCar h2 {
+  margin: 5px 0 12px;
 }
 
-.vehicleDetails span{
-  padding:7px 9px;
-  border-radius:8px;
-  background:#191c20;
-  color:var(--muted);
-  font-size:11px;
+.vehicleDetails {
+  display: flex;
+
+  gap: 8px;
+
+  flex-wrap: wrap;
 }
 
-.infoPanel span{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
+.vehicleDetails span {
+  padding: 7px 9px;
+
+  border-radius: 8px;
+
+  background: #191c20;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+.activateVehicle {
+  width: 100%;
+
+  margin-top: 14px;
+
+  padding: 12px;
+
+  border:
+    1px solid #63301a;
+
+  border-radius: 10px;
+
+  background: #21120b;
+
+  color: var(--orange);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.infoPanel span {
+  color: var(--orange);
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
 .infoPanel p,
-.comingSoon p{
-  color:var(--muted);
-  line-height:1.5;
+.comingSoon p {
+  color: var(--muted);
+
+  line-height: 1.5;
 }
 
+/* =========================================================
+   CAR COLOR SELECTOR
+========================================================= */
 
-/* FRIENDS */
+.carColorChoices {
+  display: flex;
 
-.searchBar{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  padding:0 14px;
-  border:1px solid var(--line);
-  border-radius:13px;
-  background:var(--panel);
+  flex-wrap: wrap;
+
+  gap: 9px;
+
+  margin:
+    -2px 0 22px;
 }
 
-.searchBar input{
-  border:0;
-  background:transparent;
-  margin:0;
-  padding-left:0;
+.carColorChoices button {
+  width: 35px;
+  height: 35px;
+
+  border:
+    3px solid #272b31;
+
+  border-radius: 50%;
+
+  box-shadow:
+    0 3px 12px
+    rgba(0,0,0,.35);
 }
 
-.friendsTabs{
-  display:flex;
-  margin:18px 0 12px;
-  border-bottom:1px solid var(--line);
+.carColorChoices button:hover {
+  transform: scale(1.1);
+
+  border-color: #fff;
 }
 
-.friendsTabs button{
-  flex:1;
-  padding:13px;
-  border:0;
-  border-bottom:2px solid transparent;
-  background:none;
-  color:var(--muted);
-  font-size:11px;
-  font-weight:900;
+.carColorChoices button:nth-child(1) {
+  background: #111;
 }
 
-.friendsTabs button.active{
-  color:#fff;
-  border-bottom-color:var(--orange);
+.carColorChoices button:nth-child(2) {
+  background: #eee;
 }
 
-.friendList{
-  margin-bottom:14px;
+.carColorChoices button:nth-child(3) {
+  background: #666b71;
 }
 
-.comingSoon span{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
+.carColorChoices button:nth-child(4) {
+  background: #b8bdc2;
 }
 
-.comingSoon h3{
-  margin-bottom:5px;
+.carColorChoices button:nth-child(5) {
+  background: #2862c4;
 }
 
-
-/* PROFILE */
-
-.profileHero{
-  text-align:center;
-  padding:30px 10px 20px;
-  position:relative;
+.carColorChoices button:nth-child(6) {
+  background: #c2252b;
 }
 
-.settingsButton{
-  position:absolute;
-  right:0;
-  top:0;
-  width:40px;
-  height:40px;
-  border:1px solid var(--line);
-  border-radius:50%;
-  background:var(--panel);
-  color:#fff;
+.carColorChoices button:nth-child(7) {
+  background: #24714b;
 }
 
-.profileAvatar{
-  width:92px;
-  height:92px;
-  margin:auto;
-  position:relative;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
+.carColorChoices button:nth-child(8) {
+  background: #f26922;
+}
+
+.carColorChoices button:nth-child(9) {
+  background: #e4c628;
+}
+
+/* =========================================================
+   CAR PHOTO
+========================================================= */
+
+.carPhotoSection {
+  margin:
+    8px 0 20px;
+}
+
+.newCarPhotoPreview {
+  min-height: 170px;
+
+  margin-top: 10px;
+
+  overflow: hidden;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px dashed #343941;
+
+  border-radius: 16px;
+
   background:
-    linear-gradient(145deg,#252a30,#111317);
-  border:2px solid #353a41;
-  font-size:28px;
-  font-weight:900;
+    linear-gradient(
+      145deg,
+      #12151a,
+      #090b0e
+    );
 }
 
-.profileAvatar span{
-  position:absolute;
-  right:-3px;
-  bottom:3px;
-  min-width:27px;
-  height:27px;
-  padding:0 5px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:var(--orange);
-  border:3px solid var(--bg);
-  font-size:10px;
+.newCarPhotoPreview img {
+  width: 100%;
+  max-height: 260px;
+
+  object-fit: contain;
 }
 
-.profileHero h1{
-  margin:14px 0 3px;
+.carPhotoPlaceholder {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 5px;
+
+  color: var(--muted);
 }
 
-.profileHero>p{
-  margin:0 0 20px;
-  color:var(--muted);
-  font-size:12px;
+.carPhotoPlaceholder > span {
+  font-size: 45px;
 }
 
-.profileProgress{
-  max-width:380px;
-  margin:auto;
+.carPhotoPlaceholder strong {
+  color: #fff;
+
+  font-size: 11px;
 }
 
-.profileProgress>div:first-child{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:8px;
-  font-size:10px;
-  font-weight:900;
+.carPhotoPlaceholder small {
+  font-size: 9px;
 }
 
-.profileStats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  margin-bottom:14px;
-  border:1px solid var(--line);
-  border-radius:17px;
-  background:var(--panel);
+.carPhotoUpload {
+  min-height: 44px;
+
+  margin-top: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border:
+    1px solid var(--line);
+
+  border-radius: 10px;
+
+  background: #16191e;
+
+  color: #fff;
 }
 
-.profileStats div{
-  padding:17px 4px;
-  text-align:center;
-  border-right:1px solid var(--line);
+.carPhotoUpload input {
+  display: none;
 }
 
-.profileStats div:last-child{
-  border-right:0;
+/* =========================================================
+   FRIENDS
+========================================================= */
+
+.searchBar {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 0 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 13px;
+
+  background: var(--panel);
 }
 
-.profileStats strong{
-  display:block;
-  font-size:19px;
+.searchBar input {
+  margin: 0;
+
+  padding-left: 0;
+
+  border: 0;
+
+  background: transparent;
 }
 
-.profileStats span{
-  color:var(--muted);
-  font-size:8px;
-  font-weight:900;
+.friendsTabs {
+  display: flex;
+
+  margin: 18px 0 12px;
+
+  border-bottom:
+    1px solid var(--line);
 }
 
-.achievementGrid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:9px;
+.friendsTabs button {
+  flex: 1;
+
+  padding: 13px;
+
+  border: 0;
+
+  border-bottom:
+    2px solid transparent;
+
+  background: none;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  font-weight: 900;
 }
 
-.menuRow{
-  width:100%;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:14px 0;
-  border:0;
-  border-bottom:1px solid var(--line);
-  background:none;
-  color:#fff;
-  text-align:left;
+.friendsTabs button.active {
+  color: #fff;
+
+  border-bottom-color:
+    var(--orange);
 }
 
-.menuRow:last-child{
-  border-bottom:0;
+.friendList {
+  margin-bottom: 14px;
 }
 
-.menuRow>span{
-  width:37px;
-  height:37px;
-  display:grid;
-  place-items:center;
-  border-radius:10px;
-  background:#191c20;
+.messageList {
+  min-height: 160px;
+
+  max-height: 390px;
+
+  overflow-y: auto;
+
+  padding: 8px 0;
 }
 
-.menuRow div{
-  flex:1;
-  display:flex;
-  flex-direction:column;
+.messageForm {
+  display: flex;
+
+  gap: 8px;
 }
 
-.menuRow small{
-  color:var(--muted);
-  margin-top:3px;
+.messageForm input {
+  margin: 0;
 }
 
-.menuRow b{
-  color:var(--muted);
-  font-size:20px;
+.messageForm button {
+  padding: 0 16px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: var(--orange);
+
+  color: #fff;
+
+  font-size: 10px;
+  font-weight: 900;
 }
 
-.logoutRow strong{
-  color:#ff6969;
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.profileHero {
+  padding:
+    28px 18px 25px;
+
+  text-align: center;
+
+  border-bottom:
+    1px solid var(--line);
 }
 
-.plusCard{
-  padding:24px;
-  border-radius:20px;
+.settingsButton {
+  float: right;
+
+  width: 40px;
+  height: 40px;
+
+  border: 1px solid var(--line);
+  border-radius: 12px;
+
+  background: var(--panel);
+
+  color: #fff;
+}
+
+.profileAvatar {
+  position: relative;
+
+  width: 95px;
+  height: 95px;
+
+  margin: 25px auto 15px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  border:
+    2px solid #4d2616;
+
   background:
-    linear-gradient(135deg,#201008,#111317);
-  border:1px solid #4b2818;
+    linear-gradient(
+      145deg,
+      #1c2026,
+      #0d0f12
+    );
+
+  font-size: 28px;
+  font-weight: 900;
 }
 
-.plusCard>span{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
+#profileLevelBadge {
+  position: absolute;
+
+  right: -3px;
+  bottom: 1px;
+
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    3px solid var(--bg);
+
+  border-radius: 50%;
+
+  background: var(--orange);
+
+  color: #fff;
+
+  font-size: 10px;
 }
 
-.plusCard h2{
-  margin:3px 0 8px;
-  font-size:30px;
+.profileHero h1 {
+  margin: 5px 0;
+
+  font-size: 30px;
 }
 
-.plusCard p{
-  color:var(--muted);
-  line-height:1.45;
+.profileHero p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 10px;
 }
 
-.plusCard button{
-  padding:10px 13px;
-  border:1px solid #5a321f;
-  border-radius:9px;
-  background:#27150c;
-  color:var(--orange);
-  font-weight:900;
+.profileProgress {
+  max-width: 370px;
+
+  margin: 25px auto 0;
 }
 
+.profileProgress > div:first-child {
+  display: flex;
+  justify-content: space-between;
 
-/* GAME */
+  margin-bottom: 8px;
 
-.gameHeaderCard{
-  padding:18px;
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:var(--panel);
-  margin-bottom:12px;
+  font-size: 9px;
 }
 
-.gameHeaderCard h2{
-  margin:4px 0;
+.profileStats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4,1fr);
+
+  margin-bottom: 14px;
 }
 
-.closeGame{
-  width:39px;
-  height:39px;
-  border:1px solid var(--line);
-  border-radius:50%;
-  background:#17191d;
-  color:#fff;
-  font-size:24px;
+.profileStats div {
+  padding: 20px 5px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  border-right:
+    1px solid var(--line);
 }
 
-.codeBox{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin:16px 0;
-  padding:13px;
-  border:1px solid #353a40;
-  border-radius:12px;
-  background:#080a0c;
+.profileStats div:last-child {
+  border-right: 0;
 }
 
-.codeBox div{
-  display:flex;
-  flex-direction:column;
+.profileStats strong {
+  font-size: 20px;
 }
 
-.codeBox span{
-  color:var(--muted);
-  font-size:8px;
-  font-weight:900;
+.profileStats span {
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 8px;
+  font-weight: 900;
 }
 
-.codeBox strong{
-  margin-top:4px;
-  font-size:21px;
-  letter-spacing:4px;
+.menuRow {
+  width: 100%;
+
+  min-height: 65px;
+
+  padding: 10px 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  border: 0;
+
+  border-bottom:
+    1px solid var(--line);
+
+  background: none;
+
+  color: #fff;
+
+  text-align: left;
 }
 
-.copyIcon{
-  font-size:20px !important;
+.menuRow:last-child {
+  border-bottom: 0;
 }
 
-.gameStats{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:7px;
+.menuRow > span {
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+
+  background: var(--panel2);
 }
 
-.gameStats div{
-  padding:11px;
-  border-radius:10px;
-  background:#17191d;
+.menuRow div {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
 }
 
-.gameStats span{
-  display:block;
-  color:var(--muted);
-  font-size:8px;
-  margin-bottom:5px;
+.menuRow small {
+  color: var(--muted);
 }
 
-.gameStats strong{
-  font-size:11px;
+.menuRow b {
+  color: var(--muted);
+
+  font-size: 22px;
 }
 
-.driverWarning{
-  display:flex;
-  gap:12px;
-  padding:14px;
-  margin-bottom:12px;
-  border:1px solid #5b4617;
-  border-radius:14px;
-  background:#1b1608;
+.logoutRow strong {
+  color: #ff5d5d;
 }
 
-.driverWarning strong{
-  color:#ffd56a;
-}
+.plusCard {
+  padding: 24px;
 
-.driverWarning p{
-  margin:4px 0 0;
-  color:#b5a67e;
-  font-size:11px;
-}
+  border:
+    1px solid #56321e;
 
-.radarCard{
-  padding:18px;
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:var(--panel);
-  margin-bottom:14px;
-}
+  border-radius: 20px;
 
-.radarHeader{
-  display:flex;
-  justify-content:space-between;
-}
-
-.radarHeader div:first-child{
-  display:flex;
-  flex-direction:column;
-}
-
-.radarHeader span{
-  color:var(--orange);
-  font-size:8px;
-  font-weight:900;
-}
-
-.gpsStatus{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  color:var(--muted);
-  font-size:9px;
-  font-weight:900;
-}
-
-.gpsStatus i{
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:#555;
-}
-
-.gpsStatus i.on{
-  background:var(--green);
-  box-shadow:0 0 10px var(--green);
-}
-
-.radar{
-  width:250px;
-  height:250px;
-  max-width:80vw;
-  max-height:80vw;
-  margin:22px auto;
-  position:relative;
-  display:grid;
-  place-items:center;
-  overflow:hidden;
-  border-radius:50%;
-  border:1px solid #26312c;
   background:
-    radial-gradient(circle,#0d1813,#07100c 65%,#050806);
+    linear-gradient(
+      145deg,
+      #21150f,
+      #0d0f12
+    );
 }
 
-.ring{
-  position:absolute;
-  border:1px solid rgba(76,200,128,.16);
-  border-radius:50%;
+.plusCard > span {
+  color: var(--orange);
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.r1{
-  width:33%;
-  height:33%;
+.plusCard h2 {
+  margin: 5px 0;
 }
 
-.r2{
-  width:66%;
-  height:66%;
+.plusCard p {
+  color: var(--muted);
+
+  line-height: 1.5;
 }
 
-.r3{
-  width:94%;
-  height:94%;
+.plusCard button {
+  padding: 10px 14px;
+
+  border: 0;
+  border-radius: 9px;
+
+  background: #292017;
+
+  color: #b7a899;
+
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.radarSweep{
-  position:absolute;
-  width:50%;
-  height:50%;
-  left:50%;
-  top:0;
-  transform-origin:0 100%;
+/* =========================================================
+   CINEMATIC LOBBY
+========================================================= */
+
+#game.freshLobby.active {
+  position: relative;
+
+  width: 100%;
+  max-width: none;
+
+  min-height:
+    calc(100vh - 68px);
+
+  margin: 0;
+
+  padding:
+    22px 30px 100px;
+
+  overflow: hidden;
+
+  isolation: isolate;
+
+  background-color: #03070c;
+
+  background-image:
+
+    linear-gradient(
+      180deg,
+      rgba(1,5,12,.05) 0%,
+      rgba(1,5,12,.02) 30%,
+      rgba(2,6,12,.14) 50%,
+      rgba(2,5,10,.64) 82%,
+      rgba(3,5,8,.95) 100%
+    ),
+
+    url("assets/lobby-bg.png");
+
+  background-size: cover;
+
+  background-position:
+    center center;
+
+  background-repeat:
+    no-repeat;
+
+  background-attachment: fixed;
+}
+
+/* Dark side vignette */
+
+#game.freshLobby.active::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  z-index: -1;
+
+  pointer-events: none;
+
   background:
-    linear-gradient(45deg,rgba(61,230,132,.17),transparent);
-  animation:sweep 4s linear infinite;
+
+    radial-gradient(
+      ellipse at 50% 48%,
+      transparent 0%,
+      transparent 37%,
+      rgba(0,0,0,.08) 57%,
+      rgba(0,0,0,.5) 100%
+    ),
+
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.34),
+      transparent 22%,
+      transparent 78%,
+      rgba(0,0,0,.34)
+    );
 }
 
-@keyframes sweep{
-  to{
-    transform:rotate(360deg);
+/* Blue atmosphere */
+
+#game.freshLobby.active::after {
+  content: "";
+
+  position: absolute;
+
+  z-index: -1;
+
+  left: 12%;
+  right: 12%;
+
+  bottom: -80px;
+
+  height: 260px;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(0,115,255,.19),
+      transparent 65%
+    );
+
+  filter: blur(25px);
+}
+
+/* =========================================================
+   LOBBY TOP BAR
+========================================================= */
+
+.freshLobbyTools {
+  position: relative;
+
+  z-index: 40;
+
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.freshRoomLabel {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 950;
+
+  letter-spacing: 2px;
+
+  text-shadow:
+    0 2px 10px #000;
+}
+
+.freshLiveDot {
+  width: 9px;
+  height: 9px;
+
+  border-radius: 50%;
+
+  background: #43e58f;
+
+  box-shadow:
+    0 0 0 4px
+    rgba(67,229,143,.13),
+
+    0 0 18px
+    rgba(67,229,143,.9);
+}
+
+.freshToolButtons {
+  display: flex;
+
+  gap: 9px;
+}
+
+.freshToolButtons button {
+  position: relative;
+
+  min-height: 44px;
+
+  padding: 0 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.16);
+
+  border-radius: 13px;
+
+  background:
+    rgba(7,10,15,.70);
+
+  backdrop-filter:
+    blur(18px);
+
+  -webkit-backdrop-filter:
+    blur(18px);
+
+  color: #fff;
+
+  font-size: 10px;
+  font-weight: 950;
+
+  box-shadow:
+    0 10px 30px
+    rgba(0,0,0,.25);
+
+  transition:
+    .2s ease;
+}
+
+.freshToolButtons button:hover {
+  transform:
+    translateY(-2px);
+
+  background:
+    rgba(20,24,31,.9);
+
+  border-color:
+    rgba(255,255,255,.35);
+}
+
+#freshChatButton {
+  background:
+    linear-gradient(
+      135deg,
+      #096dd9,
+      #168cff
+    );
+
+  border-color:
+    #55b5ff;
+
+  box-shadow:
+    0 8px 28px
+    rgba(0,115,255,.28);
+}
+
+#freshUnread {
+  position: absolute;
+
+  top: -8px;
+  right: -7px;
+
+  min-width: 24px;
+  height: 24px;
+
+  padding: 0 6px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    3px solid #080b10;
+
+  border-radius: 50px;
+
+  background: #ff304c;
+
+  color: #fff;
+
+  font-size: 10px;
+  font-weight: 1000;
+
+  box-shadow:
+    0 5px 14px
+    rgba(0,0,0,.4);
+}
+
+#freshUnread[hidden] {
+  display: none;
+}
+
+/* =========================================================
+   ROOM INFORMATION
+========================================================= */
+
+.freshRoomHeader {
+  position: absolute;
+
+  z-index: 20;
+
+  top: 90px;
+  left: 30px;
+
+  width: 300px;
+
+  padding: 18px;
+
+  border:
+    1px solid
+    rgba(92,173,255,.20);
+
+  border-radius: 18px;
+
+  background:
+    rgba(3,9,17,.60);
+
+  backdrop-filter:
+    blur(20px);
+
+  -webkit-backdrop-filter:
+    blur(20px);
+
+  box-shadow:
+    0 20px 60px
+    rgba(0,0,0,.30);
+}
+
+.freshRoomHeader h2 {
+  margin:
+    5px 0 14px;
+
+  color: #fff;
+
+  font-size: 27px;
+
+  line-height: 1;
+
+  letter-spacing: -1px;
+
+  text-shadow:
+    0 3px 15px #000;
+}
+
+.freshRoomHeader .sectionEyebrow {
+  color: #6dbdff;
+}
+
+.freshRoomHeader .codeBox {
+  padding: 11px 12px;
+
+  margin-bottom: 12px;
+
+  display: flex;
+  align-items: center;
+
+  border:
+    1px solid
+    rgba(255,255,255,.1);
+
+  border-radius: 12px;
+
+  background:
+    rgba(0,0,0,.30);
+}
+
+.codeBox > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.codeBox span {
+  color:
+    rgba(255,255,255,.45);
+
+  font-size: 8px;
+  font-weight: 900;
+
+  letter-spacing: 1px;
+}
+
+.codeBox strong {
+  margin-top: 3px;
+
+  color: #fff;
+
+  font-size: 20px;
+
+  letter-spacing: 5px;
+}
+
+.freshCopyButton {
+  margin-left: auto;
+
+  padding: 8px 9px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0875e1,
+      #2da5ff
+    );
+
+  color: #fff;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.gameStats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap: 5px;
+}
+
+.gameStats div {
+  padding: 8px;
+
+  border-radius: 9px;
+
+  background:
+    rgba(255,255,255,.04);
+}
+
+.gameStats span {
+  display: block;
+
+  color:
+    rgba(255,255,255,.38);
+
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.gameStats strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #fff;
+
+  font-size: 10px;
+}
+
+/* =========================================================
+   CREW / PLAYER STAGE
+========================================================= */
+
+.freshCrewBoard {
+  position: relative;
+
+  z-index: 10;
+
+  width:
+    min(1200px,100%);
+
+  min-height: 640px;
+
+  margin:
+    65px auto 0;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: flex-end;
+
+  background: none;
+
+  border: 0;
+}
+
+.freshCrewBoard > .panelTitle {
+  position: absolute;
+
+  top: 12px;
+  left: 50%;
+
+  transform:
+    translateX(-50%);
+
+  margin: 0;
+
+  text-align: center;
+}
+
+.freshCrewBoard > .panelTitle span {
+  display: none;
+}
+
+.freshCrewBoard > .panelTitle h3 {
+  color:
+    rgba(255,255,255,.72);
+
+  font-size: 10px;
+
+  letter-spacing: 4px;
+
+  text-shadow:
+    0 2px 10px #000;
+}
+
+.freshPlayersStage,
+#players {
+  width: 100%;
+
+  min-height: 540px;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: flex-end;
+
+  gap: 4px;
+
+  perspective: 1400px;
+}
+
+/* =========================================================
+   PLAYER CARD
+========================================================= */
+
+.freshPlayerCard {
+  --crew-color: #168cff;
+  --car-color: #74787d;
+
+  position: relative;
+
+  width: 215px;
+  height: 400px;
+
+  flex:
+    0 1 215px;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: flex-end;
+  align-items: center;
+
+  text-align: center;
+
+  overflow: visible;
+
+  border: 0;
+
+  background: none;
+
+  transition:
+    transform .22s ease,
+    filter .22s ease;
+}
+
+.freshPlayerCard:hover {
+  transform:
+    translateY(-7px);
+}
+
+/* =========================================================
+   HOST
+========================================================= */
+
+.freshPlayerCard.isHost {
+  width: 305px;
+  height: 500px;
+
+  flex-basis: 305px;
+
+  transform:
+    translateY(-20px);
+
+  z-index: 8;
+}
+
+.freshPlayerCard.isHost:hover {
+  transform:
+    translateY(-28px)
+    scale(1.02);
+}
+
+/* =========================================================
+   PLAYER NAME
+========================================================= */
+
+.freshPlayerCard h3 {
+  position: absolute;
+
+  z-index: 12;
+
+  top: 42px;
+  left: 50%;
+
+  transform:
+    translateX(-50%);
+
+  width: 100%;
+
+  margin: 0;
+
+  color: #fff;
+
+  font-size: 19px;
+  font-weight: 1000;
+
+  letter-spacing: -.3px;
+
+  text-shadow:
+    0 2px 4px #000,
+    0 6px 20px #000;
+}
+
+.freshPlayerCard.isHost h3 {
+  top: 36px;
+
+  font-size: 27px;
+}
+
+.freshPlayerCard h3 small {
+  display: block;
+
+  width: max-content;
+
+  margin:
+    6px auto 0;
+
+  padding:
+    4px 7px;
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0875e1,
+      #1e9fff
+    );
+
+  color: #fff;
+
+  font-size: 7px;
+
+  letter-spacing: 1px;
+
+  box-shadow:
+    0 4px 15px
+    rgba(0,0,0,.3);
+}
+
+/* =========================================================
+   HOST LABEL
+========================================================= */
+
+.freshPlayerTop {
+  position: absolute;
+
+  z-index: 14;
+
+  top: 18px;
+  left: 50%;
+
+  transform:
+    translateX(-50%);
+
+  width: max-content;
+
+  color: #74c5ff;
+
+  font-size: 8px;
+  font-weight: 1000;
+
+  letter-spacing: 1.5px;
+
+  text-shadow:
+    0 2px 8px #000;
+}
+
+.freshPlayerCard.isHost .freshPlayerTop {
+  top: 7px;
+}
+
+.freshConnection {
+  display: none;
+}
+
+/* =========================================================
+   CAR STAGE
+========================================================= */
+
+.freshAvatarStage {
+  position: relative;
+
+  width: 100%;
+  height: 240px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  margin: 0;
+}
+
+.freshPlayerCard.isHost .freshAvatarStage {
+  height: 325px;
+}
+
+.freshAvatarOrb {
+  display: none !important;
+}
+
+/* =========================================================
+   ACTUAL PLAYER CAR
+========================================================= */
+
+.lobbyModelCar {
+  position: relative;
+
+  z-index: 8;
+
+  display: block;
+
+  width: 100%;
+  max-width: 230px;
+
+  height: 175px;
+
+  object-fit: contain;
+
+  object-position:
+    center bottom;
+
+  image-rendering: auto;
+
+  transform:
+    translateZ(0);
+
+  filter:
+    drop-shadow(
+      0 24px 18px
+      rgba(0,0,0,.78)
+    );
+
+  transition:
+    transform .25s ease,
+    filter .25s ease;
+}
+
+.freshPlayerCard:hover .lobbyModelCar {
+  transform:
+    scale(1.055);
+}
+
+.freshPlayerCard.isHost .lobbyModelCar {
+  max-width: 350px;
+
+  height: 265px;
+}
+
+.freshPlayerCard.isHost:hover .lobbyModelCar {
+  transform:
+    scale(1.04);
+}
+
+.lobbyOwnCar {
+  border-radius: 8px;
+}
+
+/* =========================================================
+   GENERIC CAR FALLBACK
+========================================================= */
+
+.lobbyCarFallback {
+  position: relative;
+
+  z-index: 7;
+
+  width: 185px;
+  height: 82px;
+
+  margin-bottom: 22px;
+
+  border-radius:
+    45% 48% 22% 22% /
+    50% 50% 25% 25%;
+
+  background:
+
+    linear-gradient(
+      155deg,
+      rgba(255,255,255,.30),
+      transparent 24%
+    ),
+
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--car-color)
+        80%,
+        white
+      ),
+      var(--car-color)
+    );
+
+  box-shadow:
+
+    inset
+    0 -20px 25px
+    rgba(0,0,0,.28),
+
+    0 24px 30px
+    rgba(0,0,0,.65);
+}
+
+.lobbyCarFallback::before {
+  content: "";
+
+  position: absolute;
+
+  width: 105px;
+  height: 46px;
+
+  left: 40px;
+  top: -28px;
+
+  border-radius:
+    55px 65px 8px 8px;
+
+  background:
+
+    linear-gradient(
+      145deg,
+      #293945 0 45%,
+      #121b22 46% 62%,
+      var(--car-color) 63%
+    );
+
+  box-shadow:
+    inset 0 3px 5px
+    rgba(255,255,255,.12);
+}
+
+.lobbyCarFallback::after {
+  content: "";
+
+  position: absolute;
+
+  left: 20px;
+  bottom: -13px;
+
+  width: 34px;
+  height: 34px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      #9ca0a5 0 18%,
+      #35383d 19% 45%,
+      #070809 46%
+    );
+
+  border:
+    3px solid #070809;
+
+  box-shadow:
+
+    113px 0 0 -3px #9ca0a5,
+
+    113px 0 0 0 #35383d,
+
+    113px 0 0 3px #070809;
+}
+
+.freshPlayerCard.isHost .lobbyCarFallback {
+  transform:
+    scale(1.35);
+
+  margin-bottom: 45px;
+}
+
+/* =========================================================
+   CAR FLOOR GLOW
+========================================================= */
+
+.freshPlatform {
+  position: absolute;
+
+  z-index: 1;
+
+  left: 2%;
+  right: 2%;
+
+  bottom: 0;
+
+  height: 60px;
+
+  border-radius: 50%;
+
+  background:
+
+    radial-gradient(
+      ellipse,
+      rgba(21,138,255,.34),
+      transparent 68%
+    );
+
+  filter:
+    blur(3px);
+}
+
+.freshPlatform::after {
+  content: "";
+
+  position: absolute;
+
+  left: 15%;
+  right: 15%;
+
+  bottom: 17px;
+
+  height: 3px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(126,199,255,.42);
+
+  box-shadow:
+    0 0 25px
+    rgba(20,139,255,.9);
+}
+
+/* =========================================================
+   VEHICLE INFO
+========================================================= */
+
+.freshVehicleName {
+  position: relative;
+
+  z-index: 10;
+
+  min-height: 0;
+
+  margin:
+    9px 0 2px;
+
+  color: #fff;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  text-shadow:
+    0 2px 8px #000;
+}
+
+.freshPlayerCard.isHost .freshVehicleName {
+  font-size: 15px;
+}
+
+.freshVehicleColor {
+  position: relative;
+
+  z-index: 10;
+
+  margin:
+    0 0 12px;
+
+  color:
+    rgba(255,255,255,.58);
+
+  font-size: 9px;
+
+  text-shadow:
+    0 2px 6px #000;
+}
+
+/* =========================================================
+   PLAYER STATUS
+========================================================= */
+
+.freshPlayerStatus {
+  position: relative;
+
+  z-index: 10;
+
+  padding:
+    7px 11px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.12);
+
+  border-radius: 30px;
+
+  background:
+    rgba(5,8,12,.72);
+
+  backdrop-filter:
+    blur(10px);
+
+  color: #d5d7db;
+
+  font-size: 8px;
+  font-weight: 1000;
+
+  letter-spacing: 1px;
+
+  text-shadow:
+    0 2px 6px #000;
+}
+
+.freshPlayerCard.isReady .freshPlayerStatus {
+  border-color:
+    rgba(62,230,132,.4);
+
+  background:
+    rgba(17,92,55,.75);
+
+  color: #83ffb6;
+}
+
+.freshPlayerCard.isFound .freshPlayerStatus {
+  border-color:
+    rgba(255,65,65,.4);
+
+  background:
+    rgba(105,25,25,.75);
+
+  color: #ff8d8d;
+}
+
+.freshGpsState {
+  position: relative;
+
+  z-index: 10;
+
+  margin-top: 7px;
+
+  color:
+    rgba(255,255,255,.47);
+
+  font-size: 8px;
+
+  text-shadow:
+    0 2px 5px #000;
+}
+
+/* =========================================================
+   LOCAL PLAYER GLOW
+========================================================= */
+
+.freshPlayerCard.isYou::before {
+  content: "";
+
+  position: absolute;
+
+  z-index: -1;
+
+  left: -10%;
+  right: -10%;
+
+  bottom: 0;
+
+  height: 280px;
+
+  background:
+
+    radial-gradient(
+      ellipse at bottom,
+      rgba(20,140,255,.18),
+      transparent 68%
+    );
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   EMPTY PLAYER SLOT
+========================================================= */
+
+.freshEmptySeat {
+  width: 180px;
+  height: 260px;
+
+  margin-bottom: 25px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  border:
+    1px dashed
+    rgba(104,185,255,.25);
+
+  border-radius: 20px;
+
+  background:
+    rgba(3,9,17,.36);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+.freshEmptySeat > span {
+  width: 55px;
+  height: 55px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 14px;
+
+  border:
+    1px solid
+    rgba(92,180,255,.3);
+
+  border-radius: 50%;
+
+  color:
+    rgba(127,199,255,.7);
+
+  font-size: 28px;
+}
+
+.freshEmptySeat strong {
+  font-size: 10px;
+
+  letter-spacing: 1px;
+}
+
+.freshEmptySeat p {
+  margin:
+    7px 12px 0;
+
+  color:
+    rgba(255,255,255,.4);
+
+  font-size: 9px;
+
+  line-height: 1.5;
+}
+
+/* =========================================================
+   READY + START
+========================================================= */
+
+#game #ready {
+  position: fixed;
+
+  z-index: 60;
+
+  left: 50%;
+  bottom: 25px;
+
+  transform:
+    translateX(-50%);
+
+  min-width: 180px;
+  min-height: 52px;
+
+  padding: 0 25px;
+
+  border:
+    1px solid
+    rgba(78,175,255,.3);
+
+  border-radius: 14px;
+
+  background:
+    rgba(4,11,20,.86);
+
+  backdrop-filter:
+    blur(18px);
+
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 1000;
+
+  letter-spacing: 1px;
+
+  box-shadow:
+    0 15px 45px
+    rgba(0,0,0,.4);
+}
+
+#game #ready:hover {
+  border-color:
+    rgba(91,190,255,.7);
+}
+
+#game #ready.active {
+  border-color: #63ffac;
+
+  background: #26c879;
+
+  color: #061b10;
+}
+
+#game #start {
+  position: fixed;
+
+  z-index: 61;
+
+  left: 50%;
+  bottom: 25px;
+
+  transform:
+    translateX(-50%);
+
+  width:
+    min(330px,80vw);
+
+  margin: 0;
+
+  padding: 17px;
+
+  border: 0;
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0875e1,
+      #1da0ff
+    );
+
+  color: #fff;
+
+  font-size: 12px;
+  font-weight: 1000;
+
+  letter-spacing: 1px;
+
+  box-shadow:
+
+    0 13px 35px
+    rgba(0,122,255,.35),
+
+    0 3px 0
+    #064c94;
+}
+
+/* =========================================================
+   CHAT DRAWER
+========================================================= */
+
+.freshSideDrawer {
+  position: fixed;
+
+  z-index: 100;
+
+  top: 0;
+  right: 0;
+
+  width:
+    min(390px,92vw);
+
+  height: 100vh;
+
+  padding: 20px;
+
+  display: flex;
+  flex-direction: column;
+
+  transform:
+    translateX(105%);
+
+  transition:
+    transform .28s
+    cubic-bezier(.2,.8,.2,1);
+
+  border-left:
+    1px solid
+    rgba(77,167,255,.18);
+
+  background:
+    rgba(3,8,15,.97);
+
+  backdrop-filter:
+    blur(25px);
+
+  box-shadow:
+    -25px 0 70px
+    rgba(0,0,0,.5);
+}
+
+.freshSideDrawer.open {
+  transform:
+    translateX(0);
+}
+
+.freshDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 18px;
+}
+
+.freshDrawerHeader span {
+  color: #62bbff;
+
+  font-size: 8px;
+  font-weight: 900;
+
+  letter-spacing: 1px;
+}
+
+.freshDrawerHeader h3 {
+  margin: 3px 0 0;
+
+  font-size: 20px;
+}
+
+.freshDrawerHeader button {
+  width: 40px;
+  height: 40px;
+
+  border:
+    1px solid var(--line);
+
+  border-radius: 11px;
+
+  background: var(--panel2);
+
+  color: #fff;
+}
+
+.freshSideDrawer .messageList {
+  flex: 1;
+
+  max-height: none;
+}
+
+/* =========================================================
+   SETTINGS DIALOG
+========================================================= */
+
+.freshSettingsDialog {
+  width:
+    min(520px,92vw);
+
+  padding: 22px;
+
+  border:
+    1px solid
+    rgba(80,174,255,.2);
+
+  border-radius: 22px;
+
+  background:
+    rgba(5,11,19,.97);
+
+  color: #fff;
+
+  box-shadow:
+    0 30px 100px
+    rgba(0,0,0,.7);
+
+  backdrop-filter:
+    blur(25px);
+}
+
+.freshSettingsDialog::backdrop {
+  background:
+    rgba(0,0,0,.72);
+
+  backdrop-filter:
+    blur(4px);
+}
+
+.freshSettingsContent {
+  padding-top: 5px;
+}
+
+/* =========================================================
+   DRIVER WARNING
+========================================================= */
+
+.driverWarning {
+  position: relative;
+
+  z-index: 20;
+
+  width:
+    min(550px,100%);
+
+  margin:
+    15px auto;
+
+  padding: 14px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  border:
+    1px solid #69451c;
+
+  border-radius: 13px;
+
+  background:
+    rgba(46,29,9,.92);
+}
+
+.driverWarning > span {
+  font-size: 24px;
+}
+
+.driverWarning strong {
+  font-size: 10px;
+}
+
+.driverWarning p {
+  margin: 4px 0 0;
+
+  color: #d0bda7;
+
+  font-size: 10px;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   MAP
+========================================================= */
+
+.freshMapFold {
+  position: relative;
+
+  z-index: 15;
+
+  width:
+    min(720px,100%);
+
+  margin:
+    20px auto;
+
+  border:
+    1px solid var(--line);
+
+  border-radius: 16px;
+
+  background:
+    rgba(8,11,15,.92);
+
+  overflow: hidden;
+}
+
+.freshMapFold summary {
+  padding: 15px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  cursor: pointer;
+
+  list-style: none;
+}
+
+.freshMapFold summary::-webkit-details-marker {
+  display: none;
+}
+
+.freshMapFold summary > span:first-child {
+  color: #50b5ff;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.freshMapFold summary strong {
+  flex: 1;
+
+  font-size: 11px;
+}
+
+.freshMapChevron {
+  font-size: 22px;
+
+  transition:
+    transform .2s ease;
+}
+
+.freshMapFold[open] .freshMapChevron {
+  transform:
+    rotate(90deg);
+}
+
+.radarCard {
+  padding: 16px;
+}
+
+.radarHeader {
+  display: flex;
+  justify-content: space-between;
+
+  margin-bottom: 12px;
+}
+
+.radarHeader > div:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.radarHeader span {
+  color: #55b9ff;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.radarHeader strong {
+  margin-top: 3px;
+}
+
+.gpsStatus {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.gpsStatus i {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #555;
+}
+
+.mapShell {
+  position: relative;
+
+  overflow: hidden;
+
+  min-height: 350px;
+
+  border-radius: 14px;
+
+  background: #0c1116;
+}
+
+.liveMap {
+  width: 100%;
+  height: 350px;
+}
+
+.mapFollow {
+  position: absolute;
+
+  z-index: 10;
+
+  right: 12px;
+  bottom: 12px;
+
+  width: 42px;
+  height: 42px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: #fff;
+
+  color: #111;
+
+  font-size: 20px;
+}
+
+.mapStatus {
+  position: absolute;
+
+  z-index: 9;
+
+  left: 10px;
+  bottom: 10px;
+
+  max-width:
+    calc(100% - 70px);
+
+  padding: 7px 9px;
+
+  border-radius: 8px;
+
+  background:
+    rgba(0,0,0,.68);
+
+  color: #fff;
+
+  font-size: 8px;
+}
+
+.mapLegend {
+  margin-top: 8px;
+
+  color: var(--muted);
+
+  font-size: 8px;
+}
+
+.radar {
+  display: none;
+}
+
+.proximity {
+  margin-top: 12px;
+
+  text-align: center;
+
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+.escape {
+  margin-top: 10px;
+
+  padding: 12px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  border:
+    1px solid #69451c;
+
+  border-radius: 10px;
+
+  background: #2c1c0b;
+}
+
+.escape span {
+  color: #e7bd87;
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.escape strong {
+  color: #fff;
+
+  font-size: 20px;
+}
+
+.gpsButton {
+  width: 100%;
+
+  min-height: 46px;
+
+  margin-top: 12px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: #171b20;
+
+  color: #fff;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+/* =========================================================
+   TARGETS
+========================================================= */
+
+#targets {
+  position: relative;
+
+  z-index: 20;
+
+  width:
+    min(720px,100%);
+
+  margin:
+    20px auto;
+}
+
+#targetButtons {
+  display: grid;
+
+  gap: 8px;
+}
+
+#targetButtons button {
+  min-height: 48px;
+
+  border:
+    1px solid var(--line);
+
+  border-radius: 10px;
+
+  background: var(--panel2);
+
+  color: #fff;
+
+  font-weight: 900;
+}
+
+/* =========================================================
+   RESULT
+========================================================= */
+
+.resultCard {
+  position: relative;
+
+  z-index: 30;
+
+  width:
+    min(500px,100%);
+
+  margin:
+    30px auto;
+
+  padding: 30px;
+
+  text-align: center;
+
+  border:
+    1px solid #214d72;
+
+  border-radius: 22px;
+
+  background:
+    rgba(8,14,21,.96);
+
+  box-shadow:
+    var(--shadow);
+}
+
+#resultIcon {
+  font-size: 50px;
+}
+
+.resultCard > span {
+  display: block;
+
+  margin-top: 12px;
+
+  color: #59baff;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.resultCard h2 {
+  margin:
+    5px 0 10px;
+}
+
+.resultCard p {
+  color: var(--muted);
+
+  line-height: 1.5;
+}
+
+.xpReward {
+  margin:
+    20px 0;
+
+  color: #5dbdff;
+
+  font-size: 35px;
+  font-weight: 1000;
+}
+
+.xpReward small {
+  font-size: 10px;
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal {
+  position: fixed;
+
+  z-index: 200;
+
+  inset: 0;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modalBackdrop {
+  position: absolute;
+
+  inset: 0;
+
+  background:
+    rgba(0,0,0,.75);
+
+  backdrop-filter:
+    blur(5px);
+}
+
+.modalSheet {
+  position: relative;
+
+  z-index: 2;
+
+  width:
+    min(600px,100%);
+
+  max-height:
+    92vh;
+
+  overflow-y: auto;
+
+  padding:
+    12px 22px 30px;
+
+  border-radius:
+    24px 24px 0 0;
+
+  background: #0d0f12;
+
+  border:
+    1px solid var(--line);
+
+  box-shadow:
+    0 -30px 80px
+    rgba(0,0,0,.6);
+}
+
+.modalHandle {
+  width: 45px;
+  height: 4px;
+
+  margin:
+    0 auto 20px;
+
+  border-radius: 10px;
+
+  background: #3a3e44;
+}
+
+.modalHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 20px;
+}
+
+.modalHeading span {
+  color: var(--orange);
+
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.modalHeading h2 {
+  margin: 3px 0 0;
+
+  font-size: 21px;
+}
+
+.modalHeading button {
+  width: 40px;
+  height: 40px;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+
+  background: var(--panel2);
+
+  color: #fff;
+
+  font-size: 24px;
+}
+
+.modalNote {
+  margin-top: 12px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+
+  line-height: 1.5;
+}
+
+.vehicleSuggestions {
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+
+/* =========================================================
+   BOTTOM NAV
+========================================================= */
+
+#bottomNav {
+  position: fixed;
+
+  z-index: 80;
+
+  left: 50%;
+  bottom: 0;
+
+  transform:
+    translateX(-50%);
+
+  width:
+    min(100%,720px);
+
+  min-height: 72px;
+
+  padding:
+    7px 10px
+    max(
+      7px,
+      env(safe-area-inset-bottom)
+    );
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(5,1fr);
+
+  align-items: center;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.08);
+
+  background:
+    rgba(7,9,12,.96);
+
+  backdrop-filter:
+    blur(20px);
+}
+
+.navButton {
+  border: 0;
+
+  background: none;
+
+  color: #6f757e;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 4px;
+
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.navButton span {
+  font-size: 18px;
+}
+
+.navButton.active {
+  color: #fff;
+}
+
+.navPlay {
+  width: 55px;
+  height: 55px;
+
+  margin: auto;
+
+  border: 0;
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #ff4b0b,
+      #ff741d
+    );
+
+  color: #fff;
+
+  box-shadow:
+    0 8px 25px
+    rgba(255,90,18,.3);
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+#toast {
+  position: fixed;
+
+  z-index: 500;
+
+  left: 50%;
+  bottom: 95px;
+
+  transform:
+    translate(-50%,20px);
+
+  max-width:
+    calc(100vw - 30px);
+
+  padding:
+    11px 15px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.12);
+
+  border-radius: 10px;
+
+  background: #171a1f;
+
+  color: #fff;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition:
+    .25s ease;
+}
+
+#toast.show {
+  opacity: 1;
+
+  transform:
+    translate(-50%,0);
+}
+
+/* =========================================================
+   DESKTOP LOBBY
+========================================================= */
+
+@media (min-width: 1000px) {
+
+  #game.freshLobby.active {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+
+  .freshPlayerCard:nth-child(1):not(.isHost) {
+    transform:
+      translateY(45px)
+      rotateY(7deg);
+  }
+
+  .freshPlayerCard:nth-last-child(1):not(.isHost) {
+    transform:
+      translateY(45px)
+      rotateY(-7deg);
+  }
+
+  .freshPlayerCard:nth-child(2):not(.isHost) {
+    transform:
+      translateY(20px);
+  }
+
+  .freshPlayerCard:hover {
+    transform:
+      translateY(-5px)
+      scale(1.02);
+  }
+
+  .freshPlayerCard.isHost {
+    transform:
+      translateY(-25px)
+      scale(1.04);
+  }
+
+  .freshPlayerCard.isHost:hover {
+    transform:
+      translateY(-32px)
+      scale(1.055);
   }
 }
 
-.meDot{
-  z-index:4;
-  width:38px;
-  height:38px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:var(--orange);
-  color:#fff;
-  font-size:8px;
-  font-weight:900;
-  box-shadow:0 0 25px rgba(255,90,18,.55);
-}
+/* =========================================================
+   TABLET
+========================================================= */
 
-.enemyDot{
-  position:absolute;
-  left:50%;
-  top:50%;
-  z-index:5;
-  width:20px;
-  height:20px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:var(--red);
-  font-weight:900;
-}
+@media (max-width: 900px) {
 
-.proximity{
-  padding:12px;
-  border-radius:10px;
-  text-align:center;
-  background:#111418;
-  color:var(--muted);
-  font-size:11px;
-}
+  #game.freshLobby.active {
+    padding:
+      16px 14px 100px;
 
-.proximity.hot{
-  color:#ff7676;
-  background:#211010;
-}
+    min-height: 100dvh;
 
-.escape{
-  margin-top:9px;
-  padding:12px;
-  display:flex;
-  justify-content:space-between;
-  border:1px solid #613d1e;
-  border-radius:10px;
-  color:#ffb66f;
-  background:#1c1109;
-}
+    background-position:
+      center center;
 
-.gpsButton{
-  width:100%;
-  min-height:45px;
-  margin-top:10px;
-  border:1px solid #254433;
-  border-radius:10px;
-  background:#0c1711;
-  color:var(--green);
-  font-size:10px;
-  font-weight:900;
-}
-
-.readyButton{
-  padding:8px 11px;
-  border:1px solid #394047;
-  border-radius:8px;
-  background:#171a1e;
-  color:#aaa;
-  font-size:9px;
-  font-weight:900;
-}
-
-.readyButton.active{
-  color:var(--green);
-  border-color:#27573b;
-  background:#0d1a12;
-}
-
-.player{
-  display:flex;
-  align-items:center;
-  gap:11px;
-  padding:12px 0;
-  border-top:1px solid var(--line);
-}
-
-.player.found{
-  opacity:.45;
-}
-
-.avatar{
-  width:40px;
-  height:40px;
-  display:grid;
-  place-items:center;
-  border-radius:50%;
-  background:#1a1d21;
-}
-
-.pdata{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
-.pdata b{
-  font-size:12px;
-}
-
-.pdata em{
-  margin-left:5px;
-  color:var(--orange);
-  font-size:7px;
-  font-style:normal;
-}
-
-.pdata small{
-  margin-top:3px;
-  color:var(--muted);
-  font-size:9px;
-}
-
-.danger{
-  width:100%;
-  min-height:48px;
-  margin-top:8px;
-  border:1px solid #5d2525;
-  border-radius:10px;
-  background:#211010;
-  color:#ff6b6b;
-  font-weight:900;
-}
-
-.resultCard{
-  padding:30px 20px;
-  text-align:center;
-  border:1px solid #4d2a18;
-  border-radius:20px;
-  background:linear-gradient(145deg,#1d100a,#0d0f12);
-}
-
-.resultCard>div:first-child{
-  font-size:40px;
-}
-
-.resultCard>span{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
-}
-
-.resultCard h2{
-  margin:5px 0;
-}
-
-.resultCard p{
-  color:var(--muted);
-}
-
-.xpReward{
-  margin:20px 0;
-  font-size:35px;
-  font-weight:900;
-  color:var(--orange);
-}
-
-.xpReward small{
-  font-size:10px;
-}
-
-
-/* MODAL */
-
-.modal{
-  position:fixed;
-  inset:0;
-  z-index:100;
-  display:flex;
-  align-items:flex-end;
-}
-
-.modalBackdrop{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,.72);
-  backdrop-filter:blur(5px);
-}
-
-.modalSheet{
-  position:relative;
-  z-index:2;
-  width:min(100%,600px);
-  max-height:90vh;
-  overflow:auto;
-  margin:auto;
-  padding:15px 20px 30px;
-  border:1px solid var(--line);
-  border-bottom:0;
-  border-radius:24px 24px 0 0;
-  background:#0d0f12;
-}
-
-.modalHandle{
-  width:45px;
-  height:4px;
-  margin:0 auto 20px;
-  border-radius:10px;
-  background:#34383e;
-}
-
-.modalHeading{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:20px;
-}
-
-.modalHeading span{
-  color:var(--orange);
-  font-size:9px;
-  font-weight:900;
-}
-
-.modalHeading h2{
-  margin:3px 0;
-}
-
-.modalHeading button{
-  width:38px;
-  height:38px;
-  border:1px solid var(--line);
-  border-radius:50%;
-  background:#181b1f;
-  color:#fff;
-  font-size:22px;
-}
-
-.modalNote{
-  color:var(--muted);
-  font-size:10px;
-  line-height:1.4;
-}
-
-
-/* NAV */
-
-#bottomNav{
-  position:fixed;
-  left:50%;
-  bottom:0;
-  transform:translateX(-50%);
-  z-index:60;
-  width:min(100%,720px);
-  height:75px;
-  display:grid;
-  grid-template-columns:1fr 1fr 70px 1fr 1fr;
-  align-items:center;
-  background:rgba(9,10,12,.97);
-  border-top:1px solid var(--line);
-  backdrop-filter:blur(18px);
-}
-
-.navButton{
-  height:100%;
-  border:0;
-  background:none;
-  color:#6f747c;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  font-size:8px;
-  font-weight:900;
-}
-
-.navButton span{
-  font-size:18px;
-}
-
-.navButton.active{
-  color:var(--orange);
-}
-
-.navPlay{
-  width:58px;
-  height:58px;
-  margin:auto;
-  transform:translateY(-13px);
-  border:5px solid var(--bg);
-  border-radius:50%;
-  background:var(--orange);
-  color:#fff;
-  font-size:19px;
-  box-shadow:0 6px 25px rgba(255,90,18,.35);
-}
-
-
-/* TOAST */
-
-#toast{
-  position:fixed;
-  z-index:200;
-  left:50%;
-  bottom:95px;
-  transform:translate(-50%,20px);
-  width:max-content;
-  max-width:calc(100% - 30px);
-  padding:12px 16px;
-  border:1px solid #35393f;
-  border-radius:10px;
-  background:#15181c;
-  color:#fff;
-  font-size:12px;
-  opacity:0;
-  pointer-events:none;
-  transition:.2s;
-  box-shadow:0 10px 35px rgba(0,0,0,.4);
-}
-
-#toast.show{
-  opacity:1;
-  transform:translate(-50%,0);
-}
-
-
-/* MOBILE */
-
-@media(max-width:520px){
-
-  .welcome h1{
-    font-size:41px;
+    background-attachment: scroll;
   }
 
-  .onlinePill{
-    margin-top:4px;
+  .freshRoomHeader {
+    position: relative;
+
+    top: auto;
+    left: auto;
+
+    width:
+      min(100%,500px);
+
+    margin:
+      20px auto 0;
+  }
+
+  .freshCrewBoard {
+    margin-top: 15px;
+
+    min-height: 520px;
+  }
+
+  .freshPlayersStage,
+  #players {
+    min-height: 440px;
+  }
+
+  .freshPlayerCard {
+    width: 160px;
+    height: 335px;
+
+    flex-basis: 160px;
+  }
+
+  .freshPlayerCard.isHost {
+    width: 220px;
+    height: 400px;
+
+    flex-basis: 220px;
+  }
+
+  .freshAvatarStage {
+    height: 195px;
+  }
+
+  .freshPlayerCard.isHost .freshAvatarStage {
+    height: 245px;
+  }
+
+  .lobbyModelCar {
+    max-width: 175px;
+
+    height: 135px;
+  }
+
+  .freshPlayerCard.isHost .lobbyModelCar {
+    max-width: 245px;
+
+    height: 185px;
+  }
+
+  .freshPlayerCard h3 {
+    top: 32px;
+
+    font-size: 15px;
+  }
+
+  .freshPlayerCard.isHost h3 {
+    top: 30px;
+
+    font-size: 21px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  body {
+    padding-bottom: 80px;
+  }
+
+  .appHeader {
+    height: 60px;
+
+    padding:
+      0 13px;
+  }
+
+  .miniProfileText {
+    display: none;
+  }
+
+  .page {
+    padding:
+      20px 13px 30px;
   }
 
   .inputGrid,
-  .settingsGrid{
-    grid-template-columns:1fr;
+  .settingsGrid {
+    grid-template-columns: 1fr;
   }
 
-  .profileStats strong{
-    font-size:16px;
+  .profileStats {
+    grid-template-columns:
+      repeat(2,1fr);
   }
 
-  .profileStats span{
-    font-size:7px;
+  .profileStats div {
+    border-bottom:
+      1px solid var(--line);
   }
 
-  .gameStats{
-    grid-template-columns:1fr 1fr 1fr;
+  #game.freshLobby.active {
+    min-height:
+      calc(100dvh - 60px);
+
+    padding:
+      13px 9px 95px;
+
+    background-position:
+      50% center;
+
+    background-attachment:
+      scroll;
   }
 
-  .authCard{
-    padding:30px 21px;
+  .freshRoomLabel {
+    font-size: 8px;
+
+    letter-spacing: 1.2px;
   }
 
+  .freshToolButtons {
+    gap: 5px;
+  }
+
+  .freshToolButtons button {
+    width: 40px;
+    height: 40px;
+
+    min-height: 40px;
+
+    padding: 0;
+  }
+
+  .freshToolButtons button span {
+    display: none;
+  }
+
+  .freshRoomHeader {
+    padding: 13px;
+
+    margin-top: 13px;
+  }
+
+  .freshRoomHeader h2 {
+    font-size: 21px;
+  }
+
+  .freshCrewBoard {
+    min-height: 440px;
+
+    margin-top: 0;
+  }
+
+  .freshCrewBoard > .panelTitle {
+    top: 8px;
+  }
+
+  .freshPlayersStage,
+  #players {
+    min-height: 400px;
+
+    gap: 0;
+
+    overflow: visible;
+  }
+
+  .freshPlayerCard {
+    width: 31vw;
+    height: 300px;
+
+    min-width: 95px;
+
+    flex:
+      0 1 31vw;
+  }
+
+  .freshPlayerCard.isHost {
+    width: 36vw;
+    height: 355px;
+
+    min-width: 120px;
+
+    flex:
+      0 1 36vw;
+  }
+
+  .freshPlayerTop {
+    top: 12px;
+
+    font-size: 6px;
+  }
+
+  .freshPlayerCard h3 {
+    top: 30px;
+
+    font-size: 12px;
+  }
+
+  .freshPlayerCard.isHost h3 {
+    top: 27px;
+
+    font-size: 16px;
+  }
+
+  .freshPlayerCard h3 small {
+    padding: 3px 5px;
+
+    font-size: 6px;
+  }
+
+  .freshAvatarStage {
+    height: 165px;
+  }
+
+  .freshPlayerCard.isHost .freshAvatarStage {
+    height: 205px;
+  }
+
+  .lobbyModelCar {
+    max-width: 125px;
+
+    height: 100px;
+  }
+
+  .freshPlayerCard.isHost .lobbyModelCar {
+    max-width: 175px;
+
+    height: 135px;
+  }
+
+  .lobbyCarFallback {
+    transform:
+      scale(.68);
+  }
+
+  .freshPlayerCard.isHost .lobbyCarFallback {
+    transform:
+      scale(.9);
+  }
+
+  .freshVehicleName {
+    max-width: 120px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    font-size: 8px;
+  }
+
+  .freshPlayerCard.isHost .freshVehicleName {
+    font-size: 10px;
+  }
+
+  .freshVehicleColor {
+    margin-bottom: 7px;
+
+    font-size: 6px;
+  }
+
+  .freshPlayerStatus {
+    padding: 5px 7px;
+
+    font-size: 6px;
+  }
+
+  .freshGpsState {
+    display: none;
+  }
+
+  .freshEmptySeat {
+    width: 100px;
+    height: 190px;
+
+    margin-bottom: 20px;
+  }
+
+  .freshEmptySeat strong {
+    font-size: 7px;
+  }
+
+  .freshEmptySeat p {
+    display: none;
+  }
+
+  #game #ready {
+    bottom: 17px;
+
+    min-width: 150px;
+    min-height: 46px;
+  }
+
+  #game #start {
+    bottom: 17px;
+
+    padding: 14px;
+  }
+
+  .mapShell,
+  .liveMap {
+    height: 280px;
+
+    min-height: 280px;
+  }
+
+  #bottomNav {
+    min-height: 68px;
+  }
 }
 
-/* App-Oberfläche: einheitlich, kontrastreich und mobil lesbar */
-:root{
-  --bg:#10171b;
-  --panel:#202a2f;
-  --panel2:#29353a;
-  --line:#435057;
-  --text:#f7f8f7;
-  --muted:#c0c9cd;
-  --orange:#ff712b;
-  --orange2:#ff9848;
-  --green:#8ff0a1;
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 390px) {
+
+  .freshPlayerCard {
+    min-width: 88px;
+  }
+
+  .freshPlayerCard.isHost {
+    min-width: 112px;
+  }
+
+  .lobbyModelCar {
+    max-width: 112px;
+  }
+
+  .freshPlayerCard.isHost .lobbyModelCar {
+    max-width: 155px;
+  }
+
+  .freshPlayerCard h3 {
+    font-size: 10px;
+  }
+
+  .freshPlayerCard.isHost h3 {
+    font-size: 14px;
+  }
+
+  .freshVehicleName {
+    max-width: 95px;
+  }
 }
-html,body{background:var(--bg);color:var(--text)}
-body{font-family:Arial,Helvetica,sans-serif;overflow-x:hidden}
-button,input,select{font:inherit}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #ffb074;outline-offset:2px}
-.appHeader{background:#172126;border-bottom:1px solid var(--line)}
-body:has(.appHome.active) .appHeader{display:none}
-.page{width:min(100%,520px);padding:24px 18px 110px}
-.appHome{padding:0 0 110px;background:#10171b}
-
-/* Startbildschirm */
-.homeStage{
-  position:relative;
-  height:clamp(260px,40vh,355px);
-  overflow:hidden;
-  padding:22px;
-  background:
-    radial-gradient(circle at 50% 73%,rgba(255,113,43,.55),transparent 32%),
-    linear-gradient(180deg,#202e34 0%,#28373b 50%,#603b2b 82%,#172126 100%);
-}
-.homeStage::after{
-  content:"";position:absolute;left:0;right:0;bottom:0;height:56px;
-  background:linear-gradient(180deg,transparent,#10171b);
-}
-.homeStageTop{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center}
-.stageMark{font-size:29px;color:var(--orange)}
-.stageSettings{padding:3px 8px;border:0;background:#172126aa;color:#fff;border-radius:9px;font-size:24px}
-.stageLogo{position:absolute;z-index:2;left:24px;top:24%;display:flex;flex-direction:column;line-height:.94;transform:rotate(-4deg);text-shadow:2px 4px 0 #111b1d}
-.stageLogo strong{font-family:Impact,"Arial Black",sans-serif;font-size:clamp(75px,20vw,106px);font-style:italic;letter-spacing:-.035em;color:#fff}
-.stageLogo em{font-family:Impact,"Arial Black",sans-serif;font-size:clamp(39px,10vw,56px);font-weight:900;color:var(--orange);white-space:nowrap}
-.stageTagline{position:absolute;z-index:2;left:26px;top:68%;color:#fff;font-weight:900;font-size:10px;letter-spacing:.2em}
-.stageRoad{position:absolute;left:-5%;right:-5%;bottom:12%;height:19px;border-top:3px solid #172126;background:#293238;transform:skewY(-3deg)}
-.stageRoad span{position:absolute;top:9px;width:16%;height:2px;background:#e6e0d2}.stageRoad span:first-child{left:22%}.stageRoad span:last-child{right:22%}
-.homeActions{position:relative;z-index:3;display:grid;gap:12px;margin:-23px 18px 25px}
-.homeAction{width:100%;min-height:76px;display:flex;align-items:center;gap:8px;padding:12px 16px;text-align:left;border:1px solid #536169;border-radius:12px;background:#253137;color:#fff;box-shadow:0 5px 12px #0004}
-.homeActionPrimary{border-color:#ffa062;background:#ff792f;color:#171b1c}
-.actionSymbol{width:42px;flex:none;text-align:center;font-size:26px}.actionCopy{display:grid;gap:4px}.actionCopy strong{font-size:17px;font-weight:900}.actionCopy small{font-size:12px;color:#c3cdd0}.homeActionPrimary .actionCopy small{color:#44281c}.actionChevron{margin-left:auto;font-size:28px}
-.homeSecondary{padding:0 18px}.homeSectionTitle{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 11px;font-size:11px;letter-spacing:.12em;font-weight:900;color:#e9eff0}
-.homeSecondary .activeCarCard{min-height:192px}.homeSecondary .carVisual{height:65px}.homeSecondary .carIcon{font-size:44px}
-
-/* Gemeinsame Elemente */
-.panel,.infoPanel,.comingSoon,.quickStats div,.activeCarCard,.profileHero,.gameHeaderCard,.radarCard,.resultCard,.authCard,.modalSheet{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:none}
-.panel,.infoPanel,.comingSoon{padding:18px;margin-bottom:15px}
-.activeCarCard{background:#283237;overflow:hidden}.carGlow{background:rgba(255,113,43,.19)}
-.carStatus,.activeTag{color:#aaf2b6!important;background:#1d3a30;border-color:#426d57}
-.muted,.panel p,.infoPanel p,.comingSoon p{color:var(--muted)}
-.emptyState{border-color:#5a686e;color:var(--muted)}
-input,select{background:#172126!important;border:1px solid #617078!important;color:#fff!important}
-input::placeholder{color:#a6b1b5}
-label{color:#dce3e5}
-.primaryButton,.playHero,.googleButton{background:var(--orange);color:#161b1d;border-radius:10px;box-shadow:none;font-weight:900}
-.textButton,.orangeText,.sectionEyebrow,.eyebrow,.pageHeading span{color:#ff9e68}
-.quickStats div{min-height:90px}.quickStats small{color:#c3ccce}
-
-/* Laufendes Spiel */
-#game .gameHeaderCard,#game .radarCard{background:#253137}
-#game .radar{
-  background:
-    repeating-linear-gradient(30deg,transparent 0 36px,#43575e 38px 42px,transparent 44px 82px),
-    repeating-linear-gradient(120deg,transparent 0 25px,#384b52 27px 31px,transparent 33px 72px),
-    #233138;
-}
-#game .proximity{color:#f4f6f5}
-#targetButtons button:disabled{opacity:.5;cursor:not-allowed}
-
-/* Öffentliche Runden */
-.publicPanel h2{margin:9px 0;font-size:21px}.publicPanel p{font-size:13px;line-height:1.5}
-#publicLobbies{display:grid;gap:9px;margin-top:15px}
-.publicLobby{width:100%;display:grid;grid-template-columns:1fr auto;gap:5px;text-align:left;padding:15px;color:#fff;background:#29383d;border:1px solid #5a6a70;border-radius:10px}
-.publicLobby small{grid-column:1;color:#c7d0d2}.publicLobby span{grid-column:2;grid-row:1/3;align-self:center;font-size:10px;font-weight:900;color:#ff9d62}
-
-/* Navigation */
-#bottomNav{width:min(100%,520px);height:76px;background:#1b272c;border-top:1px solid #4f5e64}
-.navButton{color:#c0c9cc;font-size:9px}.navButton.active{color:#ff9b5b}
-.navPlay{background:var(--orange);border-color:#10171b;color:#121619;box-shadow:none}
-@media(max-width:380px){.stageLogo strong{font-size:72px}.stageLogo em{font-size:37px}.actionCopy strong{font-size:15px}}
-
-/* Suche, Freunde und Nachrichten */
-.vehicleSuggestions{display:grid;gap:4px;max-height:220px;overflow:auto;margin:-6px 0 16px;background:#172126;border:1px solid #617078;border-radius:9px;padding:5px}
-.vehicleSuggestions:empty,.vehicleSuggestions.hidden{display:none}
-.vehicleSuggestions button{display:block;width:100%;text-align:left;padding:10px 12px;background:#29383d;color:#fff;border:0;border-radius:6px}
-.vehicleSuggestions button:hover,.vehicleSuggestions button:focus-visible{background:#3c5158}
-.socialList{display:grid;gap:8px;margin:10px 0}
-.socialRow{display:flex;align-items:center;gap:10px;padding:12px;background:#223037;border:1px solid #485a62;border-radius:10px;min-width:0}
-.socialAvatar{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:9px;background:#ff792f;color:#172126;font-weight:900}
-.socialPerson{display:grid;gap:3px;min-width:0;flex:1}.socialPerson strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.socialPerson small{color:#c3cdd0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.socialActions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.socialRow button{border:1px solid #ff914e;border-radius:7px;background:#3b302b;color:#ffd0aa;font-size:10px;font-weight:900;padding:8px}
-.socialLinked{font-size:10px;color:#9eecae}.friendsTabs button.active{color:#ff9e68;border-bottom-color:#ff792f}
-.lobbyChat{margin-top:20px;padding-top:17px;border-top:1px solid #516068}.lobbyChat h3{margin:0 0 12px}
-.messageList{display:flex;flex-direction:column;gap:9px;min-height:110px;max-height:260px;overflow-y:auto;padding:10px;background:#172126;border:1px solid #43555d;border-radius:9px}
-.message{align-self:flex-start;max-width:88%;display:grid;gap:5px;background:#35464c;color:#fff;padding:9px 12px;border-radius:10px 10px 10px 2px;overflow-wrap:anywhere}.message.mine{align-self:flex-end;background:#a84e23;border-radius:10px 10px 2px 10px}.message small{color:#e4e8e8;font-size:10px}.message span{font-size:13px;line-height:1.35;white-space:pre-wrap}
-.messageForm{display:flex;gap:8px;margin-top:9px}.messageForm input{margin:0;min-width:0;flex:1}.messageForm button{border:0;background:#ff792f;color:#172126;font-size:11px;font-weight:900;border-radius:8px;padding:0 13px}
-#dmPanel{margin-top:15px}#friendSearchResults:empty{display:none}
-@media(max-width:380px){.socialRow{flex-wrap:wrap}.socialActions{width:100%}}
-.activateVehicle{width:100%;margin-top:12px;padding:11px;border:1px solid #ff9d62;border-radius:8px;background:#3e332c;color:#ffd2ae;font-size:11px;font-weight:900}
-
-/* Echte Straßenkarte im Spiel */
-.mapShell{position:relative;height:400px;margin-top:14px;border:1px solid #40525a;border-radius:13px;overflow:hidden;background:#17262c}
-.liveMap{width:100%;height:100%}
-.mapShell.mapReady + .mapLegend + .radar{display:none}
-.mapFollow{position:absolute;z-index:3;top:10px;right:10px;width:39px;height:39px;padding:0;border:1px solid #66777d;border-radius:9px;background:#16232bea;color:#ff8b45;font-size:28px;line-height:1}
-.mapStatus{position:absolute;z-index:2;left:12px;right:12px;bottom:30px;padding:10px;background:#102028ed;border:1px solid #526269;border-radius:8px;color:#f5f7f6;text-align:center;font-size:12px;pointer-events:none}
-.mapStatus[hidden]{display:none}
-.mapLegend{padding:10px 2px 0;color:#d0dadb;font-size:11px;font-weight:700;white-space:pre-wrap}
-.mapPlayer{display:grid;place-items:center;width:35px;height:35px;border-radius:50%;border:3px solid #f5eee7;box-shadow:0 2px 10px #000a;color:#fff;font-size:17px;cursor:pointer}
-.mapPlayer.isMe{background:#ff712b;color:#1b1c1d;font-size:18px;box-shadow:0 0 0 7px #ff712b55,0 2px 10px #000a}
-.mapPlayer.isOther{background:#243b47}
-.maplibregl-popup-content{background:#1c2c32!important;color:#fff!important;border:1px solid #52646d;border-radius:9px!important;line-height:1.5;font-size:12px}
-.maplibregl-popup-tip{border-top-color:#1c2c32!important}
-.maplibregl-ctrl-attrib{font-size:9px!important}
-@media(max-width:520px){.mapShell{height:clamp(320px,52vh,430px)}}
