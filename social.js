@@ -212,7 +212,7 @@ async function openLobbyInviteDialog() {
     return;
   }
 
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
   list.innerHTML = '<div class="inviteLoading"><span></span> Freundesliste wird geladen…</div>';
   lobbyInviteLoading = true;
   try {
@@ -357,7 +357,13 @@ function setupSocial() {
     lobbyChatForm.addEventListener('submit', sendLobbyChat, true);
   }
 
-  $('#freshInviteButton')?.addEventListener('click', openLobbyInviteDialog);
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest('#freshInviteButton,[data-open-lobby-invite]');
+    if (!trigger) return;
+    event.preventDefault();
+    openLobbyInviteDialog();
+  });
+
   $('#lobbyInviteClose')?.addEventListener('click', () => $('#lobbyInviteDialog')?.close());
   $('#lobbyInviteFriends')?.addEventListener('click', handleLobbyInviteFriend);
   $('#lobbyInviteDialog')?.addEventListener('click', event => {
