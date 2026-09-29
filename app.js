@@ -722,6 +722,7 @@ async function initializeAuth() {
       authSession.user.id
     );
 
+    await migrateLegacyProfileAvatar();
     await loadCloudGarage();
 
 
@@ -1159,6 +1160,9 @@ function playerData() {
 
     photoUrl:
       vehiclePhotoSource(car.photo),
+
+    avatarUrl:
+      profileImageSource(dbProfile.avatar_url),
 
     mode:
       $('#mode')?.value ||
@@ -1690,13 +1694,9 @@ function renderGame() {
         }">
 
           <div class="avatar">
-            ${
-              player.role === 'SEEKER'
-                ? '🔎'
-                : player.role === 'HIDER'
-                  ? '👤'
-                  : '🚘'
-            }
+            ${profileImageSource(player.avatarUrl)
+              ? `<img src="${esc(profileImageSource(player.avatarUrl))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`
+              : esc(initials(player.name))}
           </div>
 
           <div class="pdata">
@@ -2141,27 +2141,23 @@ async function rematch() {
 let leaveBusy = false;
 
 async function leave() {
-  if (leaveBusy) return;
+  if (leaveBusy || !gameSession) return;
   leaveBusy = true;
 
-  const button = document.getElementById('leave');
-  if (button) button.disabled = true;
+  const credentials = gameCredentials();
+
+  /*
+    Die Lobby wird lokal sofort verlassen. So fühlt sich das X auch bei
+    langsamer Mobilfunk-/Render-Verbindung unmittelbar an. Der Server wird
+    danach im Hintergrund aufgeräumt.
+  */
+  resetGame();
+  leaveBusy = false;
 
   try {
-    await api(
-      'leave',
-      gameCredentials()
-    );
-  }
-
-  catch (error) {
-    console.error(error);
-  }
-
-  finally {
-    resetGame();
-    leaveBusy = false;
-    if (button) button.disabled = false;
+    await api('leave', credentials);
+  } catch (error) {
+    console.error('Lobby konnte serverseitig nicht sofort verlassen werden:', error);
   }
 }
 
@@ -2324,7 +2320,11 @@ $('#rematch')
 $('#leave')
   ?.addEventListener(
     'click',
-    leave
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+      leave();
+    }
   );
 
 
@@ -2701,6 +2701,102 @@ function profileImageSource(value) {
   try { const url = new URL(value); return url.protocol === 'https:' ? url.href : ''; }
   catch { return ''; }
 }
+
+async function prepareProfilePhoto(file) {
+  if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    throw new Error('Bitte JPG, PNG oder WebP wählen.');
+  }
+
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error('Bitte ein Profilbild unter 15 MB wählen.');
+  }
+
+  const img = await loadImageFromBlob(file);
+  const width = img.naturalWidth || img.width;
+  const height = img.naturalHeight || img.height;
+  const maxSide = 720;
+  const scale = Math.min(1, maxSide / Math.max(width, height));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  /*
+    Profilfotos werden bewusst NICHT freigestellt. Das frühere Verwenden
+    der Fahrzeug-Freistellung war der Grund für das unnatürliche Rendering.
+  */
+  return canvas.toDataURL('image/jpeg', 0.84);
+}
+
+async function uploadProfilePhoto(dataUrl) {
+  const userId = authSession?.user?.id;
+  if (!userId || !/^data:image\/jpeg;base64,/.test(String(dataUrl || ''))) {
+    throw new Error('Ungültiges Profilbild.');
+  }
+
+  const blob = await (await fetch(dataUrl)).blob();
+  if (blob.size > 2 * 1024 * 1024) {
+    throw new Error('Das Profilbild ist nach der Verarbeitung zu groß.');
+  }
+
+  const path = `${userId}/avatar.jpg`;
+
+  const { error } = await supabaseClient.storage
+    .from('profile-images')
+    .upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: true,
+      cacheControl: '300'
+    });
+
+  if (error) throw error;
+
+  const { data } = supabaseClient.storage
+    .from('profile-images')
+    .getPublicUrl(path);
+
+  if (!data?.publicUrl) {
+    throw new Error('Profilbild-URL konnte nicht erstellt werden.');
+  }
+
+  return `${data.publicUrl}?v=${Date.now()}`;
+}
+
+async function removeStoredProfilePhoto() {
+  const userId = authSession?.user?.id;
+  if (!userId) return;
+
+  try {
+    await supabaseClient.storage
+      .from('profile-images')
+      .remove([`${userId}/avatar.jpg`]);
+  } catch (error) {
+    console.error('Altes Profilbild konnte nicht aus Storage entfernt werden:', error);
+  }
+}
+
+async function migrateLegacyProfileAvatar() {
+  if (!authSession?.user?.id || !safeCarPhoto(dbProfile?.avatar_url)) return;
+
+  try {
+    const publicUrl = await uploadProfilePhoto(dbProfile.avatar_url);
+    const { data, error } = await supabaseClient.rpc('chs_update_my_profile', {
+      p_username: dbProfile.username || 'Spieler',
+      p_avatar: publicUrl
+    });
+
+    if (error) throw error;
+    if (data?.avatar_url) {
+      dbProfile = { ...dbProfile, avatar_url: data.avatar_url, updated_at: data.updated_at || dbProfile.updated_at };
+      renderProfile();
+    }
+  } catch (error) {
+    console.error('Altes Profilbild konnte nicht automatisch migriert werden:', error);
+  }
+}
 function paintProfileAvatars() {
   for (const id of ['headerAvatar', 'profileAvatar']) {
     const element = document.getElementById(id);
@@ -2741,7 +2837,7 @@ function openProfileEditor() {
       <label>PROFILBILD<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
       <div data-avatar-preview style="width:96px;height:96px;border-radius:50%;overflow:hidden;margin:12px auto;background:#344553;display:grid;place-items:center"></div>
       <button type="button" data-remove-avatar class="textButton">BILD ENTFERNEN</button>
-      <p class="muted">Name und Profilbild werden in deinem Konto gespeichert. JPG, PNG oder WebP, maximal 15 MB.</p>
+      <p class="muted">Das Profilbild ist freiwillig. Wenn du eins auswählst, wird es normal zugeschnitten und kontoweit gespeichert. JPG, PNG oder WebP, maximal 15 MB.</p>
       <p data-profile-error role="alert" style="color:#ffbca4;white-space:pre-wrap"></p>
       <button type="submit" class="primaryButton">ÄNDERUNGEN SPEICHERN</button>`;
     dialog.append(form);
@@ -2749,7 +2845,7 @@ function openProfileEditor() {
       const file = event.target.files[0]; if (!file || dialog._busy) return;
       dialog._busy = true; setProfileFormBusy(form, true);
       try {
-        dialog._photo = await shrinkCarPhoto(file);
+        dialog._photo = await prepareProfilePhoto(file);
         renderProfilePreview(dialog, dialog._photo);
         form.querySelector('[data-profile-error]').textContent = '';
       } catch(error) { form.querySelector('[data-profile-error]').textContent = error.message; }
@@ -2768,12 +2864,36 @@ function openProfileEditor() {
       if (!userId || userId !== dialog._userId) { errorNode.textContent = 'Konto gewechselt. Bitte den Profil-Editor erneut öffnen.'; return; }
       dialog._busy = true; setProfileFormBusy(form, true); errorNode.textContent = 'Wird gespeichert…';
       try {
-        const { data, error } = await supabaseClient.rpc('chs_update_my_profile', {p_username: name, p_avatar: dialog._photo});
-        if (error) throw new Error(error.code === 'PGRST202' ? 'Bitte zuerst den neuen Profil-SQL-Code einmal in Supabase ausführen.' : error.message);
+        let avatarValue = dialog._photo;
+
+        if (dialog._photo && dialog._photo !== '__KEEP__') {
+          avatarValue = await uploadProfilePhoto(dialog._photo);
+        }
+
+        if (dialog._photo === null) {
+          await removeStoredProfilePhoto();
+          avatarValue = null;
+        }
+
+        const { data, error } = await supabaseClient.rpc('chs_update_my_profile', {
+          p_username: name,
+          p_avatar: avatarValue
+        });
+
+        if (error) throw new Error(error.code === 'PGRST202' ? 'Profilfunktion ist noch nicht verfügbar.' : error.message);
         if (authSession?.user?.id !== userId) return;
         if (!data || typeof data.username !== 'string') throw new Error('Unerwartete Serverantwort. Bitte neu laden.');
-        dbProfile = {...dbProfile, username:data.username, avatar_url:data.avatar_url};
-        renderProfile(); dialog.close(); toast('Profil gespeichert.');
+
+        dbProfile = {
+          ...dbProfile,
+          username: data.username,
+          avatar_url: data.avatar_url,
+          updated_at: data.updated_at || dbProfile.updated_at
+        };
+
+        renderProfile();
+        dialog.close();
+        toast(data.avatar_url ? 'Profil gespeichert ✓' : 'Profil ohne Bild gespeichert ✓');
       } catch(error) { errorNode.textContent = error.message; }
       finally { dialog._busy = false; setProfileFormBusy(form, false); }
     });
@@ -3084,6 +3204,15 @@ function lobbyCarMarkup(player,mine=false){
 
   return `<div class="lobbyCarFallback" role="img" aria-label="${esc(player.vehicle||'Fahrzeug')}"></div>`;
 }
+function lobbyProfileMarkup(player) {
+  const source = profileImageSource(player?.avatarUrl);
+
+  if (!source) {
+    return `<div class="freshLobbyProfile isFallback" aria-label="Kein Profilbild">${esc(initials(player?.name || 'Spieler'))}</div>`;
+  }
+
+  return `<div class="freshLobbyProfile"><img src="${esc(source)}" alt="Profilbild von ${esc(player?.name || 'Spieler')}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>`;
+}
 function renderFreshLobby() {
   if(!state?.lobby)return;
   ensureFreshLobby();
@@ -3112,6 +3241,7 @@ function renderFreshLobby() {
     return `<article class="freshPlayerCard ${mine?'isYou':''} ${owner?'isHost':''} ${player.ready?'isReady':''} ${player.found?'isFound':''}" style="--crew-color:${freshPlayerColor(player.id)};--car-color:${lobbyCarColor(player.color)}">
       <div class="freshPlayerTop"><span>${owner?'♛ HOST':mine?'DU':'CREW'}</span><span class="freshConnection ${player.connected?'online':''}"></span></div>
       <h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>
+      ${lobbyProfileMarkup(player)}
       <div class="freshAvatarStage">${lobbyCarMarkup(player,mine)}<span class="freshPlatform"></span></div>
       <p class="freshVehicleName">${esc(player.vehicle||'Kein Fahrzeug')}</p>
       <p class="freshVehicleColor">${esc(player.color||'Keine Farbe')} · Level ${Number(player.level)||1}</p>
