@@ -2531,7 +2531,9 @@ function paintFreshUnread() {
   button.setAttribute('aria-label',count?`Lobby-Chat: ${count} ungelesene Nachrichten`:'Lobby-Chat öffnen');
   const announcement=document.getElementById('freshChatAnnouncement');
   const label=count?`${count} ungelesene Chat-Nachrichten`:'';
-  if(announcement.textContent!==label)announcement.textContent=label;
+  if (announcement && announcement.textContent !== label) {
+    announcement.textContent = label;
+  }
 }
 function updateFreshChat() {
   if(!state?.lobby)return;
