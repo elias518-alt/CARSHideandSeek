@@ -1994,3 +1994,347 @@ input::placeholder {
     animation: none !important;
   }
 }
+/* APP-LAYOUT NACH DER VORLAGE */
+
+body {
+  background: #090d0f;
+  overflow-x: hidden;
+}
+
+.appHeader {
+  display: none;
+}
+
+.page {
+  width: min(100%, 520px);
+  padding: 28px 18px 108px;
+}
+
+.appHome {
+  padding: 0 0 108px;
+}
+
+.homeStage {
+  height: clamp(290px, 51vh, 440px);
+  position: relative;
+  overflow: hidden;
+  padding: 25px 24px;
+  background:
+    radial-gradient(
+      ellipse 80% 25% at 50% 82%,
+      rgba(246, 89, 29, .55),
+      transparent 75%
+    ),
+    linear-gradient(
+      180deg,
+      #0d171a 0%,
+      #171d1d 48%,
+      #332119 78%,
+      #101314 100%
+    );
+}
+
+.homeStage::before {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 11%;
+  height: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent 0 3%,
+    #0c1113 3% 7%,
+    transparent 7% 9%,
+    #0c1113 9% 15%,
+    transparent 15% 18%,
+    #0c1113 18% 24%,
+    transparent 24% 26%,
+    #0c1113 26% 36%,
+    transparent 36% 38%,
+    #0c1113 38% 46%,
+    transparent 46% 50%,
+    #0c1113 50% 58%,
+    transparent 58% 60%,
+    #0c1113 60% 73%,
+    transparent 73% 75%,
+    #0c1113 75% 82%,
+    transparent 82% 86%,
+    #0c1113 86% 96%,
+    transparent 96%
+  );
+  clip-path: polygon(
+    0 70%, 9% 60%, 9% 42%, 14% 42%, 14% 55%,
+    22% 55%, 22% 27%, 31% 27%, 31% 52%,
+    40% 52%, 40% 35%, 48% 35%, 48% 68%,
+    58% 68%, 58% 18%, 67% 18%, 67% 45%,
+    76% 45%, 76% 31%, 84% 31%, 84% 57%,
+    100% 45%, 100% 100%, 0 100%
+  );
+  opacity: .9;
+}
+
+.homeStage::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 27%;
+  background: linear-gradient(180deg, transparent, #090d0f 95%);
+}
+
+.homeStageTop {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+  color: #fff;
+}
+
+.stageMark {
+  font-size: 30px;
+  color: #ff691e;
+  transform: rotate(-13deg);
+}
+
+.stageSettings {
+  border: 0;
+  background: none;
+  color: #e5e7e7;
+  font-size: 25px;
+  padding: 0 3px;
+}
+
+.stageLogo {
+  position: absolute;
+  z-index: 2;
+  left: 25px;
+  top: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: rotate(-6deg);
+  line-height: .84;
+  text-shadow: 4px 5px 0 rgba(0, 0, 0, .65);
+}
+
+.stageLogo strong {
+  font: italic 900 clamp(76px, 20vw, 115px)/.82
+        Impact, "Arial Narrow", Arial, sans-serif;
+  letter-spacing: -.04em;
+  color: #eee;
+}
+
+.stageLogo em {
+  font: italic 900 clamp(37px, 10vw, 61px)/.9
+        Impact, "Arial Narrow", Arial, sans-serif;
+  letter-spacing: -.025em;
+  color: #ff671d;
+  white-space: nowrap;
+}
+
+.stageTagline {
+  position: absolute;
+  z-index: 2;
+  left: 26px;
+  top: 52%;
+  font-size: 10px;
+  letter-spacing: .35em;
+  color: #d6d3cf;
+  font-weight: 800;
+}
+
+.stageRoad {
+  position: absolute;
+  bottom: 9%;
+  left: -10%;
+  right: -10%;
+  height: 14%;
+  transform: skewY(-3deg);
+  background: linear-gradient(#111517, #080b0d);
+  border-top: 3px solid #313b3c;
+  box-shadow: 0 -5px 30px rgba(255, 103, 29, .2);
+}
+
+.stageRoad span {
+  position: absolute;
+  top: 45%;
+  width: 17%;
+  height: 2px;
+  background: #ddd6c7;
+  opacity: .6;
+}
+
+.stageRoad span:first-child {
+  left: 21%;
+}
+
+.stageRoad span:last-child {
+  right: 22%;
+}
+
+.homeActions {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  gap: 11px;
+  margin: -37px 18px 28px;
+}
+
+.homeAction {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 79px;
+  padding: 13px 18px;
+  text-align: left;
+  color: #f4f4f1;
+  background: linear-gradient(100deg, #1b2022, #111618);
+  border: 1px solid #3a4143;
+  border-radius: 11px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .23);
+}
+
+.homeActionPrimary {
+  background: linear-gradient(105deg, #ff6117, #ff812a);
+  border-color: #ff8633;
+  color: #121313;
+  box-shadow:
+    0 7px 0 #963916,
+    0 13px 25px rgba(0, 0, 0, .27);
+}
+
+.actionSymbol {
+  width: 56px;
+  flex: none;
+  font-size: 26px;
+  text-align: center;
+}
+
+.homeActionPrimary .actionSymbol {
+  font-size: 30px;
+}
+
+.actionCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actionCopy strong {
+  font-weight: 950;
+  font-size: 17px;
+  letter-spacing: -.03em;
+}
+
+.actionCopy small {
+  font-size: 12px;
+  color: #9ca4a4;
+}
+
+.homeActionPrimary .actionCopy small {
+  color: #532b1c;
+}
+
+.actionChevron {
+  margin-left: auto;
+  font-size: 28px;
+  color: #899294;
+}
+
+.homeActionPrimary .actionChevron {
+  color: #4a2619;
+}
+
+.homeSecondary {
+  padding: 0 18px;
+}
+
+.homeSectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 1px 10px;
+  color: #e6e6df;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.homeSectionTitle .textButton {
+  letter-spacing: .05em;
+}
+
+.homeSecondary .activeCarCard {
+  min-height: 190px;
+}
+
+.homeSecondary .carVisual {
+  height: 54px;
+}
+
+.homeSecondary .carIcon {
+  font-size: 39px;
+}
+
+#bottomNav {
+  width: min(100%, 520px);
+  height: 80px;
+  background: #0c1012;
+  border-top-color: #293033;
+}
+
+.navPlay {
+  border-radius: 50%;
+  box-shadow: none;
+  transform: translateY(-8px);
+}
+
+.navButton {
+  color: #7f8889;
+}
+
+.navButton.active {
+  color: #ff6d2a;
+}
+
+#game .radarCard {
+  border-radius: 14px;
+  background: #10191b;
+}
+
+#game .radar {
+  background:
+    repeating-linear-gradient(
+      33deg,
+      transparent 0 34px,
+      rgba(99, 132, 138, .10) 35px 38px,
+      transparent 39px 80px
+    ),
+    repeating-linear-gradient(
+      117deg,
+      transparent 0 27px,
+      rgba(99, 132, 138, .12) 28px 33px,
+      transparent 34px 76px
+    ),
+    #111d22;
+}
+
+#play .pageHeading,
+#garage .pageHeading,
+#friends .pageHeading {
+  margin-top: 7px;
+}
+
+@media (min-width: 600px) {
+  .appHome {
+    min-height: 850px;
+    border-left: 1px solid #303638;
+    border-right: 1px solid #303638;
+  }
+
+  .homeStage {
+    height: 390px;
+  }
+}
