@@ -128,6 +128,7 @@ function resultState(lobby, me) {
     : [];
   return {
     serverTime: now, proximity, nearbyTargets,
+    chat: lobby.messages.slice(-50),
     cooldownUntil: me.cooldownUntil, escapeUntil: 0,
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility,
@@ -177,7 +178,8 @@ async function route(action, data, authId) {
       duration: Math.min(3600, Math.max(300, number(data.duration) || 900)),
       headstart: Math.min(300, Math.max(30, number(data.headstart) || 180)),
       escape: Math.min(30, Math.max(10, number(data.escape) || 15)),
-      createdAt: now, countdownEndsAt: null, headstartEndsAt: null, endsAt: null
+      createdAt: now, countdownEndsAt: null, headstartEndsAt: null, endsAt: null,
+      messages: []
     };
     lobbies.set(lobby.code, lobby);
     return { userId: player.id, lobby: resultState(lobby, player).lobby };
@@ -201,6 +203,16 @@ async function route(action, data, authId) {
   const { lobby, me } = getSession(data, authId);
   updateGame(lobby, now);
   if (action === 'state') return resultState(lobby, me);
+  if (action === 'chat') {
+    const body = clean(data.body, 500);
+    if (!body) fail(400, 'Bitte eine Nachricht eingeben.');
+    if (body.length > 500) fail(400, 'Nachricht ist zu lang.');
+    if (now - (me.lastChatAt || 0) < 1000) fail(429, 'Bitte kurz warten.');
+    me.lastChatAt = now;
+    lobby.messages.push({ id: crypto.randomUUID(), sender: me.id, name: me.name, body, at: now });
+    if (lobby.messages.length > 100) lobby.messages.splice(0, lobby.messages.length - 100);
+    return { ok: true };
+  }
   if (action === 'location') {
     updateLocation(me, data);
     if (!lobby.origin && me.id === lobby.hostId) lobby.origin = me.location;
@@ -259,7 +271,7 @@ async function handler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
       const action = url.pathname.slice(5);
-      if (!['public','create','join','state','location','ready','start','found','rematch','leave'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
