@@ -39,6 +39,7 @@ let pendingCarPhoto = '';
 let carPhotoBusy = false;
 let state = null;
 let pollTimer = null;
+let lobbyMissingPolls = 0;
 let watch = null;
 let gpsStarting = false;
 let gpsHeartbeat = null;
@@ -897,6 +898,7 @@ async function api(
 
     error.data =
       json;
+    error.status = response.status;
 
     throw error;
   }
@@ -1146,7 +1148,7 @@ async function poll() {
         'GET'
       );
 
-
+    lobbyMissingPolls = 0;
     renderGame();
   }
 
@@ -1154,30 +1156,24 @@ async function poll() {
     console.error(error);
 
 
-    if (
-      error.message.includes(
-        'Lobby nicht gefunden'
-      ) ||
-      error.message.includes(
-        'Session'
-      )
-    ) {
-      toast(
-        'Die Lobby ist nicht mehr verfügbar.'
-      );
+    const lobbyGone =
+      error.status === 404 ||
+      error.status === 403 ||
+      error.message.includes('Lobby nicht gefunden') ||
+      error.message.includes('Session nicht gefunden');
 
-      setTimeout(
-        resetGame,
-        1200
-      );
-
-      return;
+    if (lobbyGone) {
+      lobbyMissingPolls += 1;
+      if (lobbyMissingPolls >= 4) {
+        toast('Die Lobby ist serverseitig nicht mehr verfügbar.');
+        setTimeout(resetGame, 1200);
+        return;
+      }
+    } else {
+      lobbyMissingPolls = 0;
+      // Bei kurzen Render-/Netzwerk-Aussetzern bleibt die Lobby geöffnet.
+      if (error.status && error.status < 500) toast(error.message);
     }
-
-
-    toast(
-      error.message
-    );
   }
 
 
@@ -2216,34 +2212,79 @@ if (document.readyState === 'loading') {
 }
 
 
-/* Eigene Fahrzeugfotos: verkleinert, ohne EXIF, nur lokal wie die Garage. */
+/* Eigene Fahrzeugfotos: KI-Freistellung direkt im Browser. */
 function safeCarPhoto(value) {
-  return typeof value === 'string' && value.length <= 250000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value);
+  return typeof value === 'string' && value.length <= 900000 && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
 }
 function carPhotoMarkup(car) {
   return safeCarPhoto(car?.photo)
-    ? `<img src="${car.photo}" alt="Foto von ${esc(`${car.brand} ${car.model}`)}" style="display:block;width:100%;max-height:240px;object-fit:contain;border-radius:12px">`
+    ? `<img src="${car.photo}" alt="Foto von ${esc(`${car.brand} ${car.model}`)}" style="display:block;width:100%;max-height:240px;object-fit:contain">`
     : '<div style="font-size:72px;text-align:center" aria-label="Fahrzeug-Platzhalter">🚘</div>';
+}
+async function loadImageFromBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.'));
+      img.src = url;
+    });
+    return img;
+  } finally {
+    // Safari benötigt die URL bis nach img.onload; danach kann sie weg.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+}
+function cropTransparentVehicle(img) {
+  const source = document.createElement('canvas');
+  source.width = img.naturalWidth || img.width;
+  source.height = img.naturalHeight || img.height;
+  const sx = source.getContext('2d', { willReadFrequently: true });
+  sx.clearRect(0, 0, source.width, source.height);
+  sx.drawImage(img, 0, 0);
+  const pixels = sx.getImageData(0, 0, source.width, source.height);
+  let minX = source.width, minY = source.height, maxX = -1, maxY = -1;
+  for (let y = 0; y < source.height; y++) {
+    for (let x = 0; x < source.width; x++) {
+      if (pixels.data[(y * source.width + x) * 4 + 3] > 18) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < minX || maxY < minY) throw new Error('Das Fahrzeug konnte nicht erkannt werden.');
+  const padX = Math.round((maxX - minX + 1) * 0.05);
+  const padY = Math.round((maxY - minY + 1) * 0.07);
+  minX = Math.max(0, minX - padX); minY = Math.max(0, minY - padY);
+  maxX = Math.min(source.width - 1, maxX + padX); maxY = Math.min(source.height - 1, maxY + padY);
+  const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
+  const scale = Math.min(1, 900 / Math.max(cropW, cropH));
+  const out = document.createElement('canvas');
+  out.width = Math.max(1, Math.round(cropW * scale));
+  out.height = Math.max(1, Math.round(cropH * scale));
+  out.getContext('2d').drawImage(source, minX, minY, cropW, cropH, 0, 0, out.width, out.height);
+  let result = out.toDataURL('image/webp', 0.86);
+  if (!result.startsWith('data:image/webp')) result = out.toDataURL('image/png');
+  if (result.length > 900000) result = out.toDataURL('image/webp', 0.68);
+  if (!safeCarPhoto(result)) throw new Error('Das freigestellte Fahrzeugbild ist zu groß. Bitte ein kleineres Foto wählen.');
+  return result;
 }
 async function shrinkCarPhoto(file) {
   if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Bitte JPG, PNG oder WebP wählen. iPhone-HEIC-Fotos vorher als JPG exportieren.');
   if (file.size > 15 * 1024 * 1024) throw new Error('Bitte ein Foto unter 15 MB wählen.');
-  const url = URL.createObjectURL(file);
+  toast('Fahrzeug wird freigestellt …');
   try {
-    const img = new Image();
-    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.')); img.src = url; });
-    const canvas = document.createElement('canvas');
-    const scale = Math.min(1, 720 / Math.max(img.naturalWidth, img.naturalHeight));
-    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    const context = canvas.getContext('2d');
-    context.fillStyle = '#202a34'; context.fillRect(0,0,canvas.width,canvas.height);
-    context.drawImage(img,0,0,canvas.width,canvas.height);
-    let result = canvas.toDataURL('image/jpeg', 0.72);
-    if (result.length > 250000) result = canvas.toDataURL('image/jpeg', 0.45);
-    if (!safeCarPhoto(result)) throw new Error('Dieses Foto ist zu groß. Bitte einen kleineren Ausschnitt wählen.');
-    return result;
-  } finally { URL.revokeObjectURL(url); }
+    const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm');
+    const removeBackground = mod.removeBackground || mod.default;
+    if (typeof removeBackground !== 'function') throw new Error('Freistellung konnte nicht geladen werden.');
+    const transparentBlob = await removeBackground(file, { output: { format: 'image/png', quality: 0.9 } });
+    const img = await loadImageFromBlob(transparentBlob);
+    return cropTransparentVehicle(img);
+  } catch (error) {
+    console.error('Background removal failed:', error);
+    throw new Error('Das Fahrzeug konnte nicht automatisch freigestellt werden. Bitte Internetverbindung prüfen und erneut versuchen.');
+  }
 }
 function resetCarPhotoInput() {
   const input = document.getElementById('newCarPhoto');
@@ -2252,18 +2293,22 @@ function resetCarPhotoInput() {
   if (preview) preview.replaceChildren();
 }
 function setupCarPhotoInput() {
-  if (document.getElementById('newCarPhoto')) return;
-  const box = document.createElement('div');
-  box.innerHTML = `<label>EIGENES AUTOFOTO (OPTIONAL)<input id="newCarPhoto" type="file" accept="image/jpeg,image/png,image/webp"></label><div id="newCarPhotoPreview"></div><button type="button" id="clearNewCarPhoto" class="textButton">FOTO ENTFERNEN</button><p class="muted">Foto und Garage bleiben in diesem Browser. Nutze eigene Bilder oder Bilder, die du verwenden darfst.</p>`;
-  document.getElementById('saveCar').before(box);
-  document.getElementById('clearNewCarPhoto').addEventListener('click', () => { if (!carPhotoBusy) { pendingCarPhoto = ''; resetCarPhotoInput(); } });
-  document.getElementById('newCarPhoto').addEventListener('change', async event => {
-    const file = event.target.files[0]; if (!file) return;
+  const input = document.getElementById('newCarPhoto');
+  const preview = document.getElementById('newCarPhotoPreview');
+  if (!input) return;
+  if (input.dataset.chsPhotoBound === '1') return;
+  input.dataset.chsPhotoBound = '1';
+  document.getElementById('clearNewCarPhoto')?.addEventListener('click', () => {
+    if (!carPhotoBusy) { pendingCarPhoto = ''; resetCarPhotoInput(); }
+  });
+  input.addEventListener('change', async event => {
+    const file = event.target.files?.[0]; if (!file) return;
     carPhotoBusy = true; event.target.disabled = true;
     try {
       pendingCarPhoto = await shrinkCarPhoto(file);
-      document.getElementById('newCarPhotoPreview').innerHTML = carPhotoMarkup({photo:pendingCarPhoto,brand:'Dein',model:'Fahrzeug'});
-    } catch(error) { toast(error.message); }
+      if (preview) preview.innerHTML = carPhotoMarkup({photo:pendingCarPhoto,brand:'Dein',model:'Fahrzeug'});
+      toast('Fahrzeug freigestellt ✓');
+    } catch(error) { pendingCarPhoto = ''; toast(error.message); }
     finally { carPhotoBusy = false; event.target.disabled = false; }
   });
 }
