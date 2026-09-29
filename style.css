@@ -4193,77 +4193,99 @@ input[readonly] {
     max-width: 95px;
   }
 }
+
 /* =========================================================
-   MOBILE LOBBY CHAT — STABLE OVERLAY
-   Der Chat liegt fest über der Lobby und bewegt den Warteraum
-   beim Öffnen der Smartphone-Tastatur nicht mehr mit.
+   LOBBY CHAT V4 — STABLE MOBILE BOTTOM SHEET
 ========================================================= */
-html.freshChatOpen,
-body.freshChatOpen {
-  overflow: hidden !important;
-  overscroll-behavior: none;
+#freshChatBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0,0,0,.58);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, visibility 0s linear .18s;
+}
+
+#freshChatBackdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .18s ease;
 }
 
 #freshChatDrawer {
   position: fixed !important;
-  inset: 0 !important;
-  z-index: 10050 !important;
+  z-index: 9999 !important;
+  top: auto !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
   width: 100% !important;
-  height: var(--fresh-chat-vh, 100dvh) !important;
-  max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
+  height: min(76dvh, 680px) !important;
+  min-height: 360px !important;
+  max-height: 88dvh !important;
   padding: 0 !important;
-  box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
-  background: rgba(5, 9, 14, .97) !important;
-  backdrop-filter: blur(22px) !important;
-  -webkit-backdrop-filter: blur(22px) !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(104,181,255,.24) !important;
+  border-bottom: 0 !important;
+  border-radius: 24px 24px 0 0 !important;
+  background: rgba(4,9,15,.985) !important;
+  box-shadow: 0 -22px 70px rgba(0,0,0,.58) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
   transform: translate3d(0, 105%, 0) !important;
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
   transition: transform .22s ease, opacity .18s ease, visibility 0s linear .22s !important;
-  overflow: hidden !important;
 }
 
 #freshChatDrawer.open {
-  transform: translate3d(0, 0, 0) !important;
+  transform: translate3d(0,0,0) !important;
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
   transition: transform .22s ease, opacity .18s ease !important;
 }
 
-#freshChatDrawer .freshChatHeader,
-#freshChatDrawer > header,
-#freshChatDrawer > div:first-child {
-  flex: 0 0 auto;
+#freshChatDrawer .freshDrawerHeader {
+  position: relative !important;
+  flex: 0 0 auto !important;
+  min-height: 72px !important;
+  margin: 0 !important;
+  padding: max(14px, env(safe-area-inset-top)) 16px 12px !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(7,13,20,.98) !important;
 }
 
 #freshChatClose {
-  position: absolute !important;
-  top: max(14px, env(safe-area-inset-top)) !important;
-  right: 16px !important;
-  z-index: 4 !important;
-  width: 46px !important;
-  height: 46px !important;
+  position: static !important;
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  height: 48px !important;
+  margin: 0 !important;
   display: grid !important;
   place-items: center !important;
-  border-radius: 50% !important;
-  font-size: 25px !important;
+  border-radius: 14px !important;
+  font-size: 24px !important;
   line-height: 1 !important;
-  touch-action: manipulation;
+  touch-action: manipulation !important;
 }
 
 #lobbyMessages {
   flex: 1 1 auto !important;
   min-height: 0 !important;
+  max-height: none !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch !important;
-  padding-bottom: 18px !important;
+  padding: 14px 16px 18px !important;
+  box-sizing: border-box !important;
 }
 
 #lobbyChatForm {
@@ -4271,48 +4293,48 @@ body.freshChatOpen {
   flex: 0 0 auto !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 12px 14px max(12px, env(safe-area-inset-bottom)) !important;
+  padding: 10px 12px max(12px, env(safe-area-inset-bottom)) !important;
   box-sizing: border-box !important;
-  background: rgba(8, 13, 20, .98) !important;
-  border-top: 1px solid rgba(255,255,255,.12) !important;
-  display: flex !important;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) auto !important;
   align-items: center !important;
-  gap: 10px !important;
+  gap: 8px !important;
+  border-top: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(6,11,17,.99) !important;
 }
 
 #lobbyChatInput {
-  flex: 1 1 auto !important;
+  width: 100% !important;
   min-width: 0 !important;
-  height: 48px !important;
+  height: 50px !important;
   margin: 0 !important;
-  font-size: 16px !important; /* verhindert Safari-Autozoom */
-  line-height: 1.2 !important;
+  padding: 0 14px !important;
+  box-sizing: border-box !important;
   border-radius: 14px !important;
+  font-size: 16px !important;
+  line-height: 1.2 !important;
 }
 
 #lobbyChatForm button[type="submit"] {
-  flex: 0 0 auto !important;
-  min-height: 48px !important;
+  min-width: 82px !important;
+  min-height: 50px !important;
   margin: 0 !important;
-  touch-action: manipulation;
-}
-
-#newCarPhotoPreview[data-processing]::after {
-  content: attr(data-processing);
-  display: grid;
-  place-items: center;
-  min-height: 90px;
-  padding: 14px;
-  font-weight: 900;
-  text-align: center;
+  padding: 0 14px !important;
+  border-radius: 14px !important;
+  touch-action: manipulation !important;
 }
 
 @media (min-width: 760px) {
   #freshChatDrawer {
-    inset: 0 0 0 auto !important;
-    width: min(460px, 100vw) !important;
-    transform: translate3d(105%, 0, 0) !important;
-    box-shadow: -20px 0 70px rgba(0,0,0,.45) !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;
+    width: min(430px, 100vw) !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border-radius: 20px 0 0 20px !important;
+    transform: translate3d(105%,0,0) !important;
   }
   #freshChatDrawer.open {
     transform: translate3d(0,0,0) !important;
