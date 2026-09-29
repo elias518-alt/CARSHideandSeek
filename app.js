@@ -43,6 +43,8 @@ let lobbyMissingPolls = 0;
 let watch = null;
 let gpsStarting = false;
 let gpsHeartbeat = null;
+let publicSearchBusy = false;
+let publicSearchLastAt = 0;
 
 
 /* =========================================================
@@ -138,6 +140,12 @@ function openPage(page) {
     top: 0,
     behavior: 'smooth'
   });
+
+  if (page === 'play') {
+    setTimeout(() => {
+      if (typeof findPublic === 'function') findPublic({ automatic: true });
+    }, 120);
+  }
 }
 
 
@@ -981,22 +989,37 @@ function currentPosition() {
   });
 }
 
-async function findPublic() {
+async function findPublic(options = {}) {
   const list = $('#publicLobbies');
-  list.textContent = 'Suche nach Runden in deiner Nähe…';
+  if (!list || publicSearchBusy) return;
+
+  const automatic = !!options.automatic;
+  const now = Date.now();
+  if (automatic && now - publicSearchLastAt < 12000 && list.children.length) return;
+
+  publicSearchBusy = true;
+  publicSearchLastAt = now;
+  const button = $('#findPublic');
+  if (button) button.disabled = true;
+  list.innerHTML = '<div class="publicLobbyLoading"><span></span> Offene Lobbys werden gesucht…</div>';
+
   try {
     const position = await currentPosition();
     const result = await api('public', position, 'GET');
     list.innerHTML = result.lobbies.length
       ? result.lobbies.map(lobby => `
           <button class="publicLobby" type="button" data-public-code="${esc(lobby.code)}">
+            <span class="publicLobbyLive">OFFEN</span>
             <strong>${esc(lobby.name)}</strong>
-            <small>${lobby.players}/${lobby.maxPlayers} Spieler · ca. ${lobby.distanceKm} km</small>
-            <span>BEITRETEN ›</span>
+            <small>${lobby.players}/${lobby.maxPlayers} Spieler · ca. ${lobby.distanceKm} km entfernt</small>
+            <b>BEITRETEN ›</b>
           </button>`).join('')
-      : '<p class="muted">Noch keine öffentliche Runde in 20 km Nähe. Erstelle selbst eine!</p>';
+      : '<div class="publicLobbyEmpty"><strong>Keine offene Lobby in deiner Nähe</strong><span>Du kannst unten selbst eine Lobby erstellen oder per Code beitreten.</span></div>';
   } catch (error) {
-    list.textContent = error.message;
+    list.innerHTML = `<div class="publicLobbyEmpty"><strong>Öffentliche Lobbys konnten nicht geladen werden</strong><span>${esc(error.message)}</span></div>`;
+  } finally {
+    publicSearchBusy = false;
+    if (button) { button.disabled = false; button.textContent = 'AKTUALISIEREN'; }
   }
 }
 
@@ -1069,7 +1092,8 @@ async function join(codeOverride) {
 
 
   try {
-    const location = await currentPosition();
+    const info = await api('lobby-info', { code: lobbyCode }, 'GET');
+    const location = info.visibility === 'PUBLIC' ? await currentPosition() : {};
     const result =
       await api(
         'join',
@@ -2537,61 +2561,89 @@ function ensureFreshLobby() {
   const copyButton = document.getElementById('copyLobbyCode');
   const mapFold = document.getElementById('freshMapFold');
 
-  let chatBackdrop = document.getElementById('freshChatBackdrop');
-  if (!chatBackdrop) {
-    chatBackdrop = document.createElement('div');
-    chatBackdrop.id = 'freshChatBackdrop';
-    chatBackdrop.setAttribute('aria-hidden', 'true');
+  /*
+    V7: Kein separater Chat-Backdrop mehr.
+    Der Backdrop war die einzige vollflächige Ebene über der Lobby und konnte
+    auf Safari nach mehrmaligem Öffnen/Schließen unsichtbar Klicks abfangen.
+    Der Chat wird geschlossen jetzt wirklich mit display:none aus dem
+    Hit-Testing genommen.
+  */
+  document.querySelectorAll('#freshChatBackdrop').forEach(element => element.remove());
+
+  if (chatDrawer && chatDrawer.parentElement !== document.body) {
+    document.body.append(chatDrawer);
   }
 
-  /*
-    WICHTIG: #game nutzt isolation:isolate und bildet damit einen eigenen
-    Stacking-Context. Der Backdrop lag zuvor im body, der Chat selbst aber in
-    #game. Dadurch konnte der Backdrop auf Mobilgeräten über dem Chat liegen
-    und Eingaben/Klicks abfangen. Beide Elemente liegen jetzt direkt im body.
-  */
-  if (chatBackdrop.parentElement !== document.body) document.body.append(chatBackdrop);
-  if (chatDrawer && chatDrawer.parentElement !== document.body) document.body.append(chatDrawer);
-
-  const openChat = () => {
-    if (!chatDrawer) return;
-    chatDrawer.classList.add('open');
-    chatDrawer.setAttribute('aria-hidden', 'false');
-    chatBackdrop.classList.add('open');
-    document.body.classList.add('freshChatOpen');
-    game.classList.add('chatDrawerOpen');
-    if (typeof renderLobbyChat === 'function') renderLobbyChat(true);
-    markFreshChatRead();
-    requestAnimationFrame(() => {
-      const list = document.getElementById('lobbyMessages');
-      if (list) list.scrollTop = list.scrollHeight;
-    });
-  };
-
-  const closeChat = () => {
-    if (!chatDrawer) return;
-    const input = document.getElementById('lobbyChatInput');
-    if (input && document.activeElement === input) input.blur();
-    chatDrawer.classList.remove('open');
-    chatDrawer.setAttribute('aria-hidden', 'true');
-    chatBackdrop.classList.remove('open');
+  const clearChatBlockers = () => {
+    document.querySelectorAll('#freshChatBackdrop').forEach(element => element.remove());
     document.body.classList.remove('freshChatOpen');
     game.classList.remove('chatDrawerOpen');
-    chatButton?.focus({ preventScroll: true });
   };
+
+  const setChatOpen = open => {
+    if (!chatDrawer) return;
+
+    if (open) {
+      clearChatBlockers();
+      chatDrawer.style.setProperty('display', 'flex', 'important');
+      chatDrawer.style.setProperty('pointer-events', 'auto', 'important');
+      chatDrawer.removeAttribute('inert');
+      chatDrawer.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('freshChatOpen');
+      game.classList.add('chatDrawerOpen');
+
+      requestAnimationFrame(() => {
+        chatDrawer.classList.add('open');
+        if (typeof renderLobbyChat === 'function') renderLobbyChat(true);
+        markFreshChatRead();
+        const list = document.getElementById('lobbyMessages');
+        if (list) list.scrollTop = list.scrollHeight;
+      });
+      return;
+    }
+
+    const input = document.getElementById('lobbyChatInput');
+    if (input && document.activeElement === input) input.blur();
+
+    chatDrawer.classList.remove('open');
+    chatDrawer.setAttribute('aria-hidden', 'true');
+    chatDrawer.setAttribute('inert', '');
+    chatDrawer.style.setProperty('pointer-events', 'none', 'important');
+    chatDrawer.style.setProperty('display', 'none', 'important');
+    clearChatBlockers();
+  };
+
+  const openChat = () => setChatOpen(true);
+  const closeChat = () => setChatOpen(false);
+
+  /* Startzustand garantiert geschlossen. */
+  closeChat();
 
   chatButton?.addEventListener('click', openChat);
   chatClose?.addEventListener('click', closeChat);
-  chatBackdrop.addEventListener('click', closeChat);
+
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && chatDrawer?.classList.contains('open')) closeChat();
   });
 
+  /*
+    Vor allen wichtigen Lobby-Aktionen räumen wir vorsichtshalber jeden
+    möglichen alten Chat-Zustand weg. Dadurch kann ein Safari-Resume oder
+    ein alter CSS-Zustand READY/START/SETTINGS/VERLASSEN nicht blockieren.
+  */
+  ['ready', 'start', 'freshSettingsButton', 'leave'].forEach(id => {
+    document.getElementById(id)?.addEventListener('pointerdown', () => {
+      if (!chatDrawer?.classList.contains('open')) clearChatBlockers();
+    }, { capture: true });
+  });
+
   settingsButton?.addEventListener('click', () => {
+    closeChat();
     if (state?.lobby?.hostId !== state?.lobby?.me?.id || state?.lobby?.state !== 'LOBBY') return;
     fillLobbySettings();
     if (settingsDialog && !settingsDialog.open) settingsDialog.showModal();
   });
+
   settingsClose?.addEventListener('click', () => settingsDialog?.close());
 
   copyButton?.addEventListener('click', async () => {
@@ -2650,7 +2702,7 @@ function updateFreshChat() {
   const code = state.lobby.code;
   const messages = state.chat || [];
   const drawer = document.getElementById('freshChatDrawer');
-  const backdrop = document.getElementById('freshChatBackdrop');
+  document.querySelectorAll('#freshChatBackdrop').forEach(element => element.remove());
   const game = document.getElementById('game');
 
   /*
@@ -2666,7 +2718,6 @@ function updateFreshChat() {
 
     drawer?.classList.remove('open');
     drawer?.setAttribute('aria-hidden', 'true');
-    backdrop?.classList.remove('open');
     document.body.classList.remove('freshChatOpen');
     game?.classList.remove('chatDrawerOpen');
 
@@ -2688,7 +2739,9 @@ function updateFreshChat() {
   */
   const chatOpen = !!drawer?.classList.contains('open');
   if (!chatOpen) {
-    backdrop?.classList.remove('open');
+    drawer?.style.setProperty('pointer-events', 'none', 'important');
+    drawer?.style.setProperty('display', 'none', 'important');
+    drawer?.setAttribute('inert', '');
     document.body.classList.remove('freshChatOpen');
     game?.classList.remove('chatDrawerOpen');
   }
