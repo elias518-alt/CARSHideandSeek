@@ -1,93 +1,290 @@
-const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
-const PORT=process.env.PORT||3000,ROOT=__dirname,lobbies=new Map();
-const uid=()=>crypto.randomUUID(), now=()=>Date.now(), clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const send=(r,s,o)=>{r.writeHead(s,{'Content-Type':'application/json','Cache-Control':'no-store'});r.end(JSON.stringify(o))};
-const body=req=>new Promise((res,rej)=>{let d='';req.on('data',c=>d+=c);req.on('end',()=>{try{res(d?JSON.parse(d):{})}catch(e){rej(e)}})});
-const code=()=>crypto.randomBytes(4).toString('hex').slice(0,5).toUpperCase();
-const dist=(a,b)=>{const R=6371000,p=x=>x*Math.PI/180,da=p(b.lat-a.lat),do_=p(b.lng-a.lng),q=Math.sin(da/2)**2+Math.cos(p(a.lat))*Math.cos(p(b.lat))*Math.sin(do_/2)**2;return 2*R*Math.asin(Math.sqrt(q))};
-const cleanPlayer=p=>({id:p.id,name:p.name,vehicle:p.vehicle,color:p.color,mode:p.mode,ready:p.ready,role:p.role,found:p.found,hasLocation:!!p.loc,connected:now()-p.lastSeen<15000,xp:p.xp,level:p.level});
-function pub(l,id){return {code:l.code,name:l.name,state:l.state,hostId:l.hostId,start:l.start,settings:l.settings,headstartEndsAt:l.headstartEndsAt,endsAt:l.endsAt,result:l.result,players:[...l.players.values()].map(cleanPlayer),me:cleanPlayer(l.players.get(id))};}
-function host(l){if(!l.players.has(l.hostId)){const p=[...l.players.values()][0];l.hostId=p?.id||null}}
-function roles(l){const ps=[...l.players.values()];if(ps.length<2)throw Error('Mindestens 2 Spieler erforderlich');if(ps.some(p=>!p.ready))throw Error('Noch nicht alle Spieler sind bereit');const shuffled=[...ps].sort(()=>Math.random()-.5), seekers=clamp(l.settings.seekers||Math.max(1,Math.floor(ps.length/5)),1,ps.length-1);shuffled.forEach((p,i)=>{p.role=i<seekers?'SEEKER':'HIDER';p.found=false;p.escapeUntil=0;p.cooldownUntil=0});l.state='COUNTDOWN';l.countdownEndsAt=now()+5000;l.result=null;}
-function finish(l,reason){if(l.state==='RESULT')return;l.state='RESULT';const h=[...l.players.values()].filter(p=>p.role==='HIDER'),found=h.filter(p=>p.found).length,seekersWin=h.length>0&&found===h.length;l.result={reason,seekersWin,found,totalHiders:h.length};for(const p of l.players.values()){const gain=100+(p.role==='SEEKER'?found*80:(!p.found?180:40));p.xp+=gain;p.lastGain=gain;p.level=1+Math.floor(p.xp/1000)}}
-function tick(l){const t=now();host(l);if(l.state==='COUNTDOWN'&&t>=l.countdownEndsAt){l.state='HEADSTART';l.headstartEndsAt=t+l.settings.headstart*1000;l.endsAt=l.headstartEndsAt+l.settings.duration*1000}if(l.state==='HEADSTART'&&t>=l.headstartEndsAt)l.state='ACTIVE';if(['HEADSTART','ACTIVE'].includes(l.state)&&t>=l.endsAt)finish(l,'TIME');const hs=[...l.players.values()].filter(p=>p.role==='HIDER');if(l.state==='ACTIVE'&&hs.length&&hs.every(p=>p.found))finish(l,'ALL_FOUND')}
-function proximity(l,p){if(!p.loc||!['HEADSTART','ACTIVE'].includes(l.state)||!p.role)return null;const enemies=[...l.players.values()].filter(x=>x.id!==p.id&&x.loc&&!x.found&&x.role!==p.role);if(!enemies.length)return null;const n=enemies.map(x=>({id:x.id,name:x.name,distance:dist(p.loc,x.loc)})).sort((a,b)=>a.distance-b.distance)[0];const d=Math.round(n.distance);return {...n,distance:d,level:d<25?'VERY_CLOSE':d<50?'CLOSE':d<100?'NEAR':'FAR'};}
-function gameView(l,p){const pr=proximity(l,p);return {proximity:pr,cooldownUntil:p.cooldownUntil||0,escapeUntil:p.escapeUntil||0,inStartZone:!!(p.loc&&l.start&&dist(p.loc,l.start)<=l.settings.startZone),distanceFromStart:p.loc&&l.start?Math.round(dist(p.loc,l.start)):null};}
-const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url,'http://x');if(u.pathname.startsWith('/api/')){const b=req.method==='GET'?{}:await body(req);
- if(u.pathname==='/api/create'&&req.method==='POST'){let c;do c=code();while(lobbies.has(c));const id=uid(),p={id,name:(b.name||'Spieler').slice(0,24),vehicle:b.vehicle||'Unbekannt',color:b.color||'Unbekannt',mode:b.mode||'PASSENGER',ready:false,role:null,found:false,loc:null,lastSeen:now(),xp:0,level:1};const l={code:c,name:(b.lobbyName||'NIGHT HUNT').slice(0,32),hostId:id,state:'LOBBY',start:null,result:null,settings:{radius:clamp(+b.radius||3000,1000,10000),duration:clamp(+b.duration||900,300,3600),headstart:clamp(+b.headstart||180,10,600),escape:clamp(+b.escape||15,5,60),startZone:100,seekers:clamp(+b.seekers||1,1,10)},players:new Map([[id,p]])};lobbies.set(c,l);return send(res,200,{userId:id,lobby:pub(l,id)})}
- if(u.pathname==='/api/join'&&req.method==='POST'){const l=lobbies.get((b.code||'').toUpperCase());if(!l)return send(res,404,{error:'Lobby nicht gefunden'});if(l.state!=='LOBBY')return send(res,409,{error:'Spiel läuft bereits'});const id=uid();l.players.set(id,{id,name:(b.name||'Spieler').slice(0,24),vehicle:b.vehicle||'Unbekannt',color:b.color||'Unbekannt',mode:b.mode||'PASSENGER',ready:false,role:null,found:false,loc:null,lastSeen:now(),xp:0,level:1});return send(res,200,{userId:id,lobby:pub(l,id)})}
- const c=(b.code||u.searchParams.get('code')||'').toUpperCase(),id=b.userId||u.searchParams.get('userId'),l=lobbies.get(c);if(!l)return send(res,404,{error:'Lobby nicht gefunden'});tick(l);const p=l.players.get(id);if(!p)return send(res,403,{error:'Session nicht mehr gültig'});p.lastSeen=now();
- if(u.pathname==='/api/state')return send(res,200,{lobby:pub(l,id),serverTime:now(),...gameView(l,p)});
- if(u.pathname==='/api/ready'&&req.method==='POST'){if(l.state!=='LOBBY')return send(res,409,{error:'Nur in der Lobby'});p.ready=!!b.ready;return send(res,200,{ok:true})}
- if(u.pathname==='/api/location'&&req.method==='POST'){if(!Number.isFinite(+b.lat)||!Number.isFinite(+b.lng))return send(res,400,{error:'Ungültige Position'});const prev=p.loc,loc={lat:+b.lat,lng:+b.lng,accuracy:+b.accuracy||999,altitude:Number.isFinite(+b.altitude)?+b.altitude:null,speed:Number.isFinite(+b.speed)?+b.speed:null,ts:now()};if(prev){const dt=(loc.ts-prev.ts)/1000,d=dist(prev,loc);loc.impliedSpeed=dt>0?d/dt:0;loc.suspicious=loc.impliedSpeed>80}p.loc=loc;if(!l.start&&l.hostId===id)l.start={lat:loc.lat,lng:loc.lng};if(l.state==='ACTIVE'&&p.role==='HIDER'){const pr=proximity(l,p);if(pr&&pr.distance<50&&!p.escapeUntil)p.escapeUntil=now()+l.settings.escape*1000;if(p.escapeUntil&&now()>p.escapeUntil)p.escapeUntil=0}return send(res,200,{ok:true,...gameView(l,p)})}
- if(u.pathname==='/api/startpoint'&&req.method==='POST'){if(l.hostId!==id)return send(res,403,{error:'Nur Host'});if(!p.loc)return send(res,409,{error:'Zuerst GPS aktivieren'});l.start={lat:p.loc.lat,lng:p.loc.lng};return send(res,200,{ok:true})}
-if(u.pathname==='/api/start'&&req.method==='POST'){
-  if(l.hostId!==id)
-    return send(res,403,{error:'Nur Host'});
+'use strict';
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
 
-  if(!p.loc)
-    return send(res,409,{
-      error:'Aktuelle Position wird noch ermittelt. Bitte GPS aktivieren und kurz warten.'
+const PORT = Number(process.env.PORT || 3000);
+const ROOT = __dirname;
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yyvljkzitodxhtkilsxm.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
+const lobbies = new Map();
+const authCache = new Map();
+const MAX_PLAYERS = 20;
+const PUBLIC_RANGE_M = 20000;
+const FIND_RANGE_M = 35;
+const LOCATION_MAX_AGE_MS = 15000;
+const FIND_MAX_ACCURACY_M = 25;
+
+class HttpError extends Error {
+  constructor(status, message, extra = {}) { super(message); this.status = status; this.extra = extra; }
+}
+const fail = (status, message, extra) => { throw new HttpError(status, message, extra); };
+const clean = (value, max = 60) => String(value || '').trim().slice(0, max);
+const number = value => Number(value);
+const validPoint = p => Number.isFinite(p.lat) && Math.abs(p.lat) <= 90 && Number.isFinite(p.lng) && Math.abs(p.lng) <= 180;
+const distance = (a, b) => {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const v = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return Math.round(12742000 * Math.asin(Math.min(1, Math.sqrt(v))));
+};
+const fresh = (p, now = Date.now()) => !!p?.location && now - p.location.at <= LOCATION_MAX_AGE_MS;
+const goodFindFix = (p, now) => fresh(p, now) && p.location.accuracy <= FIND_MAX_ACCURACY_M;
+const withinFindRange = (a, b) => distance(a.location, b.location) + a.location.accuracy + b.location.accuracy <= FIND_RANGE_M;
+const code = () => {
+  let candidate;
+  do { candidate = crypto.randomBytes(4).toString('base64url').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5); }
+  while (candidate.length !== 5 || lobbies.has(candidate));
+  return candidate;
+};
+
+async function verifyAuth(req) {
+  const token = /^Bearer (.+)$/i.exec(req.headers.authorization || '')?.[1];
+  if (!token) fail(401, 'Bitte erneut anmelden.');
+  const cached = authCache.get(token);
+  if (cached && cached.until > Date.now()) return cached.userId;
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY },
+      signal: AbortSignal.timeout(5000)
     });
-
-  // Aktuelle GPS-Position des Hosts automatisch als Startpunkt verwenden
-  l.start={
-    lat:p.loc.lat,
-    lng:p.loc.lng
-  };
-
-  roles(l);
-
-  return send(res,200,{
-    ok:true,
-    start:l.start
+  } catch { fail(503, 'Anmeldung konnte gerade nicht geprüft werden.'); }
+  if (!response.ok) fail(401, 'Sitzung abgelaufen. Bitte erneut anmelden.');
+  const user = await response.json();
+  if (!user.id) fail(401, 'Ungültige Anmeldung.');
+  authCache.set(token, { userId: user.id, until: Date.now() + 30000 });
+  if (authCache.size > 1000) authCache.clear();
+  return user.id;
+}
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', chunk => {
+      raw += chunk;
+      if (raw.length > 8192) { reject(new HttpError(413, 'Anfrage zu groß.')); req.destroy(); }
+    });
+    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(new HttpError(400, 'Ungültige Daten.')); } });
+    req.on('error', reject);
   });
-} if(u.pathname==='/api/found'&&req.method==='POST'){if(l.state!=='ACTIVE'||p.role!=='SEEKER')return send(res,409,{error:'Fundversuch derzeit nicht möglich'});if(now()<p.cooldownUntil)return send(res,429,{error:'Fund-Cooldown aktiv'});const target=l.players.get(b.targetId);if(!target||target.role!=='HIDER'||target.found)return send(res,400,{error:'Ungültiges Ziel'});if(!p.loc||!target.loc)return send(res,409,{error:'GPS-Daten fehlen'});if(now()-p.loc.ts>12000||now()-target.loc.ts>12000)return send(res,409,{error:'GPS-Daten zu alt'});if(p.loc.accuracy>60||target.loc.accuracy>60)return send(res,409,{error:'GPS zu ungenau'});if(p.loc.suspicious||target.loc.suspicious)return send(res,409,{error:'Positionsverlauf unplausibel'});const d=dist(p.loc,target.loc);if(d>35){p.failCount=(p.failCount||0)+1;p.cooldownUntil=now()+[30000,90000,180000][Math.min(2,p.failCount-1)];return send(res,409,{error:'Fund nicht bestätigt',distance:Math.round(d)})}target.found=true;target.escapeUntil=0;p.failCount=0;tick(l);return send(res,200,{ok:true,distance:Math.round(d)})}
- if(u.pathname==='/api/rematch'&&req.method==='POST'){if(l.hostId!==id)return send(res,403,{error:'Nur Host'});for(const x of l.players.values()){x.role=null;x.found=false;x.ready=false;x.escapeUntil=0;x.cooldownUntil=0}l.state='LOBBY';l.result=null;return send(res,200,{ok:true})}
- if(u.pathname==='/api/leave'&&req.method==='POST'){l.players.delete(id);host(l);if(!l.players.size)lobbies.delete(c);return send(res,200,{ok:true})}
- return send(res,404,{error:'API nicht gefunden'})}
-const staticFiles = {
-  '/': 'index.html',
-  '/index.html': 'index.html',
-  '/app.js': 'app.js',
-  '/style.css': 'style.css'
-};
-
-const fileName = staticFiles[u.pathname];
-
-if (!fileName) {
-  res.writeHead(404);
-  return res.end('Not found');
 }
-
-const file = path.join(__dirname, fileName);
-
-if (!fs.existsSync(file)) {
-  console.error('Datei fehlt:', file);
-  res.writeHead(404);
-  return res.end('File not found: ' + fileName);
+function getSession(data, authId) {
+  const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
+  if (!lobby) fail(404, 'Lobby nicht gefunden.');
+  const me = lobby.players.find(p => p.id === data.userId && p.authId === authId);
+  if (!me) fail(403, 'Session nicht gefunden.');
+  me.lastSeen = Date.now();
+  return { lobby, me };
 }
-
-const types = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml'
-};
-
-res.writeHead(200, {
-  'Content-Type': types[path.extname(file)] || 'application/octet-stream',
-  'Cache-Control': 'no-store'
-});
-
-fs.createReadStream(file).pipe(res);
-
-}catch(e){
-  console.error(e);
-  send(res,500,{error:e.message});
-}});
-
-server.listen(PORT,'0.0.0.0',()=>{
-  console.log(`CAR HIDE & SEEK v0.5: http://localhost:${PORT}`);
-});
+function newPlayer(data, authId) {
+  const name = clean(data.name, 24);
+  const vehicle = clean(data.vehicle, 70);
+  if (!name || !vehicle) fail(400, 'Spielername und Fahrzeug fehlen.');
+  return {
+    id: crypto.randomUUID(), authId, name, vehicle,
+    color: clean(data.color, 30) || 'Unbekannt',
+    mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
+    level: 1, role: null, ready: false, found: false, location: null,
+    lastSeen: Date.now(), cooldownUntil: 0
+  };
+}
+function publicPlayer(p, now) {
+  return {
+    id: p.id, name: p.name, vehicle: p.vehicle, color: p.color, mode: p.mode,
+    level: p.level, role: p.role, ready: p.ready, found: p.found,
+    connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now)
+  };
+}
+function updateGame(lobby, now = Date.now()) {
+  if (lobby.state === 'COUNTDOWN' && now >= lobby.countdownEndsAt) {
+    lobby.state = 'HEADSTART'; lobby.headstartEndsAt = now + lobby.headstart * 1000;
+  }
+  if (lobby.state === 'HEADSTART' && now >= lobby.headstartEndsAt) {
+    lobby.state = 'ACTIVE'; lobby.endsAt = now + lobby.duration * 1000;
+  }
+  if (lobby.state === 'ACTIVE' && now >= lobby.endsAt) finish(lobby, false);
+}
+function finish(lobby, seekersWin) {
+  lobby.state = 'RESULT';
+  lobby.result = {
+    seekersWin, found: lobby.players.filter(p => p.role === 'HIDER' && p.found).length,
+    totalHiders: lobby.players.filter(p => p.role === 'HIDER').length
+  };
+}
+function resultState(lobby, me) {
+  const now = Date.now();
+  updateGame(lobby, now);
+  const opponents = lobby.players.filter(p => p.id !== me.id && !p.found && fresh(p, now) && p.role && p.role !== me.role);
+  const nearest = fresh(me, now)
+    ? opponents.map(p => ({ p, meters: distance(me.location, p.location) })).sort((a, b) => a.meters - b.meters)[0]
+    : null;
+  const proximity = nearest ? {
+    distance: Math.round(nearest.meters / 10) * 10,
+    level: nearest.meters < 50 ? 'VERY_CLOSE' : nearest.meters < 150 ? 'CLOSE' : nearest.meters < 500 ? 'NEAR' : 'FAR'
+  } : null;
+  const nearbyTargets = me.role === 'SEEKER' && lobby.state === 'ACTIVE' && goodFindFix(me, now)
+    ? opponents.filter(p => p.role === 'HIDER' && goodFindFix(p, now) && withinFindRange(me, p)).map(p => p.id)
+    : [];
+  return {
+    serverTime: now, proximity, nearbyTargets,
+    cooldownUntil: me.cooldownUntil, escapeUntil: 0,
+    lobby: {
+      code: lobby.code, name: lobby.name, visibility: lobby.visibility,
+      state: lobby.state, hostId: lobby.hostId, players: lobby.players.map(p => publicPlayer(p, now)),
+      me: publicPlayer(me, now), countdownEndsAt: lobby.countdownEndsAt,
+      headstartEndsAt: lobby.headstartEndsAt, endsAt: lobby.endsAt, result: lobby.result
+    }
+  };
+}
+function parsePosition(data, maxAccuracy = 100) {
+  const p = { lat: number(data.lat), lng: number(data.lng), accuracy: number(data.accuracy) };
+  if (!validPoint(p) || !Number.isFinite(p.accuracy) || p.accuracy <= 0 || p.accuracy > maxAccuracy)
+    fail(400, 'GPS-Position zu ungenau oder ungültig.');
+  return p;
+}
+function updateLocation(p, data) {
+  const point = parsePosition(data);
+  const now = Date.now();
+  if (p.location) {
+    const seconds = (now - p.location.at) / 1000;
+    const traveled = distance(p.location, point);
+    if (seconds > 0 && traveled > 60 * seconds + p.location.accuracy + point.accuracy + 40)
+      fail(400, 'Unplausibler GPS-Sprung. Bitte Position erneut ermitteln.');
+  }
+  p.location = { ...point, at: now };
+}
+async function route(action, data, authId) {
+  const now = Date.now();
+  if (action === 'public') {
+    const position = parsePosition(data);
+    return { lobbies: [...lobbies.values()]
+      .filter(l => l.visibility === 'PUBLIC' && l.state === 'LOBBY' && l.players.length < MAX_PLAYERS && l.origin)
+      .map(l => ({ lobby: l, meters: distance(position, l.origin) }))
+      .filter(x => x.meters <= Math.min(PUBLIC_RANGE_M, x.lobby.radius))
+      .sort((a, b) => a.meters - b.meters)
+      .map(({ lobby, meters }) => ({ code: lobby.code, name: lobby.name, players: lobby.players.length, maxPlayers: MAX_PLAYERS, distanceKm: Math.max(0.1, Math.round(meters / 100) / 10) })) };
+  }
+  if (action === 'create') {
+    const player = newPlayer(data, authId);
+    const visibility = data.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE';
+    const origin = visibility === 'PUBLIC' ? parsePosition(data) : null;
+    if (origin) player.location = { ...origin, at: now };
+    const lobby = {
+      code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
+      hostId: player.id, players: [player], state: 'LOBBY', result: null,
+      radius: Math.min(10000, Math.max(1000, number(data.radius) || 3000)),
+      duration: Math.min(3600, Math.max(300, number(data.duration) || 900)),
+      headstart: Math.min(300, Math.max(30, number(data.headstart) || 180)),
+      escape: Math.min(30, Math.max(10, number(data.escape) || 15)),
+      createdAt: now, countdownEndsAt: null, headstartEndsAt: null, endsAt: null
+    };
+    lobbies.set(lobby.code, lobby);
+    return { userId: player.id, lobby: resultState(lobby, player).lobby };
+  }
+  if (action === 'join') {
+    const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
+    if (!lobby) fail(404, 'Lobby nicht gefunden.');
+    if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
+    if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
+    const existing = lobby.players.find(p => p.authId === authId);
+    if (existing) return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
+    const player = newPlayer(data, authId);
+    if (lobby.visibility === 'PUBLIC') {
+      const location = parsePosition(data);
+      if (distance(location, lobby.origin) > Math.min(PUBLIC_RANGE_M, lobby.radius)) fail(403, 'Diese öffentliche Runde ist zu weit entfernt.');
+      player.location = { ...location, at: now };
+    }
+    lobby.players.push(player);
+    return { userId: player.id, lobby: resultState(lobby, player).lobby };
+  }
+  const { lobby, me } = getSession(data, authId);
+  updateGame(lobby, now);
+  if (action === 'state') return resultState(lobby, me);
+  if (action === 'location') {
+    updateLocation(me, data);
+    if (!lobby.origin && me.id === lobby.hostId) lobby.origin = me.location;
+    return { ok: true };
+  }
+  if (action === 'ready') {
+    if (lobby.state !== 'LOBBY') fail(409, 'Runde läuft bereits.');
+    me.ready = !!data.ready;
+    return { ok: true };
+  }
+  if (action === 'start') {
+    if (me.id !== lobby.hostId) fail(403, 'Nur der Host kann starten.');
+    if (lobby.state !== 'LOBBY') fail(409, 'Runde läuft bereits.');
+    if (lobby.players.length < 2) fail(409, 'Mindestens zwei Spieler nötig.');
+    if (!lobby.players.every(p => fresh(p, now))) fail(409, 'Alle Spieler brauchen aktuelles GPS.');
+    if (lobby.origin && !lobby.players.every(p => distance(p.location, lobby.origin) <= lobby.radius)) fail(409, 'Mindestens ein Spieler ist außerhalb des Spielradius.');
+    if (!lobby.players.every(p => p.id === me.id || p.ready)) fail(409, 'Noch nicht alle Spieler sind bereit.');
+    for (const p of lobby.players) { p.role = p.id === lobby.hostId ? 'SEEKER' : 'HIDER'; p.found = false; }
+    lobby.state = 'COUNTDOWN'; lobby.countdownEndsAt = now + 5000;
+    return { ok: true };
+  }
+  if (action === 'found') {
+    if (lobby.state !== 'ACTIVE' || me.role !== 'SEEKER') fail(409, 'Fund derzeit nicht möglich.');
+    if (me.cooldownUntil > now) fail(429, 'Bitte vor dem nächsten Fundversuch warten.');
+    const target = lobby.players.find(p => p.id === data.targetId && p.role === 'HIDER' && !p.found);
+    if (!target) fail(404, 'Fahrzeug nicht mehr verfügbar.');
+    if (!goodFindFix(me, now) || !goodFindFix(target, now)) fail(409, 'Beide GPS-Positionen müssen aktuell und genau sein.');
+    const meters = distance(me.location, target.location);
+    if (!withinFindRange(me, target)) {
+      me.cooldownUntil = now + 5000;
+      fail(409, 'Du bist noch nicht nah genug am Fahrzeug oder GPS ist zu ungenau.', { distance: meters });
+    }
+    target.found = true;
+    me.cooldownUntil = now + 3000;
+    if (lobby.players.filter(p => p.role === 'HIDER').every(p => p.found)) finish(lobby, true);
+    return { ok: true, distance: meters };
+  }
+  if (action === 'rematch') {
+    if (me.id !== lobby.hostId || lobby.state !== 'RESULT') fail(403, 'Nur der Host kann eine neue Runde starten.');
+    lobby.state = 'LOBBY'; lobby.result = null; lobby.countdownEndsAt = lobby.headstartEndsAt = lobby.endsAt = null;
+    for (const p of lobby.players) { p.role = null; p.found = false; p.ready = false; p.cooldownUntil = 0; }
+    return { ok: true };
+  }
+  if (action === 'leave') {
+    lobby.players = lobby.players.filter(p => p.id !== me.id);
+    if (!lobby.players.length) lobbies.delete(lobby.code);
+    else if (lobby.hostId === me.id) lobby.hostId = lobby.players[0].id;
+    return { ok: true };
+  }
+  fail(404, 'Unbekannte Funktion.');
+}
+const send = (res, status, obj) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
+async function handler(req, res) {
+  try {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (url.pathname.startsWith('/api/')) {
+      const action = url.pathname.slice(5);
+      if (!['public','create','join','state','location','ready','start','found','rematch','leave'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (req.method !== (['public','state'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
+      const authId = await verifyAuth(req);
+      const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
+      send(res, 200, await route(action, data, authId));
+      return;
+    }
+    if (req.method !== 'GET' && req.method !== 'HEAD') fail(405, 'Methode nicht erlaubt.');
+    const requestPath = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
+    const file = path.resolve(ROOT, '.' + requestPath);
+    if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
+    const stat = await fs.promises.stat(file).catch(() => null);
+    if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
+    res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    if (req.method === 'HEAD') res.end(); else fs.createReadStream(file).pipe(res);
+  } catch (err) {
+    if (!res.headersSent) send(res, err.status || 500, { error: err.status ? err.message : 'Serverfehler.', ...(err.extra || {}) });
+    if (!err.status) console.error(err);
+  }
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, lobby] of lobbies) {
+    updateGame(lobby, now);
+    if (now - lobby.createdAt > 6 * 60 * 60 * 1000 || (lobby.state === 'LOBBY' && now - Math.max(...lobby.players.map(p => p.lastSeen)) > 10 * 60 * 1000)) lobbies.delete(key);
+  }
+}, 30000).unref();
+if (require.main === module) http.createServer(handler).listen(PORT, () => console.log(`Car Hide & Seek auf Port ${PORT}`));
+module.exports = { handler, route, distance, lobbies, HttpError };
