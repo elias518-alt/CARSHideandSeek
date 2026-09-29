@@ -2849,5 +2849,6 @@ function renderFreshLobby() {
   }).join('');
   if(waiting&&lobby.players.length<2)crew.insertAdjacentHTML('beforeend','<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>');
   if(typeof renderLobbyChat==='function')renderLobbyChat();
+  if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
 }
