@@ -141,6 +141,7 @@ function resultState(lobby, me) {
     cooldownUntil: me.cooldownUntil, escapeUntil: 0,
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility,
+      settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, revision: lobby.settingsRevision || 0 },
       state: lobby.state, hostId: lobby.hostId, players: lobby.players.map(p => publicPlayer(p, now)),
       me: publicPlayer(me, now), countdownEndsAt: lobby.countdownEndsAt,
       headstartEndsAt: lobby.headstartEndsAt, endsAt: lobby.endsAt, result: lobby.result
@@ -212,6 +213,30 @@ async function route(action, data, authId) {
   const { lobby, me } = getSession(data, authId);
   updateGame(lobby, now);
   if (action === 'state') return resultState(lobby, me);
+  if (action === 'settings') {
+    if (me.id !== lobby.hostId) fail(403, 'Nur der Host darf die Lobby ändern.');
+    if (lobby.state !== 'LOBBY') fail(409, 'Einstellungen sind nur vor dem Rundenstart änderbar.');
+    if (data.revision !== (lobby.settingsRevision || 0)) fail(409, 'Die Einstellungen wurden bereits geändert. Bitte erneut öffnen.');
+    const name = clean(data.lobbyName, 40);
+    if (!name) fail(400, 'Bitte einen Lobby-Namen eingeben.');
+    if (!['PUBLIC', 'PRIVATE'].includes(data.visibility)) fail(400, 'Ungültige Sichtbarkeit.');
+    const bounds = { radius: [1000, 10000], duration: [300, 3600], headstart: [30, 300] };
+    const values = {};
+    for (const [key, [min, max]] of Object.entries(bounds)) {
+      if (typeof data[key] !== 'number' || !Number.isInteger(data[key]) || data[key] < min || data[key] > max)
+        fail(400, `Ungültiger Wert für ${key} (${min}–${max}).`);
+      values[key] = data[key];
+    }
+    if (data.visibility === 'PUBLIC' && !lobby.origin) fail(409, 'Für öffentliche Lobbys muss zuerst der GPS-Mittelpunkt feststehen.');
+    const changed = lobby.name !== name || lobby.visibility !== data.visibility || Object.keys(values).some(key => lobby[key] !== values[key]);
+    if (changed) {
+      Object.assign(lobby, values, { name, visibility: data.visibility, settingsRevision: (lobby.settingsRevision || 0) + 1 });
+      for (const p of lobby.players) p.ready = false;
+      lobby.messages.push({ id: crypto.randomUUID(), sender: 'system', name: 'Lobby', body: 'Der Host hat die Einstellungen geändert. Bitte erneut bereit melden.', at: now });
+      if (lobby.messages.length > 100) lobby.messages.splice(0, lobby.messages.length - 100);
+    }
+    return resultState(lobby, me);
+  }
   if (action === 'chat') {
     const body = clean(data.body, 500);
     if (!body) fail(400, 'Bitte eine Nachricht eingeben.');
@@ -280,7 +305,7 @@ async function handler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
       const action = url.pathname.slice(5);
-      if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat','settings'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
