@@ -184,7 +184,7 @@ async function route(action, data, authId) {
     const lobby = {
       code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
       hostId: player.id, players: [player], state: 'LOBBY', result: null,
-      radius: Math.min(10000, Math.max(1000, number(data.radius) || 3000)),
+      radius: Math.min(10000, Math.max(200, number(data.radius) || 3000)),
       duration: Math.min(3600, Math.max(300, number(data.duration) || 900)),
       headstart: Math.min(300, Math.max(30, number(data.headstart) || 180)),
       escape: Math.min(30, Math.max(10, number(data.escape) || 15)),
@@ -220,7 +220,7 @@ async function route(action, data, authId) {
     const name = clean(data.lobbyName, 40);
     if (!name) fail(400, 'Bitte einen Lobby-Namen eingeben.');
     if (!['PUBLIC', 'PRIVATE'].includes(data.visibility)) fail(400, 'Ungültige Sichtbarkeit.');
-    const bounds = { radius: [1000, 10000], duration: [300, 3600], headstart: [30, 300] };
+    const bounds = { radius: [200, 10000], duration: [300, 3600], headstart: [30, 300] };
     const values = {};
     for (const [key, [min, max]] of Object.entries(bounds)) {
       if (typeof data[key] !== 'number' || !Number.isInteger(data[key]) || data[key] < min || data[key] > max)
