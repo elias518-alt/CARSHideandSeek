@@ -388,11 +388,14 @@ async function route(action, data, authId) {
     if (me.cooldownUntil > now) fail(429, 'Bitte vor dem nächsten Fundversuch warten.');
     const target = lobby.players.find(p => p.id === data.targetId && p.role === 'HIDER' && !p.found);
     if (!target) fail(404, 'Fahrzeug nicht mehr verfügbar.');
-    if (!goodFindFix(me, now) || !goodFindFix(target, now)) fail(409, 'Beide GPS-Positionen müssen aktuell und genau sein.');
+    if (!fresh(me, now)) fail(409, 'Dein GPS fehlt oder ist veraltet. Tippe auf GPS und prüfe die Standortfreigabe.');
+    if (!fresh(target, now)) fail(409, 'Die GPS-Position des Versteckers fehlt oder ist veraltet. Der Verstecker muss die App öffnen und GPS freigeben.');
+    if (!goodFindFix(me, now)) fail(409, 'Dein GPS ist noch zu ungenau. Warte unter freiem Himmel auf eine Genauigkeit von höchstens 25 m.');
+    if (!goodFindFix(target, now)) fail(409, 'Das GPS des Versteckers ist noch zu ungenau. Benötigt wird eine Genauigkeit von höchstens 25 m.');
     const meters = distance(me.location, target.location);
     if (!withinFindRange(me, target)) {
       me.cooldownUntil = now + 5000;
-      fail(409, 'Du bist noch nicht nah genug am Fahrzeug oder GPS ist zu ungenau.', { distance: meters });
+      fail(409, 'Fund noch nicht bestätigt: Abstand plus beide GPS-Ungenauigkeiten müssen zusammen höchstens 35 m sein. Geht näher zusammen oder wartet auf genaueres GPS.', { distance: meters });
     }
     target.found = true;
     me.cooldownUntil = now + 3000;
@@ -537,3 +540,4 @@ setInterval(() => {
 }, 30000).unref();
 if (require.main === module) http.createServer(handler).listen(PORT, () => console.log(`Car Hide & Seek auf Port ${PORT}`));
 module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError };
+
