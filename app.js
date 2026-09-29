@@ -933,6 +933,49 @@ function playerData() {
   };
 }
 
+function currentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('GPS wird auf diesem Gerät nicht unterstützt.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        if (position.coords.accuracy > 100) {
+          reject(new Error('GPS ist zu ungenau. Bitte draußen erneut versuchen.'));
+          return;
+        }
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+      },
+      () => reject(new Error('Standort freigeben, um öffentliche Runden zu finden.')),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+    );
+  });
+}
+
+async function findPublic() {
+  const list = $('#publicLobbies');
+  list.textContent = 'Suche nach Runden in deiner Nähe…';
+  try {
+    const position = await currentPosition();
+    const result = await api('public', position, 'GET');
+    list.innerHTML = result.lobbies.length
+      ? result.lobbies.map(lobby => `
+          <button class="publicLobby" type="button" data-public-code="${esc(lobby.code)}">
+            <strong>${esc(lobby.name)}</strong>
+            <small>${lobby.players}/${lobby.maxPlayers} Spieler · ca. ${lobby.distanceKm} km</small>
+            <span>BEITRETEN ›</span>
+          </button>`).join('')
+      : '<p class="muted">Noch keine öffentliche Runde in 20 km Nähe. Erstelle selbst eine!</p>';
+  } catch (error) {
+    list.textContent = error.message;
+  }
+}
+
 
 /* =========================================================
    CREATE / JOIN
@@ -940,11 +983,15 @@ function playerData() {
 
 async function create() {
   try {
+    const visibility = $('#visibility')?.value || 'PRIVATE';
+    const location = visibility === 'PUBLIC' ? await currentPosition() : {};
     const result =
       await api(
         'create',
         {
           ...playerData(),
+          visibility,
+          ...location,
 
           lobbyName:
             $('#lname')?.value ||
@@ -981,9 +1028,9 @@ async function create() {
 }
 
 
-async function join() {
+async function join(codeOverride) {
   const lobbyCode =
-    ($('#code')?.value || '')
+    (typeof codeOverride === 'string' ? codeOverride : $('#code')?.value || '')
       .trim()
       .toUpperCase();
 
@@ -998,12 +1045,14 @@ async function join() {
 
 
   try {
+    const location = await currentPosition();
     const result =
       await api(
         'join',
         {
           ...playerData(),
-          code: lobbyCode
+          code: lobbyCode,
+          ...location
         }
       );
 
@@ -1478,12 +1527,14 @@ function renderGame() {
       .map(player => `
         <button
           class="danger"
-          onclick="found('${player.id}')">
+          onclick="found('${player.id}')"
+          ${state.nearbyTargets?.includes(player.id) ? '' : 'disabled'}>
 
           🚘
           ${esc(player.vehicle)}
           ·
           ${esc(player.color)}
+          ${state.nearbyTargets?.includes(player.id) ? '' : ' · erst in GPS-Nähe'}
 
         </button>
       `)
@@ -1931,8 +1982,14 @@ $('#create')
 $('#join')
   ?.addEventListener(
     'click',
-    join
+    () => join()
   );
+
+$('#findPublic')?.addEventListener('click', findPublic);
+$('#publicLobbies')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-public-code]');
+  if (button) join(button.dataset.publicCode);
+});
 
 
 $('#gps')
