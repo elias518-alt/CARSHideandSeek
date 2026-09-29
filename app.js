@@ -138,6 +138,16 @@ function openPage(page) {
     top: 0,
     behavior: 'smooth'
   });
+
+  if (page === 'play') {
+    const list = document.getElementById('publicLobbies');
+    if (list) list.innerHTML = '<p class="muted">Offene Lobbys werden geladen…</p>';
+    setTimeout(() => {
+      if (document.getElementById('play')?.classList.contains('active')) {
+        findPublic();
+      }
+    }, 150);
+  }
 }
 
 
