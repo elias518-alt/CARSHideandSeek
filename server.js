@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yyvljkzitodxhtkilsxm.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
+const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY || '';
 const lobbies = new Map();
 const authCache = new Map();
 const MAX_PLAYERS = 20;
@@ -58,12 +59,12 @@ async function verifyAuth(req) {
   if (authCache.size > 1000) authCache.clear();
   return user.id;
 }
-function readBody(req) {
+function readBody(req, maxBytes = 8192) {
   return new Promise((resolve, reject) => {
     let raw = '';
     req.on('data', chunk => {
       raw += chunk;
-      if (raw.length > 8192) { reject(new HttpError(413, 'Anfrage zu groß.')); req.destroy(); }
+      if (raw.length > maxBytes) { reject(new HttpError(413, 'Anfrage zu groß.')); req.destroy(); }
     });
     req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(new HttpError(400, 'Ungültige Daten.')); } });
     req.on('error', reject);
@@ -298,13 +299,62 @@ async function route(action, data, authId) {
   }
   fail(404, 'Unbekannte Funktion.');
 }
+async function removeVehicleBackground(data) {
+  if (!REMOVE_BG_API_KEY) fail(503, 'Bildfreistellung ist noch nicht eingerichtet. REMOVE_BG_API_KEY fehlt auf dem Server.');
+  const value = String(data.image || '');
+  const match = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(value);
+  if (!match) fail(400, 'Ungültiges Fahrzeugbild.');
+
+  const mime = match[1] === 'jpeg' ? 'image/jpeg' : `image/${match[1]}`;
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > 3 * 1024 * 1024) fail(413, 'Das vorbereitete Fahrzeugbild ist zu groß.');
+
+  const form = new FormData();
+  form.append('size', 'auto');
+  form.append('image_file', new Blob([buffer], { type: mime }), `vehicle.${match[1] === 'jpeg' ? 'jpg' : match[1]}`);
+
+  let response;
+  try {
+    response = await fetch('https://api.remove.bg/v1.0/removebg', {
+      method: 'POST',
+      headers: { 'X-Api-Key': REMOVE_BG_API_KEY },
+      body: form,
+      signal: AbortSignal.timeout(45000)
+    });
+  } catch (error) {
+    console.error('remove.bg request failed:', error);
+    fail(502, 'Bildfreistellung ist gerade nicht erreichbar. Bitte erneut versuchen.');
+  }
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    console.error('remove.bg error:', response.status, detail.slice(0, 500));
+    if (response.status === 402) fail(503, 'Das Kontingent für die Bildfreistellung ist aufgebraucht.');
+    if (response.status === 403) fail(503, 'Der Schlüssel für die Bildfreistellung ist ungültig.');
+    fail(502, 'Das Fahrzeug konnte nicht freigestellt werden. Bitte ein anderes Foto versuchen.');
+  }
+
+  const output = Buffer.from(await response.arrayBuffer());
+  if (!output.length || output.length > 8 * 1024 * 1024) fail(502, 'Das freigestellte Bild ist ungültig oder zu groß.');
+  return { image: `data:image/png;base64,${output.toString('base64')}` };
+}
+
 const send = (res, status, obj) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); };
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
       const action = url.pathname.slice(5);
+
+      if (action === 'remove-background') {
+        if (req.method !== 'POST') fail(405, 'Methode nicht erlaubt.');
+        await verifyAuth(req);
+        const data = await readBody(req, 5 * 1024 * 1024);
+        send(res, 200, await removeVehicleBackground(data));
+        return;
+      }
+
       if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat','settings'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
