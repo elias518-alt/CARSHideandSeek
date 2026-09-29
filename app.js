@@ -2100,103 +2100,99 @@ syncVehicleUI();
 initializeAuth();
 
 
-/* Host-Einstellungen: Änderungen werden ausschließlich serverseitig freigegeben. */
+/* Host-Einstellungen – passend zur neuen Fresh-Lobby in index.html. */
 let lobbySettingsKey = '';
 let lobbySettingsSaving = false;
+let lobbySettingsBound = false;
+
 function renderLobbySettings() {
   const lobby = state?.lobby;
   if (!lobby?.me) return;
-  let panel = document.getElementById('lobbySettingsPanel');
-  if (!panel) {
-    panel = document.createElement('section');
-    panel.id = 'lobbySettingsPanel';
-    panel.className = 'panel';
-    panel.innerHTML = `
-      <div class="panelTitle"><div><span>DEINE LOBBY</span><h3>EINSTELLUNGEN</h3></div></div>
-      <p id="lobbySettingsSummary" class="muted"></p>
-      <p id="lobbySettingsNotice" role="status"></p>
-      <details id="lobbySettingsEditor">
-        <summary style="cursor:pointer;padding:12px 0;font-weight:bold">⚙ Lobby bearbeiten</summary>
-        <form id="lobbySettingsForm">
-          <label>LOBBY-NAME<input id="editLobbyName" maxlength="40" required></label>
-          <div class="settingsGrid">
-            <label>SICHTBARKEIT<select id="editLobbyVisibility"><option value="PRIVATE">Privat – Beitritt mit Code</option><option value="PUBLIC">Öffentlich – in der Suche sichtbar</option></select></label>
-            <label>RADIUS IN METERN<input id="editLobbyRadius" type="number" min="200" max="10000" step="1" required></label>
-            <label>SPIELZEIT IN MINUTEN<input id="editLobbyDuration" type="number" min="5" max="60" step="1" required></label>
-            <label>STARTVORSPRUNG IN SEKUNDEN<input id="editLobbyHeadstart" type="number" min="30" max="300" step="1" required></label>
-          </div>
-          <p class="muted">Änderungen gelten für alle. Danach müssen sich die Spieler erneut bereit melden. Der Mittelpunkt bleibt bestehen.</p>
-          <button id="saveLobbySettings" type="submit" class="primaryButton">ÄNDERUNGEN SPEICHERN</button>
-          <button id="cancelLobbySettings" type="button" class="textButton" style="padding:12px">ABBRECHEN</button>
-          <p id="lobbySettingsError" role="alert"></p>
-        </form>
-      </details>`;
-    document.querySelector('#game .gameHeaderCard').after(panel);
-    document.getElementById('lobbySettingsEditor').addEventListener('toggle', event => {
-      if (event.target.open) fillLobbySettings();
-    });
-    document.getElementById('cancelLobbySettings').addEventListener('click', () => {
-      document.getElementById('lobbySettingsEditor').open = false;
-    });
-    document.getElementById('lobbySettingsForm').addEventListener('submit', saveLobbySettings);
-  }
-  const settings = lobby.settings;
-  const editor = document.getElementById('lobbySettingsEditor');
-  const notice = document.getElementById('lobbySettingsNotice');
+
+  const panel = document.getElementById('lobbySettingsPanel');
+  const dialog = document.getElementById('freshSettingsDialog');
+  const button = document.getElementById('freshSettingsButton');
+  if (!panel || !dialog) return;
+
   const host = lobby.hostId === lobby.me.id;
-  editor.hidden = !host || lobby.state !== 'LOBBY' || !settings;
-  if (editor.hidden) editor.open = false;
-  document.getElementById('lobbySettingsSummary').textContent = settings
-    ? `${lobby.visibility === 'PUBLIC' ? 'Öffentlich' : 'Privat'} · Radius ${settings.radius / 1000} km · ${settings.duration / 60} Min. Spielzeit · ${settings.headstart} Sek. Vorsprung`
-    : 'Bitte auch die aktualisierte server.js bereitstellen.';
+  const waiting = lobby.state === 'LOBBY';
+  const settings = lobby.settings;
+
+  if (button) {
+    button.hidden = !host;
+    button.disabled = !waiting || !settings || lobbySettingsSaving;
+    button.title = !host ? 'Nur der Host kann die Lobby anpassen.' : waiting ? 'Lobby anpassen' : 'Während der Runde gesperrt';
+  }
+
+  if ((!host || !waiting) && dialog.open) dialog.close();
+
+  if (settings) fillLobbySettings();
+
   const key = `${lobby.code}:${settings?.revision || 0}:${lobby.hostId}`;
-  if (lobbySettingsKey && lobbySettingsKey !== key && editor.open) {
-    editor.open = false;
-    toast('Lobby-Einstellungen aktualisiert. Bei Bedarf erneut öffnen.');
+  if (lobbySettingsKey && lobbySettingsKey !== key && dialog.open) {
+    dialog.close();
+    toast('Lobby-Einstellungen aktualisiert.');
   }
   lobbySettingsKey = key;
-  notice.textContent = lobby.state !== 'LOBBY'
-    ? 'Während der Runde sind die Einstellungen gesperrt.'
-    : settings?.revision > 0
-      ? 'Einstellungen geändert – bitte prüfen und erneut bereit melden.'
-      : host ? 'Als Host kannst du die Lobby vor dem Start anpassen.' : 'Der Host kann diese Einstellungen vor dem Start ändern.';
-  document.getElementById('saveLobbySettings').disabled = lobbySettingsSaving;
-}
-function fillLobbySettings() {
-  const lobby = state?.lobby;
-  if (!lobby?.settings) return;
-  const fields = { editLobbyName: lobby.name, editLobbyVisibility: lobby.visibility,
-    editLobbyRadius: lobby.settings.radius, editLobbyDuration: lobby.settings.duration / 60,
-    editLobbyHeadstart: lobby.settings.headstart };
-  for (const [id, value] of Object.entries(fields)) document.getElementById(id).value = value;
-  document.getElementById('lobbySettingsForm').dataset.revision = lobby.settings.revision;
-  document.getElementById('lobbySettingsError').textContent = '';
-}
-async function saveLobbySettings(event) {
-  event.preventDefault();
-  if (lobbySettingsSaving || !state?.lobby) return;
-  const form = event.currentTarget;
-  if (!form.reportValidity()) return;
-  lobbySettingsSaving = true;
-  document.getElementById('saveLobbySettings').disabled = true;
-  const value = id => document.getElementById(id).value;
-  try {
-    await api('settings', gameCredentials({
-      revision: Number(form.dataset.revision), lobbyName: value('editLobbyName'),
-      visibility: value('editLobbyVisibility'), radius: Number(value('editLobbyRadius')),
-      duration: Number(value('editLobbyDuration')) * 60, headstart: Number(value('editLobbyHeadstart'))
-    }));
-    document.getElementById('lobbySettingsEditor').open = false;
-    toast('Lobby gespeichert. Alle Spieler müssen sich erneut bereit melden.');
-    await poll();
-  } catch (error) {
-    document.getElementById('lobbySettingsError').textContent = error.message;
-  } finally {
-    lobbySettingsSaving = false;
-    document.getElementById('saveLobbySettings').disabled = false;
+
+  if (!lobbySettingsBound) {
+    lobbySettingsBound = true;
+    ['lobbyRadius', 'lobbyDuration', 'lobbyHeadstart', 'lobbyEscape'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', saveFreshLobbySettings);
+    });
   }
 }
 
+function fillLobbySettings() {
+  const lobby = state?.lobby;
+  const settings = lobby?.settings;
+  if (!settings) return;
+
+  const values = {
+    lobbyRadius: settings.radius,
+    lobbyDuration: settings.duration,
+    lobbyHeadstart: settings.headstart,
+    lobbyEscape: settings.escape ?? settings.escapeWindow ?? 15
+  };
+
+  for (const [id, value] of Object.entries(values)) {
+    const field = document.getElementById(id);
+    if (field && value != null && [...field.options].some(option => String(option.value) === String(value))) {
+      field.value = String(value);
+    }
+  }
+}
+
+async function saveFreshLobbySettings() {
+  const lobby = state?.lobby;
+  if (lobbySettingsSaving || !lobby?.settings) return;
+  if (lobby.hostId !== lobby.me?.id || lobby.state !== 'LOBBY') return;
+
+  const value = id => document.getElementById(id)?.value;
+  lobbySettingsSaving = true;
+  const button = document.getElementById('freshSettingsButton');
+  if (button) button.disabled = true;
+
+  try {
+    await api('settings', gameCredentials({
+      revision: Number(lobby.settings.revision || 0),
+      lobbyName: lobby.name,
+      visibility: lobby.visibility,
+      radius: Number(value('lobbyRadius') || lobby.settings.radius),
+      duration: Number(value('lobbyDuration') || lobby.settings.duration),
+      headstart: Number(value('lobbyHeadstart') || lobby.settings.headstart),
+      escape: Number(value('lobbyEscape') || lobby.settings.escape || 15)
+    }));
+    toast('Lobby-Einstellungen gespeichert.');
+    await poll();
+  } catch (error) {
+    toast(error.message || 'Einstellungen konnten nicht gespeichert werden.');
+    fillLobbySettings();
+  } finally {
+    lobbySettingsSaving = false;
+    if (button) button.disabled = false;
+  }
+}
 
 // Kleine Spielradien auch im bestehenden Formular zur Lobby-Erstellung anbieten.
 function addSmallLobbyRadii() {
@@ -2449,50 +2445,77 @@ function freshDialog(id, title) {
 }
 function ensureFreshLobby() {
   const game = document.getElementById('game');
-  if (!game || document.getElementById('freshLobbyTools')) return;
+  if (!game || game.dataset.freshBound === '1') return;
+  game.dataset.freshBound = '1';
   game.classList.add('freshLobby');
-  const tools = document.createElement('div'); tools.id = 'freshLobbyTools'; tools.className = 'freshLobbyTools';
-  tools.innerHTML = `<div class="freshRoomLabel"><span class="freshLiveDot"></span> <span id="freshRoomLabel">DEIN WARTERAUM</span></div>
-    <div class="freshToolButtons"><button id="freshSettingsButton" type="button" aria-haspopup="dialog">⚙ <span>Einstellungen</span></button>
-    <button id="freshChatButton" type="button" aria-haspopup="dialog" aria-label="Lobby-Chat öffnen">↗ <span>Chat</span><b id="freshUnread" hidden>0</b></button></div>`;
-  game.prepend(tools);
-  const announcement = document.createElement('span'); announcement.id='freshChatAnnouncement';announcement.className='freshSrOnly';announcement.setAttribute('aria-live','polite');tools.append(announcement);
-  const board = document.getElementById('players')?.closest('section');
-  if (board) { board.classList.add('freshCrewBoard'); }
-  const header = game.querySelector('.gameHeaderCard'); header?.classList.add('freshRoomHeader');
-  const copy = document.createElement('button');copy.className='freshCopyButton';copy.type='button';copy.textContent='CODE KOPIEREN';
-  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state.lobby.code);toast('Lobby-Code kopiert.');}catch{toast('Dein Lobby-Code: '+(state?.lobby?.code||''));}});
-  header?.querySelector('.codeBox')?.append(copy);
-  const map = game.querySelector('.radarCard');
-  if (map) {
-    const fold = document.createElement('details'); fold.id='freshMapFold'; fold.className='freshMapFold';
-    const summary=document.createElement('summary');summary.textContent='SPIELKARTE & GPS';fold.append(summary);map.before(fold);fold.append(map);
-    fold.addEventListener('toggle',()=>{if(fold.open){window.chsMapUpdate?.(state);window.dispatchEvent(new Event('resize'));}});
-  }
-  const settingsDialog=freshDialog('freshSettingsDialog','LOBBY-EINSTELLUNGEN');
-  const chatDialog=freshDialog('freshChatDialog','CREW-CHAT');
-  const chat=game.querySelector('.lobbyChat'); if(chat)chatDialog.append(chat);
-  chatDialog.addEventListener('close',()=>document.getElementById('freshChatButton')?.focus());
-  document.getElementById('freshChatButton').addEventListener('click',()=>{
-    if(!chatDialog.open)chatDialog.showModal();
-    if(typeof renderLobbyChat==='function')renderLobbyChat();
+
+  const chatDrawer = document.getElementById('freshChatDrawer');
+  const chatButton = document.getElementById('freshChatButton');
+  const chatClose = document.getElementById('freshChatClose');
+  const settingsDialog = document.getElementById('freshSettingsDialog');
+  const settingsButton = document.getElementById('freshSettingsButton');
+  const settingsClose = document.getElementById('freshSettingsClose');
+  const copyButton = document.getElementById('copyLobbyCode');
+  const mapFold = document.getElementById('freshMapFold');
+
+  const openChat = () => {
+    if (!chatDrawer) return;
+    chatDrawer.classList.add('open');
+    chatDrawer.setAttribute('aria-hidden', 'false');
+    if (typeof renderLobbyChat === 'function') renderLobbyChat();
     markFreshChatRead();
-    const list=document.getElementById('lobbyMessages');if(list)list.scrollTop=list.scrollHeight;
+    const list = document.getElementById('lobbyMessages');
+    if (list) list.scrollTop = list.scrollHeight;
     document.getElementById('lobbyChatInput')?.focus();
+  };
+  const closeChat = () => {
+    if (!chatDrawer) return;
+    chatDrawer.classList.remove('open');
+    chatDrawer.setAttribute('aria-hidden', 'true');
+    chatButton?.focus();
+  };
+
+  chatButton?.addEventListener('click', openChat);
+  chatClose?.addEventListener('click', closeChat);
+
+  settingsButton?.addEventListener('click', () => {
+    if (state?.lobby?.hostId !== state?.lobby?.me?.id || state?.lobby?.state !== 'LOBBY') return;
+    fillLobbySettings();
+    if (settingsDialog && !settingsDialog.open) settingsDialog.showModal();
   });
-  document.getElementById('freshSettingsButton').addEventListener('click',()=>{
-    if(state?.lobby?.hostId!==state?.lobby?.me?.id||state?.lobby?.state!=='LOBBY')return;
-    if(!settingsDialog.open)settingsDialog.showModal();
-    const editor=document.getElementById('lobbySettingsEditor');if(editor){editor.open=true;fillLobbySettings();}
+  settingsClose?.addEventListener('click', () => settingsDialog?.close());
+
+  copyButton?.addEventListener('click', async () => {
+    const code = state?.lobby?.code || '';
+    try {
+      await navigator.clipboard.writeText(code);
+      toast('Lobby-Code kopiert.');
+    } catch {
+      toast('Dein Lobby-Code: ' + code);
+    }
   });
-  document.getElementById('cancelLobbySettings')?.addEventListener('click',()=>settingsDialog.close());
-  const editor=document.getElementById('lobbySettingsEditor');
-  if(editor)new MutationObserver(()=>{if(!editor.open&&settingsDialog.open)settingsDialog.close();}).observe(editor,{attributes:true,attributeFilter:['open']});
-  new MutationObserver(()=>{
-    if(!game.classList.contains('active')){chatDialog.close();settingsDialog.close();}
-  }).observe(game,{attributes:true,attributeFilter:['class']});
-  const readIfVisible=()=>{if(chatDialog.open&&document.visibilityState==='visible'&&document.hasFocus())markFreshChatRead();};
-  window.addEventListener('focus',readIfVisible);document.addEventListener('visibilitychange',readIfVisible);
+
+  mapFold?.addEventListener('toggle', () => {
+    if (mapFold.open) {
+      window.chsMapUpdate?.(state);
+      window.dispatchEvent(new Event('resize'));
+    }
+  });
+
+  const readIfVisible = () => {
+    if (chatDrawer?.classList.contains('open') && document.visibilityState === 'visible' && document.hasFocus()) {
+      markFreshChatRead();
+    }
+  };
+  window.addEventListener('focus', readIfVisible);
+  document.addEventListener('visibilitychange', readIfVisible);
+
+  new MutationObserver(() => {
+    if (!game.classList.contains('active')) {
+      closeChat();
+      if (settingsDialog?.open) settingsDialog.close();
+    }
+  }).observe(game, { attributes: true, attributeFilter: ['class'] });
 }
 function markFreshChatRead() {
   freshChatState.unread.clear();
@@ -2512,17 +2535,17 @@ function paintFreshUnread() {
 }
 function updateFreshChat() {
   if(!state?.lobby)return;
-  const code=state.lobby.code, messages=state.chat||[], dialog=document.getElementById('freshChatDialog');
+  const code=state.lobby.code, messages=state.chat||[], drawer=document.getElementById('freshChatDrawer');
   if(freshChatState.code!==code){
     freshChatState.code=code;freshChatState.seen=new Set(messages.map(message=>message.id));freshChatState.unread.clear();
-    dialog?.close();document.getElementById('freshSettingsDialog')?.close();
+    drawer?.classList.remove('open');drawer?.setAttribute('aria-hidden','true');document.getElementById('freshSettingsDialog')?.close();
   }else{
     for(const message of messages){
       if(!freshChatState.seen.has(message.id)&&message.sender!==state.lobby.me.id)freshChatState.unread.add(message.id);
       freshChatState.seen.add(message.id);
     }
   }
-  if(dialog?.open&&document.visibilityState==='visible'&&document.hasFocus())markFreshChatRead();
+  if(drawer?.classList.contains('open')&&document.visibilityState==='visible'&&document.hasFocus())markFreshChatRead();
   else paintFreshUnread();
 }
 function freshPlayerColor(id) {
