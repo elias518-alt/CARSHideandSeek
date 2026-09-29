@@ -4864,3 +4864,78 @@ body.freshChatOpen {
     font-size: 11px;
   }
 }
+
+/* Active rounds use a compact dashboard; waiting-room styling stays separate. */
+#game.freshLobby.active.liveRound {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 20px 24px 110px;
+  background: #080e18;
+  overflow: visible;
+}
+#game.liveRound::before, #game.liveRound::after { display: none; }
+#game.liveRound .freshRoomHeader {
+  position: relative; inset: auto; width: 100%; margin: 20px 0 16px;
+  background: #101c2c; border-color: #263b53; box-shadow: none;
+}
+#game.liveRound .freshRoomHeader h2 { font-size: 24px; line-height: 1.2; }
+#game.liveRound .codeBox { display: none; }
+#game.liveRound .gameStats { gap: 10px; }
+#game.liveRound .gameStats div { padding: 12px; background: #17273b; }
+#game.liveRound .gameStats span { color: #b2c2d6; font-size: 10px; }
+#game.liveRound .gameStats strong { font-size: 16px; }
+#game.liveRound #timer { color: #77c7ff; font-variant-numeric: tabular-nums; }
+#game.liveRound #targets {
+  width: 100%; margin: 16px 0; padding: 20px;
+  border: 1px solid #326890; border-radius: 18px; background: #102338;
+}
+#game.liveRound #targets h2 { font-size: 22px; margin: 8px 0; }
+#game.liveRound #targets .muted { font-size: 14px; line-height: 1.5; color: #b7c8da; }
+#targetButtons button { touch-action: manipulation; }
+#game.liveRound #targetButtons { grid-template-columns: repeat(auto-fit,minmax(min(250px,100%),1fr)); margin-top: 16px; }
+#game.liveRound #targetButtons button {
+  min-height: 56px; padding: 14px 18px; text-align: left;
+  border: 1px solid #4e98ce; background: #1865a3; font-size: 15px;
+  line-height: 1.4; border-radius: 12px; color: #fff;
+}
+#game.liveRound #targetButtons button.findReady { background: #126749; border-color: #53cfa1; }
+#game.liveRound #targetButtons button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+#game.liveRound #targetButtons button:disabled { opacity: .65; cursor: wait; }
+#findFeedback { min-height: 22px; margin: 12px 0 0; color: #c3d4e6; font-size: 14px; line-height: 1.5; }
+#findFeedback[data-status="error"] { color: #ffd398; }
+#findFeedback[data-status="success"] { color: #81edbb; }
+#game.liveRound .freshMapFold { width: 100%; margin: 16px 0; background: #101c2c; border: 1px solid #263b53; }
+#game.liveRound .radarCard { width: 100%; margin: 0; box-shadow: none; }
+#game.liveRound .liveMap { height: clamp(260px,42vh,440px); }
+#game.liveRound .mapLegend, #game.liveRound .proximity { font-size: 12px; line-height: 1.5; }
+#game.liveRound .freshCrewBoard { width: 100%; min-height: 0; margin: 24px 0; display: block; }
+#game.liveRound .freshCrewBoard > .panelTitle { position: static; transform: none; text-align: left; margin-bottom: 12px; }
+#game.liveRound .freshCrewBoard > .panelTitle h3 { font-size: 13px; letter-spacing: 1px; color: #b7c8da; }
+#game.liveRound #players { min-height: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 12px; perspective: none; }
+#game.liveRound .freshPlayerCard, #game.liveRound .freshPlayerCard.isHost {
+  width: 100%; height: auto; min-height: 0; padding: 16px; margin: 0;
+  transform: none; background: #101c2c; border: 1px solid #263b53;
+  border-radius: 14px; align-items: flex-start; text-align: left; box-shadow: none;
+}
+#game.liveRound .freshPlayerCard h3 { position: static; transform: none; font-size: 18px; margin: 8px 0; }
+#game.liveRound .freshPlayerCard h3 small { display: inline-block; margin: 0 0 0 6px; }
+#game.liveRound .freshPlayerTop { position: static; transform: none; width: 100%; font-size: 10px; }
+#game.liveRound .freshAvatarStage, #game.liveRound .freshLobbyProfile { display: none; }
+#game.liveRound .freshVehicleName { font-size: 14px; margin: 4px 0; }
+#game.liveRound .freshVehicleColor, #game.liveRound .freshGpsState { font-size: 12px; color: #b7c8da; }
+#game.liveRound .freshPlayerStatus { margin-top: 12px; font-size: 10px; }
+#game.liveRound .freshGpsState { display: block; margin-top: 8px; }
+#game.liveRound .radarHeader { display: none; }
+#game.liveRound .driverWarning { position: static; width: 100%; margin: 12px 0; }
+@media(max-width:600px) {
+  #game.freshLobby.active.liveRound { padding: 14px 14px 100px; }
+  #game.liveRound .freshRoomHeader { padding: 14px; margin-top: 14px; }
+  #game.liveRound .gameStats { gap: 6px; }
+  #game.liveRound .gameStats div { padding: 10px 8px; }
+  #game.liveRound .gameStats strong { font-size: 14px; }
+  #game.liveRound #targets { padding: 16px; }
+  #game.liveRound #players { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #game.liveRound .freshPlayerCard h3 { font-size: 16px; overflow-wrap: anywhere; }
+  #game.liveRound .freshToolButtons button { min-width: 42px; min-height: 42px; }
+}
+

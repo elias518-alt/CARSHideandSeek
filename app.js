@@ -1041,13 +1041,15 @@ async function saveCar() {
 async function api(
   path,
   data = {},
-  method = 'POST'
+  method = 'POST',
+  signal
 ) {
   let url =
     `/api/${path}`;
 
   const options = {
     method,
+    signal,
 
     headers: {
       'Content-Type':
@@ -1769,24 +1771,7 @@ function renderGame() {
     );
 
 
-  $('#targetButtons').innerHTML =
-    targets
-      .map(player => `
-        <button
-          class="danger"
-          onclick="found('${player.id}')"
-          ${state.nearbyTargets?.includes(player.id) ? '' : 'disabled'}>
-
-          🚘
-          ${esc(player.vehicle)}
-          ·
-          ${esc(player.color)}
-          ${state.nearbyTargets?.includes(player.id) ? '' : ' · erst in GPS-Nähe'}
-
-        </button>
-      `)
-      .join('');
-
+  renderFindButtons(targets);
 
   const cooldown =
     Math.ceil(
@@ -2082,34 +2067,63 @@ async function start() {
 }
 
 
-async function found(targetId) {
-  try {
-    const result =
-      await api(
-        'found',
-        gameCredentials({
-          targetId
-        })
-      );
+let findPending = false;
 
-
-    toast(
-      `✓ FUND BESTÄTIGT · ${result.distance} m`
-    );
-
-
-    poll();
+function renderFindButtons(targets) {
+  const container = $('#targetButtons');
+  const ids = new Set(targets.map(player => player.id));
+  for (const button of [...container.children]) {
+    if (!ids.has(button.dataset.targetId)) button.remove();
   }
+  for (const player of targets) {
+    let button = [...container.children].find(item => item.dataset.targetId === player.id);
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.targetId = player.id;
+      button.setAttribute('aria-describedby', 'findFeedback');
+      button.addEventListener('click', () => found(player.id));
+      container.append(button);
+    }
+    const nearby = state.nearbyTargets?.includes(player.id);
+    const label = 'Fund melden · ' + player.vehicle + ' · ' + player.color;
+    if (button.textContent !== label) button.textContent = label;
+    button.classList.toggle('findReady', !!nearby);
+    button.disabled = findPending;
+  }
+}
 
-  catch (error) {
-    toast(
-      `✕ ${error.message}` +
-      (
-        error.data?.distance != null
-          ? ` · ${error.data.distance} m`
-          : ''
-      )
-    );
+async function found(targetId) {
+  if (findPending) return;
+  const feedback = $('#findFeedback');
+  if (state?.lobby?.state !== 'ACTIVE' || state.lobby.me.role !== 'SEEKER') {
+    feedback.textContent = 'Ein Fund ist nur während der Suche als Sucher möglich.';
+    return;
+  }
+  findPending = true;
+  feedback.textContent = 'Fund wird geprüft …';
+  feedback.dataset.status = 'pending';
+  $('#targetButtons').setAttribute('aria-busy', 'true');
+  for (const button of $('#targetButtons').children) button.disabled = true;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const result = await api('found', gameCredentials({ targetId }), 'POST', controller.signal);
+    feedback.textContent = '✓ Fund bestätigt · ' + result.distance + ' m';
+    feedback.dataset.status = 'success';
+    toast(feedback.textContent);
+  } catch (error) {
+    feedback.textContent = controller.signal.aborted
+      ? 'Keine Antwort vom Server. Prüfe deine Verbindung. Der Rundenstatus wird erneut geladen.'
+      : error.message + (error.data?.distance != null ? ' · ' + error.data.distance + ' m' : '');
+    feedback.dataset.status = 'error';
+    toast(feedback.textContent);
+  } finally {
+    clearTimeout(timeout);
+    findPending = false;
+    $('#targetButtons').setAttribute('aria-busy', 'false');
+    for (const button of $('#targetButtons').children) button.disabled = false;
+    poll();
   }
 }
 
@@ -3217,18 +3231,33 @@ function renderFreshLobby() {
   if(!state?.lobby)return;
   ensureFreshLobby();
   const lobby=state.lobby,waiting=lobby.state==='LOBBY',host=lobby.hostId===lobby.me.id;
-  const game=document.getElementById('game');game.classList.toggle('freshWaiting',waiting);
+  const game=document.getElementById('game');game.classList.toggle('freshWaiting',waiting);game.classList.toggle('liveRound',!waiting);
   document.getElementById('freshRoomLabel').textContent=waiting?'DEIN WARTERAUM':'DEINE CREW · LIVE';
   const settings=document.getElementById('lobbySettingsPanel');
   const settingsDialog=document.getElementById('freshSettingsDialog');
   if(settings&&settings.parentNode!==settingsDialog)settingsDialog.append(settings);
   const hostButton=document.getElementById('freshSettingsButton');hostButton.hidden=!host;hostButton.disabled=!waiting;hostButton.title=waiting?'Lobby anpassen':'Während der Runde gesperrt';
   if((!host||!waiting)&&settingsDialog.open)settingsDialog.close();
-  const phase=lobby.code;
+  const phase=lobby.code + ':' + waiting;
   const mapFold=document.getElementById('freshMapFold');
   if(freshLobbyPhase!==phase){
-    if(mapFold)mapFold.open=false;
+    if(mapFold)mapFold.open=!waiting;
+    const feedback=document.getElementById('findFeedback');
+    feedback.textContent='Fahrzeug entdeckt? Tippe auf „Fund melden“. GPS und Entfernung werden geprüft.';
+    delete feedback.dataset.status;
     freshLobbyPhase=phase;
+  }
+  const resultPanel=document.getElementById('result');
+  const roomHeader=document.querySelector('.freshRoomHeader');
+  if(lobby.state==='RESULT' && roomHeader.nextElementSibling!==resultPanel)roomHeader.after(resultPanel);
+  const targetPanel=document.getElementById('targets');
+  const crewPanel=document.querySelector('.freshCrewBoard');
+  if(!waiting){
+    if(targetPanel.nextElementSibling!==mapFold)mapFold.before(targetPanel);
+    if(mapFold.nextElementSibling!==crewPanel)mapFold.after(crewPanel);
+  } else {
+    if(crewPanel.nextElementSibling!==mapFold)mapFold.before(crewPanel);
+    if(mapFold.nextElementSibling!==targetPanel)mapFold.after(targetPanel);
   }
   const hostPlayer=lobby.players.find(player=>player.id===lobby.hostId);
   const others=lobby.players.filter(player=>player.id!==lobby.hostId);
@@ -3254,3 +3283,4 @@ function renderFreshLobby() {
   if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
 }
+
