@@ -4761,3 +4761,106 @@ body.freshChatOpen {
   pointer-events: none !important;
 }
 
+
+
+/* =========================================================
+   LOBBY PROFILE + EXIT V10
+========================================================= */
+
+#leave {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  z-index: 900 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  border-color: rgba(255,92,92,.42) !important;
+  background: rgba(78,16,20,.76) !important;
+  color: #fff !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+#leave:active {
+  transform: scale(.92) !important;
+  background: rgba(148,30,38,.94) !important;
+}
+
+.freshLobbyProfile {
+  position: absolute;
+  z-index: 15;
+  top: 82px;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid rgba(126,199,255,.82);
+  border-radius: 50%;
+  background: linear-gradient(145deg,#1b2936,#0a1016);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: .4px;
+  box-shadow:
+    0 0 0 4px rgba(20,139,255,.10),
+    0 8px 24px rgba(0,0,0,.52);
+}
+
+.freshLobbyProfile img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.freshLobbyProfile.isFallback {
+  border-color: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.72);
+}
+
+.freshPlayerCard.isHost .freshLobbyProfile {
+  top: 82px;
+  width: 62px;
+  height: 62px;
+  border-width: 3px;
+  font-size: 16px;
+  box-shadow:
+    0 0 0 5px rgba(20,139,255,.12),
+    0 10px 30px rgba(0,0,0,.58);
+}
+
+@media (max-width: 600px) {
+  #leave {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .freshLobbyProfile {
+    top: 63px;
+    width: 34px;
+    height: 34px;
+    border-width: 1.5px;
+    font-size: 9px;
+  }
+
+  .freshPlayerCard.isHost .freshLobbyProfile {
+    top: 66px;
+    width: 44px;
+    height: 44px;
+    border-width: 2px;
+    font-size: 11px;
+  }
+}
