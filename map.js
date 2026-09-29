@@ -1,4 +1,37 @@
-import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
+// Karten-Reparatur: funktioniert mit dem bestehenden module-Script.
+let maplibregl = null;
+let loading = false;
+let loadFailed = false;
+let loadTimer;
+function loadAsset(url, css = false) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement(css ? 'link' : 'script');
+    const timer = setTimeout(() => { el.remove(); reject(new Error('Zeitüberschreitung: ' + url)); }, 12000);
+    el.onload = () => { clearTimeout(timer); resolve(); };
+    el.onerror = () => { clearTimeout(timer); el.remove(); reject(new Error('Laden fehlgeschlagen: ' + url)); };
+    if (css) { el.rel = 'stylesheet'; el.href = url; }
+    else { el.src = url; el.async = true; }
+    document.head.appendChild(el);
+  });
+}
+async function loadLibrary() {
+  if (loading || maplibregl || loadFailed) return;
+  loading = true;
+  setStatus('Kartenbibliothek wird geladen…');
+  for (const base of ['https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.0/dist/', 'https://unpkg.com/maplibre-gl@5.6.0/dist/']) {
+    try {
+      await Promise.all([loadAsset(base + 'maplibre-gl.css', true), loadAsset(base + 'maplibre-gl.js')]);
+      if (!window.maplibregl) throw new Error('Kartenbibliothek fehlt');
+      maplibregl = window.maplibregl;
+      loading = false;
+      initialize(latest?.map || {});
+      return;
+    } catch (error) { console.error('Kartenbibliothek:', error); }
+  }
+  loading = false;
+  loadFailed = true;
+  setStatus('Kartenbibliothek blockiert oder nicht erreichbar. Internetverbindung prüfen und Seite neu laden.');
+}
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark';
 const mapNode = document.getElementById('liveMap');
@@ -30,31 +63,36 @@ function validPoint(point) {
   return point && Number.isFinite(point.lat) && Number.isFinite(point.lng) && Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180;
 }
 function setStatus(message) {
+  if (!statusNode) return;
   statusNode.textContent = message;
   statusNode.hidden = !message;
 }
 function initialize(data) {
-  const initial = data.center || data.positions?.find(validPoint);
-  if (!validPoint(initial) || map || !mapNode) return;
+  const initial = validPoint(data.center) ? data.center : data.positions?.find(validPoint);
+  if (map || !mapNode || !maplibregl || loadFailed) return;
   try {
     map = new maplibregl.Map({
       container: mapNode,
       style: STYLE_URL,
-      center: [initial.lng, initial.lat],
-      zoom: 13,
+      center: initial ? [initial.lng, initial.lat] : [10.45, 51.16],
+      zoom: initial ? 13 : 5,
       minZoom: 4,
       maxZoom: 19,
       attributionControl: true
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+    setStatus('Straßenkarte wird geladen…');
+    loadTimer = setTimeout(() => { if (!ready) setStatus('Kartendaten laden zu lange. Internetverbindung oder Netzwerkfilter prüfen und neu laden.'); }, 20000);
     map.on('load', () => {
+      clearTimeout(loadTimer);
       ready = true;
       shell.classList.add('mapReady');
       setStatus('');
-      map.addSource('game-radius', { type: 'geojson', data: circleGeoJSON(initial, data.radius || 3000) });
+      map.addSource('game-radius', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({ id: 'game-radius-fill', type: 'fill', source: 'game-radius', paint: { 'fill-color': '#ff762b', 'fill-opacity': 0.09 } });
       map.addLayer({ id: 'game-radius-outline', type: 'line', source: 'game-radius', paint: { 'line-color': '#ff762b', 'line-width': 3, 'line-dasharray': [2, 2] } });
       updateMap(latest);
+      if (!latest?.map) setStatus('Karte bereit. Warte auf Standortdaten vom Spielserver…');
       map.resize();
     });
     map.on('error', event => {
@@ -62,7 +100,8 @@ function initialize(data) {
       console.error('Kartendaten:', event.error);
     });
   } catch (error) {
-    setStatus('Karte nicht verfügbar. GPS und Spiel funktionieren weiterhin.');
+    loadFailed = true;
+    setStatus('Karte kann nicht starten. Bitte einen aktuellen Browser mit aktivierter Hardwarebeschleunigung verwenden.');
     console.error('Kartenstart:', error);
   }
 }
@@ -115,14 +154,16 @@ function updateMarkers(data, meId) {
 }
 function updateMap(gameState) {
   latest = gameState;
-  if (!gameState?.map || !document.getElementById('game')?.classList.contains('active')) return;
-  const data = gameState.map;
+  if (!document.getElementById('game')?.classList.contains('active')) return;
+  if (!maplibregl) { loadLibrary(); return; }
+  const data = gameState?.map || {};
   if (!map) initialize(data);
   if (!ready) return;
   map.resize();
   updateCircle(data);
-  updateMarkers(data, gameState.lobby.me.id);
-  if (!data.positions?.length) setStatus('Warte auf aktuelle GPS-Positionen der Spieler…');
+  updateMarkers(data, gameState?.lobby?.me?.id);
+  if (!gameState?.map) setStatus('Keine Kartendaten vom Spielserver. Bitte die Serverversion des Karten-Updates bereitstellen.');
+  else if (!data.positions?.length) setStatus('Straßenkarte bereit. Warte auf GPS – Standortzugriff erlauben.');
   else setStatus('');
 }
 document.getElementById('mapFollow')?.addEventListener('click', () => {
@@ -138,4 +179,15 @@ window.chsMapReset = () => {
   markers.clear();
   fitted = false;
   lastCircleKey = '';
+  map?.getSource('game-radius')?.setData({ type: 'FeatureCollection', features: [] });
 };
+
+// Start auch ohne GPS; bei Seitenwechsel die sichtbare Größe neu berechnen.
+const gameNode = document.getElementById('game');
+if (gameNode && mapNode) {
+  const activate = () => { if (gameNode.classList.contains('active')) updateMap(latest); };
+  new MutationObserver(activate).observe(gameNode, { attributes: true, attributeFilter: ['class'] });
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => map?.resize()).observe(mapNode);
+  activate();
+}
+
