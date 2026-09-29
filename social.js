@@ -197,7 +197,11 @@ function setupSocial() {
   }));
   $('#closeDm')?.addEventListener('click', () => { activePeer = null; $('#dmPanel').classList.add('hidden'); });
   $('#dmForm')?.addEventListener('submit', sendDm);
-  $('#lobbyChatForm')?.addEventListener('submit', sendLobbyChat);
+  const lobbyChatForm = $('#lobbyChatForm');
+  if (lobbyChatForm && lobbyChatForm.dataset.chatBound !== '1') {
+    lobbyChatForm.dataset.chatBound = '1';
+    lobbyChatForm.addEventListener('submit', sendLobbyChat, true);
+  }
   document.addEventListener('click', event => {
     if (event.target.closest('[data-page="friends"]')) setTimeout(loadFriends, 0);
   });
