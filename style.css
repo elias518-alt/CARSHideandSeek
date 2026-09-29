@@ -1563,3 +1563,434 @@ input[readonly]{
   }
 
 }
+/* CAR HIDE & SEEK – STREET DESIGN */
+
+:root {
+  --bg: #0b0d10;
+  --panel: #171a1e;
+  --panel2: #202429;
+  --line: #30353a;
+  --text: #f5f2ea;
+  --muted: #a3a5a3;
+  --orange: #ff6635;
+  --orange2: #ff8b48;
+  --green: #a5eb8c;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background:
+    radial-gradient(
+      ellipse 90% 40% at 80% 0%,
+      rgba(255, 102, 53, .10),
+      transparent 70%
+    ),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, "Arial Narrow", Arial, Helvetica, sans-serif;
+  letter-spacing: -.01em;
+}
+
+button {
+  transition:
+    transform .16s ease,
+    background-color .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease;
+}
+
+button:active {
+  transform: scale(.975);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+}
+
+/* HEADER */
+
+.appHeader {
+  height: 72px;
+  background: rgba(11, 13, 16, .93);
+  border-bottom: 1px solid #34383b;
+}
+
+.brand,
+.authLogo {
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: -.065em;
+  word-spacing: .1em;
+}
+
+.brandCar,
+.authLogo span {
+  display: inline-block;
+  padding: 5px 7px;
+  margin-right: 4px;
+  background: var(--orange);
+  color: #17120f;
+  transform: skew(-9deg);
+  letter-spacing: -.06em;
+}
+
+.brandCar {
+  color: #17120f;
+}
+
+.miniAvatar {
+  border-radius: 11px;
+  background: #292c2f;
+  border-color: #494d50;
+}
+
+.miniLevel {
+  color: #ffba7a;
+}
+
+/* SEITEN UND ÜBERSCHRIFTEN */
+
+.page {
+  padding-top: 29px;
+}
+
+.eyebrow,
+.sectionEyebrow,
+.pageHeading span {
+  color: #ff9a70;
+  letter-spacing: .18em;
+}
+
+.welcome {
+  position: relative;
+  align-items: center;
+  margin: 12px 0 27px;
+  padding: 3px 0 4px 18px;
+  border-left: 4px solid var(--orange);
+}
+
+.welcome::after {
+  content: "01 / READY TO PLAY";
+  position: absolute;
+  right: 0;
+  bottom: -19px;
+  color: #696d6d;
+  font: 800 9px/1 Arial, sans-serif;
+  letter-spacing: .16em;
+}
+
+.welcome h1 {
+  font-family: Impact, "Arial Narrow", Arial, sans-serif;
+  font-weight: 900;
+  font-size: clamp(52px, 11vw, 76px);
+  letter-spacing: .005em;
+  line-height: .88;
+  font-style: italic;
+  text-shadow: 2px 2px 0 #282a2a;
+}
+
+.welcome h1 span {
+  color: var(--orange);
+}
+
+.onlinePill {
+  border-color: #3a5140;
+  background: #1b2a1e;
+  color: var(--green);
+}
+
+/* KARTEN */
+
+.activeCarCard,
+.panel,
+.infoPanel,
+.comingSoon,
+.quickStats div,
+.gameHeaderCard,
+.radarCard,
+.resultCard,
+.profileHero,
+.plusCard,
+.authCard,
+.modalSheet {
+  background-color: var(--panel);
+  border-color: var(--line);
+  border-radius: 12px;
+  box-shadow: 0 7px 0 rgba(0, 0, 0, .13);
+}
+
+.activeCarCard {
+  min-height: 270px;
+  padding: 22px;
+  background: linear-gradient(145deg, #25282c 0%, #14171a 65%);
+  border-left: 3px solid var(--orange);
+}
+
+.activeCarCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .22;
+  background: repeating-linear-gradient(
+    125deg,
+    transparent 0 32px,
+    rgba(255, 255, 255, .07) 33px 34px,
+    transparent 35px 67px
+  );
+  mask-image: linear-gradient(to left, #000, transparent 72%);
+}
+
+.carGlow {
+  background: rgba(255, 102, 53, .22);
+}
+
+.carVisual {
+  position: relative;
+  z-index: 1;
+}
+
+.carIcon {
+  font-size: 78px;
+  filter: drop-shadow(0 17px 13px rgba(0, 0, 0, .7));
+}
+
+.cardTop,
+.carInfo {
+  position: relative;
+  z-index: 2;
+}
+
+.carInfo h2 {
+  font-weight: 900;
+  letter-spacing: -.045em;
+}
+
+.carStatus,
+.activeTag {
+  border-radius: 5px;
+  background: #1d3024;
+  border-color: #3d6048;
+}
+
+/* SPIELEN-BUTTON */
+
+.playHero,
+.primaryButton,
+.googleButton {
+  background: var(--orange);
+  color: #17120f;
+  border-radius: 9px;
+  font-weight: 950;
+  box-shadow:
+    0 6px 0 #983b24,
+    0 14px 27px rgba(255, 102, 53, .12);
+}
+
+.playHero {
+  min-height: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.playHero::after {
+  content: "";
+  position: absolute;
+  right: 64px;
+  top: -30px;
+  width: 75px;
+  height: 170px;
+  transform: rotate(25deg);
+  border-left: 2px solid rgba(0, 0, 0, .15);
+  border-right: 2px solid rgba(0, 0, 0, .15);
+}
+
+.playHero span,
+.playHero small {
+  color: #25201c;
+  opacity: .8;
+}
+
+.playIcon {
+  border-radius: 8px;
+  background: #17120f;
+  color: #ff8a60;
+}
+
+.playArrow {
+  font-weight: 900;
+}
+
+/* STATISTIK UND INHALTE */
+
+.quickStats div {
+  background: #1b1e21;
+  min-height: 91px;
+  border-bottom: 2px solid #44474a;
+}
+
+.quickStats strong {
+  color: #fff5ea;
+}
+
+.panel,
+.infoPanel,
+.comingSoon {
+  padding: 20px;
+}
+
+.panelTitle h3,
+.pageHeading h1 {
+  letter-spacing: -.055em;
+}
+
+.emptyState {
+  border-radius: 8px;
+  border-color: #565b5c;
+}
+
+input,
+select {
+  background: #101215;
+  color: var(--text);
+  border-color: #3a3e41;
+  border-radius: 8px;
+}
+
+input::placeholder {
+  color: #85898b;
+}
+
+.progress,
+.progress > div {
+  border-radius: 2px;
+}
+
+.progress > div {
+  background: repeating-linear-gradient(
+    110deg,
+    var(--orange) 0 17px,
+    #ff8e5b 17px 23px
+  );
+}
+
+/* UNTERE NAVIGATION */
+
+#bottomNav {
+  height: 78px;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(20, 22, 25, .97);
+  border-top: 1px solid #4a4d50;
+}
+
+.navButton {
+  color: #adb0ae;
+  font-size: 9px;
+  letter-spacing: .06em;
+}
+
+.navButton.active {
+  color: #ff956f;
+}
+
+.navPlay {
+  width: 59px;
+  height: 59px;
+  border: 5px solid var(--bg);
+  border-radius: 13px;
+  background: var(--orange);
+  color: #1c1714;
+  box-shadow: 0 6px 0 #963a24;
+}
+
+#toast {
+  background: #272a2c;
+  border-color: #595d5e;
+  border-radius: 7px;
+}
+
+/* LOGIN */
+
+.authGate {
+  background:
+    radial-gradient(
+      circle at 50% 22%,
+      rgba(255, 102, 53, .16),
+      transparent 43%
+    ),
+    repeating-linear-gradient(
+      120deg,
+      transparent 0 80px,
+      rgba(255, 255, 255, .012) 81px 82px
+    ),
+    var(--bg);
+}
+
+.authCard {
+  border-top: 4px solid var(--orange);
+}
+
+.authCard h1 {
+  font-family: Impact, "Arial Narrow", Arial, sans-serif;
+  font-size: 50px;
+  letter-spacing: .01em;
+  font-style: italic;
+}
+
+.googleButton {
+  min-height: 52px;
+}
+
+/* SPIELANSICHT UND MODAL */
+
+.radar {
+  border-color: #454a4d;
+  background: radial-gradient(circle, #26302c, #151a1b 70%);
+}
+
+.modalSheet {
+  border-top: 3px solid var(--orange);
+}
+
+/* HANDY */
+
+@media (max-width: 520px) {
+  .welcome h1 {
+    font-size: clamp(46px, 12.3vw, 62px);
+  }
+
+  .welcome {
+    padding-left: 13px;
+  }
+
+  .page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .activeCarCard {
+    min-height: 250px;
+  }
+
+  .navButton {
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .progress > div {
+    transition: none !important;
+  }
+
+  .radarSweep {
+    animation: none !important;
+  }
+}
