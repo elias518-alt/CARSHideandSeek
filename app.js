@@ -715,6 +715,8 @@ function renderGarage() {
 
           </div>
 
+          ${car.active ? '' : `<button class="activateVehicle" data-car-id="${esc(car.id)}" type="button">ALS AKTIVES FAHRZEUG WÄHLEN</button>`}
+
         </section>
       `)
       .join('');
@@ -2039,6 +2041,15 @@ $('#garageAddCar')
     'click',
     openCarModal
   );
+
+$('#garageCars')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-car-id]');
+  if (!button) return;
+  localGarage.forEach(car => { car.active = car.id === button.dataset.carId; });
+  saveGarage();
+  syncVehicleUI();
+  toast('Aktives Fahrzeug geändert ✓');
+});
 
 
 $('#closeCarModal')
