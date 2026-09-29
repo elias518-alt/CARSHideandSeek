@@ -1624,6 +1624,7 @@ function renderGame() {
   }
 
   renderLobbySettings();
+  renderFreshLobby();
   window.chsMapUpdate?.(state);
 }
 
@@ -2428,3 +2429,135 @@ function setupProfileActions() {
   }
 }
 setupProfileActions();
+
+const freshLobbyStyle = document.createElement("style");
+freshLobbyStyle.textContent = "/* Isoliert auf den Spielbildschirm und dessen Dialoge. */\n#game.freshLobby.active{display:flex;flex-direction:column;gap:18px;max-width:1120px;margin:auto;padding:22px 18px 40px;background:radial-gradient(ellipse at 20% 0%,#36305b88,transparent 55%),#121a28;color:#eef1ff;border-radius:24px;isolation:isolate}\n.freshLobbyTools{position:sticky;top:76px;z-index:20;background:#172135ed;backdrop-filter:blur(14px);padding:10px;border-radius:16px;order:0;display:flex;align-items:center;justify-content:space-between;gap:12px}\n.freshRoomLabel{font-size:11px;letter-spacing:2px;font-weight:800;color:#c1b9ed;display:flex;align-items:center;gap:8px}\n.freshLiveDot{width:8px;height:8px;background:#80e5ca;border-radius:50%;box-shadow:0 0 14px #80e5ca88}\n.freshToolButtons{display:flex;gap:8px}.freshToolButtons button{position:relative;padding:12px 16px;background:#29334a;border:1px solid #52617c;color:#f2f4ff;border-radius:14px;font-weight:800;min-height:46px;font-size:13px;cursor:pointer}.freshToolButtons button:disabled{opacity:.45;cursor:default}.freshToolButtons button[hidden]{display:none}\n#freshChatButton{background:#b7a4ff;color:#171329;border-color:#d1c5ff}#freshChatButton.hasUnread{box-shadow:0 0 0 3px #ff637144}\n#freshUnread{position:absolute;right:-7px;top:-9px;background:#fb4f67;border:3px solid #172132;min-width:25px;height:25px;display:grid;place-items:center;border-radius:20px;font-size:11px;color:white;padding:0 4px}#freshUnread[hidden]{display:none}\n#game .freshRoomHeader{order:1;margin:0;background:linear-gradient(125deg,#354267,#272d48);border:1px solid #637193;border-radius:22px;padding:22px;box-shadow:0 16px 35px #070e1c33}\n#game .freshRoomHeader h2{font-size:clamp(24px,5vw,38px);letter-spacing:-1px;line-height:1.15;margin:8px 0;color:#fff;overflow-wrap:anywhere}\n#game .freshRoomHeader .sectionEyebrow{color:#9aebd8;letter-spacing:3px;font-size:10px}#game .freshRoomHeader .closeGame{background:#ffffff16;color:#fff;border:1px solid #ffffff38;border-radius:12px}\n#game .freshRoomHeader .codeBox{background:#172039;border:1px solid #7184ae55;display:flex;align-items:center;gap:12px;border-radius:14px;padding:14px 16px;margin:16px 0}\n#game .freshRoomHeader .codeBox strong{font-size:29px;letter-spacing:6px;color:#dddcff}.freshRoomHeader .copyIcon{display:none}.freshCopyButton{margin-left:auto;padding:10px 12px;background:#ffffff12;border:1px solid #8f9cb355;border-radius:10px;color:#eee;font-size:10px;font-weight:800}\n#game .freshRoomHeader .gameStats{background:none;margin:0;padding:0;border:0}#game .freshRoomHeader .gameStats span{color:#c3cde0;font-size:10px}#game .freshRoomHeader .gameStats strong{color:#fff;font-size:15px}\n#game .freshCrewBoard{order:4;margin:0;padding:22px;background:linear-gradient(165deg,#252e46,#1c263b);border:1px solid #52617b;border-radius:22px}#game.freshWaiting .freshCrewBoard{order:2}\n#game .freshCrewBoard .panelTitle{margin-bottom:20px}#game .freshCrewBoard .panelTitle h3{font-size:20px;letter-spacing:1px;color:#fff}#game .freshCrewBoard .panelTitle span{color:#abb8d3}#game .freshCrewBoard .panelTitle>div>span{font-size:10px;letter-spacing:3px}\n#game #players{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;align-items:stretch}\n.freshPlayerCard{position:relative;min-width:0;padding:14px 14px 12px;background:#172235;border:1px solid #56677f;border-radius:18px;text-align:center;box-shadow:0 8px 0 #101a2c;overflow:hidden}.freshPlayerCard.isYou{border:2px solid var(--crew-color)}.freshPlayerCard.isFound{opacity:.65}\n.freshPlayerTop{display:flex;justify-content:space-between;align-items:center;letter-spacing:1px;font-size:10px;font-weight:900;color:var(--crew-color)}.freshConnection{display:block;width:7px;height:7px;background:#e8ae67;border-radius:50%}.freshConnection.online{background:#8ee8c4}\n.freshAvatarStage{height:118px;position:relative;display:grid;place-items:center;margin:5px 0 10px}.freshAvatarOrb{z-index:1;display:grid;place-items:center;width:80px;height:83px;border-radius:30px 30px 26px 26px;background:var(--crew-color);color:#172039;border:3px solid #ffffff77;box-shadow:inset -7px -9px 0 #17203926,0 7px 0 #0b142a66;font-size:29px;font-weight:950;transform:rotate(-5deg)}.freshPlatform{position:absolute;bottom:5px;left:10%;width:80%;height:24px;border-radius:50%;background:#7084ab24;border:1px solid #8fa6d33d}\n.freshPlayerCard h3{margin:4px 0!important;font-size:16px!important;letter-spacing:0!important;color:#fff;overflow-wrap:anywhere}.freshPlayerCard h3 small{display:inline-block;margin-left:6px;color:var(--crew-color);font-size:9px}.freshVehicleName{font-size:12px;color:#d5def0;min-height:32px;margin:8px 0 3px;overflow-wrap:anywhere}.freshVehicleColor{font-size:10px;color:#a8b7d2;margin:0 0 12px}.freshPlayerStatus{font-size:10px;font-weight:900;letter-spacing:1px;background:#2d3a50;padding:8px 3px;border-radius:8px;color:#d1dcef}.isReady .freshPlayerStatus{background:#254e47;color:#a9f4d8}.freshGpsState{display:block;font-size:10px;color:#b7c7e1;margin-top:8px}\n.freshEmptySeat{min-height:265px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:2px dashed #576887;border-radius:18px;color:#b6c6e4;padding:15px}.freshEmptySeat>span{font-size:45px;color:#b4a6f3}.freshEmptySeat strong{font-size:10px;letter-spacing:1px}.freshEmptySeat p{font-size:12px;line-height:1.7}\n#game #ready{background:#3b4864;border:1px solid #8594af;color:#fff;border-radius:12px;padding:13px 18px;font-size:12px}#game #ready.active{background:#90e9ca;border-color:#90e9ca;color:#122a23}\n#game #start{background:#b6a3ff;color:#1b1533;border:0;border-radius:14px;padding:19px;font-size:15px;letter-spacing:1px;box-shadow:0 5px 0 #6652a4;margin-top:24px}#game #start:disabled{opacity:.5}\n.freshMapFold{order:3;border:1px solid #52617b;background:#1b263b;border-radius:18px;overflow:hidden}.freshMapFold>summary{padding:18px;color:#d7e2f7;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer}.freshMapFold .radarCard{margin:0;border:0;border-radius:0;background:#1b263b}.freshMapFold .radar{display:none}#game.freshLobby #driverWarning{order:2}#game.freshLobby #targets{order:5}#game.freshLobby #result{order:6}\n.freshDialog{position:fixed;inset:0;margin:auto;width:min(94vw,580px);max-width:none;max-height:88dvh;padding:22px;color:#eef2ff;background:#202b42;border:1px solid #8899b6;border-radius:22px;box-shadow:0 30px 100px #0009;overflow:auto;box-sizing:border-box}.freshDialog::backdrop{background:#080e1bc9;backdrop-filter:blur(5px)}.freshDialogBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.freshDialogBar h2{font-size:18px;letter-spacing:2px;margin:0}.freshDialogBar>button{width:40px;height:40px;border-radius:12px;color:white;background:#3c4a65;border:1px solid #7d8ca6;font-size:26px;cursor:pointer}.freshDialog input,.freshDialog select{background:#131f34;color:white;border:1px solid #7d8ca6;border-radius:11px;padding:13px}.freshDialog input::placeholder{color:#bcc8de}.freshDialog .muted{color:#bdc9de}.freshDialog #lobbySettingsPanel{background:none;border:0;margin:0;padding:0}.freshDialog .primaryButton{background:#b6a3ff;color:#19132c;border-radius:12px}.freshDialog .textButton{color:#d0c4ff}.freshDialog .lobbyChat{margin:0;padding:0;border:0}.freshDialog .lobbyChat>h3{display:none}\n#freshChatDialog{width:min(94vw,520px);height:min(720px,88dvh)}#freshChatDialog[open]{display:flex;flex-direction:column}#freshChatDialog .lobbyChat{display:flex;flex-direction:column;min-height:0;flex:1}#freshChatDialog .messageList{flex:1;min-height:120px;max-height:none;overflow-y:auto;background:#172237;border:1px solid #54617c;border-radius:14px;padding:12px}#freshChatDialog .message{max-width:92%;background:#354562;color:#f0f4ff;border-radius:14px;padding:12px;margin:8px 0;overflow-wrap:anywhere}#freshChatDialog .message.mine{background:#4b4370;margin-left:auto}#freshChatDialog .message small{color:#d3c8ff;display:block;font-size:10px;margin-bottom:5px}#freshChatDialog .message span{white-space:pre-wrap;font-size:14px}#freshChatDialog .messageForm{display:flex;gap:8px;margin-top:12px}#freshChatDialog .messageForm input{min-width:0;flex:1;margin:0}#freshChatDialog .messageForm button{background:#ad99f9;color:#19172c;border:0;border-radius:12px;padding:12px;font-size:11px;font-weight:900}\n.freshSrOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}.freshLobby button:focus-visible,.freshDialog button:focus-visible{outline:3px solid #83e8cd;outline-offset:3px}\n@media(min-width:850px){#game #players{grid-template-columns:repeat(4,minmax(0,1fr))}.freshAvatarStage{height:140px}.freshAvatarOrb{width:92px;height:95px}}\n@media(max-width:430px){#game.freshLobby.active{padding:14px 10px 30px;border-radius:0;gap:12px}.freshRoomLabel{font-size:9px;letter-spacing:1px}.freshToolButtons button{padding:10px;font-size:11px}.freshToolButtons{gap:6px}#game .freshCrewBoard{padding:14px}#game #players{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.freshPlayerCard{padding:10px 8px}.freshPlayerCard h3{font-size:14px!important}.freshAvatarStage{height:100px}.freshAvatarOrb{height:70px;width:67px;font-size:25px}#game .freshRoomHeader{padding:16px}.freshCopyButton{font-size:9px;padding:9px}#game .freshRoomHeader .codeBox strong{font-size:24px;letter-spacing:4px}.freshDialog{padding:16px}.freshDialog .settingsGrid{grid-template-columns:1fr}}\n";
+document.head.append(freshLobbyStyle);
+
+/* Lobby-Warteraum mit eigenem Chat-Fenster und Host-Einstellungen. */
+const freshChatState = { code: null, seen: new Set(), unread: new Set() };
+let freshLobbyPhase = null;
+function freshDialog(id, title) {
+  const dialog = document.createElement('dialog'); dialog.id = id; dialog.className = 'freshDialog';
+  dialog.setAttribute('aria-label', title);
+  const bar = document.createElement('div'); bar.className = 'freshDialogBar';
+  const heading = document.createElement('h2'); heading.textContent = title;
+  const close = document.createElement('button'); close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label','Schließen');
+  close.addEventListener('click',()=>dialog.close()); bar.append(heading,close); dialog.append(bar);
+  dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
+  document.body.append(dialog); return dialog;
+}
+function ensureFreshLobby() {
+  const game = document.getElementById('game');
+  if (!game || document.getElementById('freshLobbyTools')) return;
+  game.classList.add('freshLobby');
+  const tools = document.createElement('div'); tools.id = 'freshLobbyTools'; tools.className = 'freshLobbyTools';
+  tools.innerHTML = `<div class="freshRoomLabel"><span class="freshLiveDot"></span> <span id="freshRoomLabel">DEIN WARTERAUM</span></div>
+    <div class="freshToolButtons"><button id="freshSettingsButton" type="button" aria-haspopup="dialog">⚙ <span>Einstellungen</span></button>
+    <button id="freshChatButton" type="button" aria-haspopup="dialog" aria-label="Lobby-Chat öffnen">↗ <span>Chat</span><b id="freshUnread" hidden>0</b></button></div>`;
+  game.prepend(tools);
+  const announcement = document.createElement('span'); announcement.id='freshChatAnnouncement';announcement.className='freshSrOnly';announcement.setAttribute('aria-live','polite');tools.append(announcement);
+  const board = document.getElementById('players')?.closest('section');
+  if (board) { board.classList.add('freshCrewBoard'); }
+  const header = game.querySelector('.gameHeaderCard'); header?.classList.add('freshRoomHeader');
+  const copy = document.createElement('button');copy.className='freshCopyButton';copy.type='button';copy.textContent='CODE KOPIEREN';
+  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(state.lobby.code);toast('Lobby-Code kopiert.');}catch{toast('Dein Lobby-Code: '+(state?.lobby?.code||''));}});
+  header?.querySelector('.codeBox')?.append(copy);
+  const map = game.querySelector('.radarCard');
+  if (map) {
+    const fold = document.createElement('details'); fold.id='freshMapFold'; fold.className='freshMapFold';
+    const summary=document.createElement('summary');summary.textContent='SPIELKARTE & GPS';fold.append(summary);map.before(fold);fold.append(map);
+    fold.addEventListener('toggle',()=>{if(fold.open){window.chsMapUpdate?.(state);window.dispatchEvent(new Event('resize'));}});
+  }
+  const settingsDialog=freshDialog('freshSettingsDialog','LOBBY-EINSTELLUNGEN');
+  const chatDialog=freshDialog('freshChatDialog','CREW-CHAT');
+  const chat=game.querySelector('.lobbyChat'); if(chat)chatDialog.append(chat);
+  chatDialog.addEventListener('close',()=>document.getElementById('freshChatButton')?.focus());
+  document.getElementById('freshChatButton').addEventListener('click',()=>{
+    if(!chatDialog.open)chatDialog.showModal();
+    if(typeof renderLobbyChat==='function')renderLobbyChat();
+    markFreshChatRead();
+    const list=document.getElementById('lobbyMessages');if(list)list.scrollTop=list.scrollHeight;
+    document.getElementById('lobbyChatInput')?.focus();
+  });
+  document.getElementById('freshSettingsButton').addEventListener('click',()=>{
+    if(state?.lobby?.hostId!==state?.lobby?.me?.id||state?.lobby?.state!=='LOBBY')return;
+    if(!settingsDialog.open)settingsDialog.showModal();
+    const editor=document.getElementById('lobbySettingsEditor');if(editor){editor.open=true;fillLobbySettings();}
+  });
+  document.getElementById('cancelLobbySettings')?.addEventListener('click',()=>settingsDialog.close());
+  const editor=document.getElementById('lobbySettingsEditor');
+  if(editor)new MutationObserver(()=>{if(!editor.open&&settingsDialog.open)settingsDialog.close();}).observe(editor,{attributes:true,attributeFilter:['open']});
+  new MutationObserver(()=>{
+    if(!game.classList.contains('active')){chatDialog.close();settingsDialog.close();}
+  }).observe(game,{attributes:true,attributeFilter:['class']});
+  const readIfVisible=()=>{if(chatDialog.open&&document.visibilityState==='visible'&&document.hasFocus())markFreshChatRead();};
+  window.addEventListener('focus',readIfVisible);document.addEventListener('visibilitychange',readIfVisible);
+}
+function markFreshChatRead() {
+  freshChatState.unread.clear();
+  for(const message of state?.chat||[])freshChatState.seen.add(message.id);
+  paintFreshUnread();
+}
+function paintFreshUnread() {
+  const count=freshChatState.unread.size;
+  const badge=document.getElementById('freshUnread');if(!badge)return;
+  badge.textContent=count>99?'99+':String(count);badge.hidden=!count;
+  const button=document.getElementById('freshChatButton');
+  button.classList.toggle('hasUnread',count>0);
+  button.setAttribute('aria-label',count?`Lobby-Chat: ${count} ungelesene Nachrichten`:'Lobby-Chat öffnen');
+  const announcement=document.getElementById('freshChatAnnouncement');
+  const label=count?`${count} ungelesene Chat-Nachrichten`:'';
+  if(announcement.textContent!==label)announcement.textContent=label;
+}
+function updateFreshChat() {
+  if(!state?.lobby)return;
+  const code=state.lobby.code, messages=state.chat||[], dialog=document.getElementById('freshChatDialog');
+  if(freshChatState.code!==code){
+    freshChatState.code=code;freshChatState.seen=new Set(messages.map(message=>message.id));freshChatState.unread.clear();
+    dialog?.close();document.getElementById('freshSettingsDialog')?.close();
+  }else{
+    for(const message of messages){
+      if(!freshChatState.seen.has(message.id)&&message.sender!==state.lobby.me.id)freshChatState.unread.add(message.id);
+      freshChatState.seen.add(message.id);
+    }
+  }
+  if(dialog?.open&&document.visibilityState==='visible'&&document.hasFocus())markFreshChatRead();
+  else paintFreshUnread();
+}
+function freshPlayerColor(id) {
+  const colors=['#ac98ff','#76e4cb','#ffb68b','#84bdff','#f7a1d4','#dfec8e'];
+  let hash=0;for(const ch of String(id))hash=(hash*31+ch.charCodeAt(0))>>>0;
+  return colors[hash%colors.length];
+}
+function renderFreshLobby() {
+  if(!state?.lobby)return;
+  ensureFreshLobby();
+  const lobby=state.lobby, waiting=lobby.state==='LOBBY', host=lobby.hostId===lobby.me.id;
+  const game=document.getElementById('game');game.classList.toggle('freshWaiting',waiting);
+  document.getElementById('freshRoomLabel').textContent=waiting?'DEIN WARTERAUM':'DEINE CREW · LIVE';
+  const settings=document.getElementById('lobbySettingsPanel');
+  const settingsDialog=document.getElementById('freshSettingsDialog');
+  if(settings&&settings.parentNode!==settingsDialog)settingsDialog.append(settings);
+  const hostButton=document.getElementById('freshSettingsButton');hostButton.hidden=!host;hostButton.disabled=!waiting;
+  hostButton.title=waiting?'Lobby anpassen':'Während der Runde gesperrt';
+  if((!host||!waiting)&&settingsDialog.open)settingsDialog.close();
+  const phase=lobby.code+':'+lobby.state;
+  if(freshLobbyPhase!==phase){document.getElementById('freshMapFold').open=!waiting;freshLobbyPhase=phase;}
+  const crew=document.getElementById('players');
+  crew.innerHTML=lobby.players.map(player=>{
+    const mine=player.id===lobby.me.id, owner=player.id===lobby.hostId;
+    const status=player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
+    return `<article class="freshPlayerCard ${mine?'isYou':''} ${player.ready?'isReady':''} ${player.found?'isFound':''}" style="--crew-color:${freshPlayerColor(player.id)}">
+      <div class="freshPlayerTop"><span>${owner?'♛ HOST':mine?'DU':'CREW'}</span><span class="freshConnection ${player.connected?'online':''}" aria-label="${player.connected?'Online':'Verbindung unterbrochen'}"></span></div>
+      <div class="freshAvatarStage"><div class="freshAvatarOrb">${esc(initials(player.name))}</div><span class="freshPlatform"></span></div>
+      <h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>
+      <p class="freshVehicleName">${esc(player.vehicle)}</p><p class="freshVehicleColor">${esc(player.color||'')} · Level ${Number(player.level)||1}</p>
+      <div class="freshPlayerStatus">${player.ready||player.found?'✓ ':''}${status}</div>
+      <small class="freshGpsState">${player.hasLocation?'● GPS bereit':'○ Warte auf GPS'}</small>
+    </article>`;
+  }).join('');
+  if(waiting&&lobby.players.length<2)crew.insertAdjacentHTML('beforeend','<div class="freshEmptySeat"><span>＋</span><strong>PLATZ FÜR DEINE CREW</strong><p>Teile den Lobby-Code.<br>Ab 2 Spielern geht’s los.</p></div>');
+  if(typeof renderLobbyChat==='function')renderLobbyChat();
+  updateFreshChat();
+}
