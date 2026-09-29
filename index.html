@@ -7,6 +7,7 @@
 
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
 
   <title>CAR HIDE & SEEK</title>
 </head>
@@ -699,7 +700,7 @@
 
         <div>
           <span>LIVE TRACKING</span>
-          <strong>PROXIMITY</strong>
+          <strong>SPIELKARTE</strong>
         </div>
 
         <div class="gpsStatus">
@@ -708,6 +709,13 @@
         </div>
 
       </div>
+
+      <div class="mapShell">
+        <div id="liveMap" class="liveMap" aria-label="Karte mit Spielradius und Standorten der Lobby-Spieler"></div>
+        <button id="mapFollow" class="mapFollow" type="button" aria-label="Meinen Standort zentrieren">⌖</button>
+        <div id="mapStatus" class="mapStatus" role="status">Warte auf GPS und Kartendaten…</div>
+      </div>
+      <div id="mapLegend" class="mapLegend">● Du &nbsp; ● Mitspieler &nbsp; ┄ Spielradius</div>
 
 
       <div class="radar">
@@ -1025,6 +1033,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script src="social.js"></script>
+<script type="module" src="map.js"></script>
 
 </body>
 </html>
