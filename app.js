@@ -1019,9 +1019,13 @@ async function saveCar() {
     toast('Fahrzeug im Konto gespeichert ✓');
   } catch (error) {
     if (uploadedPath) {
-      await supabaseClient.storage.from('vehicle-images').remove([uploadedPath]).catch(() => {});
+      try {
+        await supabaseClient.storage.from('vehicle-images').remove([uploadedPath]);
+      } catch {}
     }
-    await supabaseClient.from('vehicles').delete().eq('id', vehicleId).eq('user_id', userId).catch(() => {});
+    try {
+      await supabaseClient.from('vehicles').delete().eq('id', vehicleId).eq('user_id', userId);
+    } catch {}
     toast(error.message || 'Fahrzeug konnte nicht gespeichert werden.');
   } finally {
     garageSyncBusy = false;
@@ -1170,8 +1174,8 @@ function currentPosition() {
     }
     navigator.geolocation.getCurrentPosition(
       position => {
-        if (position.coords.accuracy > 100) {
-          reject(new Error('GPS ist zu ungenau. Bitte draußen erneut versuchen.'));
+        if (position.coords.accuracy > 200) {
+          reject(new Error('Standort ist zu ungenau. Bitte kurz erneut versuchen.'));
           return;
         }
         resolve({
@@ -2200,6 +2204,8 @@ function resetGame() {
 
   watch = null;
   gpsStarting = false;
+  gpsPhase = '';
+  lastGpsRequestAt = 0;
   state = null;
   gameSession = null;
   window.chsMapReset?.();
