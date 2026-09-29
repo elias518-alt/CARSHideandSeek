@@ -2103,7 +2103,7 @@ function renderLobbySettings() {
           <label>LOBBY-NAME<input id="editLobbyName" maxlength="40" required></label>
           <div class="settingsGrid">
             <label>SICHTBARKEIT<select id="editLobbyVisibility"><option value="PRIVATE">Privat – Beitritt mit Code</option><option value="PUBLIC">Öffentlich – in der Suche sichtbar</option></select></label>
-            <label>RADIUS IN METERN<input id="editLobbyRadius" type="number" min="1000" max="10000" step="1" required></label>
+            <label>RADIUS IN METERN<input id="editLobbyRadius" type="number" min="200" max="10000" step="1" required></label>
             <label>SPIELZEIT IN MINUTEN<input id="editLobbyDuration" type="number" min="5" max="60" step="1" required></label>
             <label>STARTVORSPRUNG IN SEKUNDEN<input id="editLobbyHeadstart" type="number" min="30" max="300" step="1" required></label>
           </div>
@@ -2177,4 +2177,26 @@ async function saveLobbySettings(event) {
     lobbySettingsSaving = false;
     document.getElementById('saveLobbySettings').disabled = false;
   }
+}
+
+
+// Kleine Spielradien auch im bestehenden Formular zur Lobby-Erstellung anbieten.
+function addSmallLobbyRadii() {
+  const select = document.getElementById('radius');
+  if (!select) return;
+  const selected = select.value;
+  for (const meters of [200, 300, 500]) {
+    if ([...select.options].some(option => Number(option.value) === meters)) continue;
+    const option = document.createElement('option');
+    option.value = String(meters);
+    option.textContent = `${meters} m`;
+    const next = [...select.options].find(item => Number(item.value) > meters);
+    select.insertBefore(option, next || null);
+  }
+  select.value = selected;
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', addSmallLobbyRadii, { once: true });
+} else {
+  addSmallLobbyRadii();
 }
