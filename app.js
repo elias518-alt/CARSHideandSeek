@@ -1784,11 +1784,16 @@ function gps() {
    GAME ACTIONS
 ========================================================= */
 
+let readyBusy = false;
+
 async function ready() {
-  if (!state?.lobby?.me) {
+  if (readyBusy || !state?.lobby?.me) {
     return;
   }
 
+  const button = document.getElementById('ready');
+  readyBusy = true;
+  if (button) button.disabled = true;
 
   try {
     await api(
@@ -1799,14 +1804,18 @@ async function ready() {
       })
     );
 
-
-    poll();
+    await poll();
   }
 
   catch (error) {
     toast(
       error.message
     );
+  }
+
+  finally {
+    readyBusy = false;
+    if (button) button.disabled = false;
   }
 }
 
@@ -1907,7 +1916,15 @@ async function rematch() {
 }
 
 
+let leaveBusy = false;
+
 async function leave() {
+  if (leaveBusy) return;
+  leaveBusy = true;
+
+  const button = document.getElementById('leave');
+  if (button) button.disabled = true;
+
   try {
     await api(
       'leave',
@@ -1919,14 +1936,31 @@ async function leave() {
     console.error(error);
   }
 
-
-  resetGame();
+  finally {
+    resetGame();
+    leaveBusy = false;
+    if (button) button.disabled = false;
+  }
 }
 
 
 function resetGame() {
-  document.getElementById('freshChatDrawer')?.classList.remove('open');
-  document.getElementById('freshChatBackdrop')?.classList.remove('open');
+  const inviteDialog = document.getElementById('lobbyInviteDialog');
+  const settingsDialog = document.getElementById('freshSettingsDialog');
+  if (inviteDialog?.open) inviteDialog.close();
+  if (settingsDialog?.open) settingsDialog.close();
+
+  const mapFold = document.getElementById('freshMapFold');
+  if (mapFold) mapFold.open = false;
+
+  const chatDrawer = document.getElementById('freshChatDrawer');
+  chatDrawer?.classList.remove('open');
+  chatDrawer?.setAttribute('aria-hidden', 'true');
+  chatDrawer?.setAttribute('inert', '');
+  chatDrawer?.style.setProperty('pointer-events', 'none', 'important');
+  chatDrawer?.style.setProperty('display', 'none', 'important');
+
+  document.querySelectorAll('#freshChatBackdrop').forEach(element => element.remove());
   document.body.classList.remove('freshChatOpen');
   clearTimeout(
     pollTimer
@@ -2656,6 +2690,12 @@ function ensureFreshLobby() {
     }
   });
 
+  const mapSummary = mapFold?.querySelector('summary');
+  mapSummary?.addEventListener('click', event => {
+    event.preventDefault();
+    mapFold.open = !mapFold.open;
+  });
+
   mapFold?.addEventListener('toggle', () => {
     if (mapFold.open) {
       window.chsMapUpdate?.(state);
@@ -2783,9 +2823,12 @@ function renderFreshLobby() {
   if(settings&&settings.parentNode!==settingsDialog)settingsDialog.append(settings);
   const hostButton=document.getElementById('freshSettingsButton');hostButton.hidden=!host;hostButton.disabled=!waiting;hostButton.title=waiting?'Lobby anpassen':'Während der Runde gesperrt';
   if((!host||!waiting)&&settingsDialog.open)settingsDialog.close();
-  const phase=lobby.code+':'+lobby.state;
+  const phase=lobby.code;
   const mapFold=document.getElementById('freshMapFold');
-  if(freshLobbyPhase!==phase){if(mapFold)mapFold.open=!waiting;freshLobbyPhase=phase;}
+  if(freshLobbyPhase!==phase){
+    if(mapFold)mapFold.open=false;
+    freshLobbyPhase=phase;
+  }
   const hostPlayer=lobby.players.find(player=>player.id===lobby.hostId);
   const others=lobby.players.filter(player=>player.id!==lobby.hostId);
   const half=Math.ceil(others.length/2);
@@ -2804,7 +2847,8 @@ function renderFreshLobby() {
       <small class="freshGpsState">${player.hasLocation?'● GPS bereit':'○ Warte auf GPS'}</small>
     </article>`;
   }).join('');
-  if(waiting&&lobby.players.length<2)crew.insertAdjacentHTML('beforeend','<div class="freshEmptySeat"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Teile deinen Lobby-Code.<br>Ab 2 Spielern geht’s los.</p></div>');
+  if(waiting&&lobby.players.length<2)crew.insertAdjacentHTML('beforeend','<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>');
   if(typeof renderLobbyChat==='function')renderLobbyChat();
+  if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
 }
