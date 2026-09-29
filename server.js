@@ -11,6 +11,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yyvljkzitodxhtkilsxm.s
 const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
 const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY || '';
 const lobbies = new Map();
+const lobbyInvites = new Map();
 const authCache = new Map();
 const MAX_PLAYERS = 20;
 const PUBLIC_RANGE_M = 20000;
@@ -40,6 +41,23 @@ const code = () => {
   while (candidate.length !== 5 || lobbies.has(candidate));
   return candidate;
 };
+
+function pruneLobbyInvites(now = Date.now()) {
+  for (const [id, invite] of lobbyInvites) {
+    const lobby = lobbies.get(invite.code);
+    if (!lobby || lobby.state !== 'LOBBY' || lobby.players.length >= MAX_PLAYERS || invite.expiresAt <= now) {
+      lobbyInvites.delete(id);
+    }
+  }
+}
+function clearLobbyInvitesFor(targetAuthId, codeValue = '') {
+  for (const [id, invite] of lobbyInvites) {
+    if (invite.targetAuthId === targetAuthId && (!codeValue || invite.code === codeValue)) lobbyInvites.delete(id);
+  }
+}
+function clearLobbyInvitesForCode(codeValue) {
+  for (const [id, invite] of lobbyInvites) if (invite.code === codeValue) lobbyInvites.delete(id);
+}
 
 async function verifyAuth(req) {
   const token = /^Bearer (.+)$/i.exec(req.headers.authorization || '')?.[1];
@@ -178,6 +196,51 @@ async function route(action, data, authId) {
       .sort((a, b) => a.meters - b.meters)
       .map(({ lobby, meters }) => ({ code: lobby.code, name: lobby.name, players: lobby.players.length, maxPlayers: MAX_PLAYERS, distanceKm: Math.max(0.1, Math.round(meters / 100) / 10) })) };
   }
+  if (action === 'lobby-info') {
+    const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
+    if (!lobby) fail(404, 'Lobby nicht gefunden.');
+    updateGame(lobby, now);
+    if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
+    if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
+    return { code: lobby.code, name: lobby.name, visibility: lobby.visibility, players: lobby.players.length, maxPlayers: MAX_PLAYERS };
+  }
+  if (action === 'invites') {
+    pruneLobbyInvites(now);
+    const invites = [...lobbyInvites.values()]
+      .filter(invite => invite.targetAuthId === authId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 10)
+      .map(invite => {
+        const lobby = lobbies.get(invite.code);
+        return {
+          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName,
+          createdAt: invite.createdAt, expiresAt: invite.expiresAt, players: lobby?.players.length || 0, maxPlayers: MAX_PLAYERS
+        };
+      });
+    return { invites };
+  }
+  if (action === 'invite-dismiss') {
+    const id = clean(data.inviteId, 80);
+    const invite = lobbyInvites.get(id);
+    if (invite && invite.targetAuthId === authId) lobbyInvites.delete(id);
+    return { ok: true };
+  }
+  if (action === 'invite') {
+    const { lobby, me } = getSession(data, authId);
+    if (lobby.state !== 'LOBBY') fail(409, 'Freunde können nur vor dem Spielstart eingeladen werden.');
+    const targetAuthId = clean(data.targetAuthId, 100);
+    if (!targetAuthId) fail(400, 'Freund fehlt.');
+    if (targetAuthId === authId) fail(400, 'Du kannst dich nicht selbst einladen.');
+    for (const [id, invite] of lobbyInvites) {
+      if (invite.targetAuthId === targetAuthId && invite.code === lobby.code) lobbyInvites.delete(id);
+    }
+    const invite = {
+      id: crypto.randomUUID(), targetAuthId, fromAuthId: authId, fromName: me.name,
+      code: lobby.code, lobbyName: lobby.name, createdAt: now, expiresAt: now + 10 * 60 * 1000
+    };
+    lobbyInvites.set(invite.id, invite);
+    return { ok: true, inviteId: invite.id, expiresAt: invite.expiresAt };
+  }
   if (action === 'create') {
     const player = newPlayer(data, authId);
     const visibility = data.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE';
@@ -202,7 +265,10 @@ async function route(action, data, authId) {
     if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
     if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
     const existing = lobby.players.find(p => p.authId === authId);
-    if (existing) return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
+    if (existing) {
+      clearLobbyInvitesFor(authId, lobby.code);
+      return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
+    }
     const player = newPlayer(data, authId);
     if (lobby.visibility === 'PUBLIC') {
       const location = parsePosition(data);
@@ -210,6 +276,7 @@ async function route(action, data, authId) {
       player.location = { ...location, at: now };
     }
     lobby.players.push(player);
+    clearLobbyInvitesFor(authId, lobby.code);
     return { userId: player.id, lobby: resultState(lobby, player).lobby };
   }
   const { lobby, me } = getSession(data, authId);
@@ -268,6 +335,7 @@ async function route(action, data, authId) {
     if (!lobby.players.every(p => p.id === me.id || p.ready)) fail(409, 'Noch nicht alle Spieler sind bereit.');
     for (const p of lobby.players) { p.role = p.id === lobby.hostId ? 'SEEKER' : 'HIDER'; p.found = false; }
     lobby.state = 'COUNTDOWN'; lobby.countdownEndsAt = now + 5000;
+    clearLobbyInvitesForCode(lobby.code);
     return { ok: true };
   }
   if (action === 'found') {
@@ -294,7 +362,7 @@ async function route(action, data, authId) {
   }
   if (action === 'leave') {
     lobby.players = lobby.players.filter(p => p.id !== me.id);
-    if (!lobby.players.length) lobbies.delete(lobby.code);
+    if (!lobby.players.length) { lobbies.delete(lobby.code); clearLobbyInvitesForCode(lobby.code); }
     else if (lobby.hostId === me.id) lobby.hostId = lobby.players[0].id;
     return { ok: true };
   }
@@ -391,8 +459,8 @@ async function handler(req, res) {
         return;
       }
 
-      if (!['public','create','join','state','location','ready','start','found','rematch','leave','chat','settings'].includes(action)) fail(404, 'Unbekannte Funktion.');
-      if (req.method !== (['public','state'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
+      if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (req.method !== (['public','state','lobby-info','invites'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
       send(res, 200, await route(action, data, authId));
@@ -415,8 +483,12 @@ setInterval(() => {
   const now = Date.now();
   for (const [key, lobby] of lobbies) {
     updateGame(lobby, now);
-    if (now - lobby.createdAt > 6 * 60 * 60 * 1000 || (lobby.state === 'LOBBY' && now - Math.max(...lobby.players.map(p => p.lastSeen)) > 10 * 60 * 1000)) lobbies.delete(key);
+    if (now - lobby.createdAt > 6 * 60 * 60 * 1000 || (lobby.state === 'LOBBY' && now - Math.max(...lobby.players.map(p => p.lastSeen)) > 10 * 60 * 1000)) {
+      lobbies.delete(key);
+      clearLobbyInvitesForCode(key);
+    }
   }
+  pruneLobbyInvites(now);
 }, 30000).unref();
 if (require.main === module) http.createServer(handler).listen(PORT, () => console.log(`Car Hide & Seek auf Port ${PORT}`));
-module.exports = { handler, route, distance, lobbies, HttpError };
+module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError };
