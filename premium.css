@@ -1,0 +1,220 @@
+/* Product refresh: typography, reusable surfaces and responsive layouts. */
+:root {
+  --bg:#0a0d11; --panel:#12171e; --panel2:#1a2029; --panel3:#222b36;
+  --line:#2a333e; --line-soft:#202832; --text:#f2f4f7; --muted:#a0aab8;
+  --orange:#dc7446; --orange2:#ed956d; --blue:#96b6d4; --blue2:#b4cee7;
+  --green:#8ccfb1; --red:#ee9e98; --shadow:0 16px 40px #0003;
+}
+html,body { background:var(--bg); }
+body { font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size:15px; line-height:1.5; }
+button,input,select,textarea { font-family:inherit; }
+button { transition:background .16s,border-color .16s; }
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible { outline:2px solid #b4cee7; outline-offset:4px; }
+button:disabled { opacity:.5; }
+input,select,textarea { min-height:48px; font-size:16px; border:1px solid var(--line); border-radius:10px; background:#0d1219; color:var(--text); padding:12px; }
+label { font-size:12px; font-weight:600; letter-spacing:.035em; line-height:1.5; }
+h1,h2,h3,strong,button { font-weight:650; }
+h1,h2,h3 { letter-spacing:-.035em; }
+.page { width:100%; max-width:1120px; padding:28px 24px 110px; margin:0 auto; }
+.appHeader { background:#0a0d11ed; border-bottom:1px solid #ffffff0d; backdrop-filter:blur(16px); padding:14px 24px; }
+.brand { letter-spacing:.06em; font-size:14px; }
+.profileMini { gap:12px; }
+#headerAvatar { width:38px; height:38px; flex:0 0 38px; overflow:hidden; display:grid; place-items:center; border:1px solid var(--line); border-radius:50%; }
+.panel,.infoPanel,.garageCar,.activeCarCard,.publicLobby,.socialRow { background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:none; }
+.panel { padding:22px; margin-bottom:20px; }
+.panelTitle { margin-bottom:20px; }
+.panelTitle h3 { font-size:20px; }
+.panelTitle span,.sectionEyebrow,.homeSectionTitle>span { font-size:11px; font-weight:600; letter-spacing:.13em; color:var(--muted); }
+.muted,.emptyState,.infoPanel p,.modalNote { color:var(--muted); font-size:14px; line-height:1.65; }
+.primaryButton,.activateVehicle,.homeActionPrimary { color:#fff; border:1px solid #e38c66; background:#b95731; box-shadow:none; min-height:50px; font-size:14px; letter-spacing:.01em; border-radius:10px; }
+.primaryButton:hover,.activateVehicle:hover { background:#cc6840; }
+.textButton { color:#c5d9eb; font-size:12px; min-height:36px; }
+.homeStage { min-height:440px; margin:0 0 20px; padding:40px; align-items:flex-start; justify-content:flex-end; border:1px solid #ffffff12; border-radius:20px; background:linear-gradient(90deg,#080b10c9 0%,#080b1045 65%),linear-gradient(0deg,#080b10ce,transparent 55%),url('assets/night-hunt.webp') center 62%/cover; }
+.homeStage::after,.stageRoad,.carGlow { display:none; }
+.homeStageTop { top:25px; left:30px; right:25px; }
+.stageMark { font-size:10px; color:#d4dde6; letter-spacing:.18em; font-weight:600; }
+.stageSettings { width:38px; height:38px; background:#11192399; color:#e6edf5; }
+.stageLogo { align-items:flex-start; gap:10px; line-height:1; }
+.stageLogo strong { font-size:clamp(42px,6vw,76px); color:#fff; letter-spacing:-.065em; font-weight:750; }
+.stageLogo em { font-size:clamp(25px,4vw,46px); letter-spacing:-.035em; font-weight:500; }
+.stageTagline { margin:18px 0 0; color:#d9e1e9; font-size:14px; font-weight:400; letter-spacing:0; }
+.homeActions { grid-template-columns:1.4fr 1fr 1fr; gap:14px; margin-bottom:36px; }
+.homeAction { min-height:92px; padding:20px; border:1px solid var(--line); background:var(--panel); border-radius:14px; box-shadow:none; }
+.homeActionPrimary { background:#b95731; border-color:#d97a50; }
+.actionSymbol { background:transparent; border:0; box-shadow:none; color:inherit; width:28px; }
+.actionCopy strong { font-size:14px; letter-spacing:0; }
+.actionCopy small { font-size:12px; color:#bdc6d1; font-weight:400; }
+.homeActionPrimary .actionCopy small { color:#ffe2d4; }
+.actionChevron { font-size:23px; color:inherit; opacity:.6; }
+.homeSecondary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 24px; }
+.homeSecondary>.homeSectionTitle { grid-column:1/-1; margin:12px 0 0; }
+.homeSecondary>.activeCarCard { grid-column:1/-1; }
+.activeCarCard { padding:24px; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:10px 24px; overflow:hidden; }
+.activeCarCard>.cardTop { grid-column:1/-1; }
+.activeCarCard .carVisual { height:auto; min-height:0; width:100%; }
+.activeCarCard .carInfo { flex-wrap:wrap; gap:16px; padding:0; }
+.carInfo h2 { font-size:28px; margin:6px 0; }
+.carInfo p,.carInfo span { font-size:13px; }
+.carStatus,.activeTag { background:#203b30; color:#a9ddc4; border:1px solid #375c4a; border-radius:6px; font-size:10px; letter-spacing:.04em; box-shadow:none; }
+.statsGrid,.profileStats { gap:1px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.statsGrid>div,.profileStats>div { padding:20px 12px; background:var(--panel); border:0; }
+.statsGrid strong,.profileStats strong { font-size:26px; font-weight:600; }
+.statsGrid span,.profileStats span { font-size:10px; color:var(--muted); letter-spacing:.05em; }
+.vehicleIllustration { margin:0; width:100%; }
+.vehicleRender { width:100%; aspect-ratio:1; background-image:url('assets/vehicle-types.webp'); background-size:300% 200%; background-repeat:no-repeat; border-radius:12px; }
+.vehicleRender--hatch { background-position:0 0; }
+.vehicleRender--sedan { background-position:50% 0; }
+.vehicleRender--wagon { background-position:100% 0; }
+.vehicleRender--suv { background-position:0 100%; }
+.vehicleRender--coupe { background-position:50% 100%; }
+.vehicleRender--van { background-position:100% 100%; }
+.vehicleIllustration figcaption { color:#8f9aa8; font-size:10px; line-height:1.5; padding:5px 0; text-align:center; }
+.activeCarCard .vehicleIllustration { max-width:310px; margin:auto; }
+#garageCars { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.garageCar { padding:22px; margin:0; overflow:hidden; }
+.garageCar.activeVehicle { border-color:#5a7768; box-shadow:none; }
+.garageVehicleVisual { margin:12px auto; width:100%; max-width:320px; }
+.garageCar h2 { font-size:28px; margin:2px 0 12px; }
+.manufacturer { color:var(--muted); font-size:12px; letter-spacing:.08em; }
+.vehicleDetails { display:flex; gap:12px; flex-wrap:wrap; font-size:13px; color:#c4cdd8; }
+.vehicleSeries { color:var(--muted); font-size:13px; min-height:20px; }
+.garageActions { display:flex; gap:10px; margin:18px 0 10px; }
+.garageActions button,.dialogActions button { min-height:44px; border:1px solid var(--line); border-radius:9px; padding:10px 16px; background:var(--panel2); color:var(--text); }
+.garageActions .deleteVehicle { color:#edaca6; margin-left:auto; }
+.garageCar input[type="file"] { width:100%; font-size:12px; padding:8px; }
+.garageCar input::file-selector-button { background:#26313e; color:#e2e8ef; border:0; border-radius:6px; padding:8px; margin-right:8px; }
+.activateVehicle { width:100%; }
+.modalSheet { background:var(--panel); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow); max-height:90dvh; overflow-y:auto; }
+.modalHeading h2 { font-size:26px; }
+.fieldHint { display:block; color:var(--muted); font-size:12px; margin:8px 0 18px; }
+.newCarPhotoPreview { padding:0; max-width:300px; margin:12px auto; background:#14181e; }
+.vehicleSuggestions { gap:6px; }
+.vehicleSuggestions button { background:var(--panel2); border:1px solid var(--line); padding:9px 12px; color:#e3e9f0; font-size:13px; border-radius:8px; }
+.profileHero { position:relative; display:flex; flex-direction:column; align-items:center; padding:36px 24px 28px; background:linear-gradient(145deg,#202c39,#111820 70%); border:1px solid var(--line); border-radius:18px; margin-bottom:20px; }
+.profileHero .settingsButton { position:absolute; right:18px; top:18px; float:none; }
+#profileAvatar { position:relative; display:block; flex:0 0 96px; width:96px; height:96px; min-height:96px; margin:4px 0 22px; border:3px solid #394957; border-radius:50%; font-size:30px; line-height:90px; text-align:center; background:#253140; }
+#profileAvatar>img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; }
+#profileLevelBadge { line-height:1; right:-4px; bottom:-4px; background:#e0e7ef; color:#111923; border-color:#17212c; }
+#profileName { display:block; position:static; margin:0 0 5px; line-height:1.25; font-size:28px; max-width:100%; overflow-wrap:anywhere; }
+#profileTag { color:#a8b8c8; font-size:12px; }
+.profileProgress { width:min(100%,420px); margin-top:26px; }
+.progress { height:5px; border-radius:4px; background:#2c3743; }
+.progress>div { background:#ca815e; box-shadow:none; }
+.profileStats { margin-bottom:24px; }
+.menuRow { padding:18px 4px; }
+.menuRow strong { font-size:14px; }
+.menuRow small { font-size:12px; overflow-wrap:anywhere; }
+.menuRow>span { color:#a9b8c8; }
+.socialRow { padding:16px; gap:12px; margin:10px 0; }
+.socialAvatar { background:#273341; color:#dce6f0; border:1px solid #3b4b5c; border-radius:50%; }
+.socialPerson { min-width:0; }
+.socialPerson strong { font-size:15px; overflow-wrap:anywhere; }
+.socialPerson small { color:var(--muted); font-size:12px; }
+.socialActions { display:flex; flex-wrap:wrap; gap:6px; }
+.socialActions button,.socialRow>button { min-height:40px; font-size:11px; padding:8px 10px; border:1px solid #405063; background:#273342; color:#e1eaf3; border-radius:8px; }
+.productDialog { position:fixed; inset:0; margin:auto; width:min(92vw,460px); max-height:85dvh; overflow:auto; padding:28px; border:1px solid #3b4858; border-radius:18px; background:#161e28; color:var(--text); box-shadow:0 30px 90px #0008; }
+.productDialog::backdrop,dialog::backdrop { background:#03070bbb; backdrop-filter:blur(5px); }
+.productDialog h2 { font-size:25px; margin:6px 0 16px; }
+.productDialog p { color:#b9c4d0; font-size:14px; line-height:1.65; }
+.productDialog [role="alert"] { color:#ffb5ab; }
+.dialogActions { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
+.dialogActions .danger { background:#863c36; border-color:#af6259; }
+.dialogClose { display:block; margin-left:auto; width:36px; height:36px; border:1px solid var(--line); border-radius:8px; color:white; background:#253140; font-size:22px; }
+#bottomNav { width:min(100%,650px); left:50%; transform:translateX(-50%); bottom:12px; border:1px solid #34404c; border-radius:18px; background:#121923f2; backdrop-filter:blur(20px); box-shadow:0 10px 30px #0004; padding:8px 10px max(8px,env(safe-area-inset-bottom)); }
+.navButton { font-size:10px; font-weight:500; color:#a5b0be; gap:5px; }
+.navButton span { display:grid; place-items:center; font-size:20px; }
+.navButton.active { color:#f2c4ab; }
+.navPlay { width:48px; height:48px; border-radius:14px; background:#bd633d; box-shadow:none; border:1px solid #d98964; transform:none; }
+.uiIcon { display:inline-block; width:21px; height:21px; vertical-align:middle; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+#toast { border:1px solid #48586a; border-radius:12px; background:#1d2937; color:#f2f5f8; font-size:14px; max-width:min(92vw,520px); bottom:100px; line-height:1.5; }
+.authGate { background:linear-gradient(90deg,#080b10aa,#080b1077),url('assets/night-hunt.webp') center/cover; }
+.authCard { background:#111923ed; border:1px solid #3b4654; border-radius:18px; backdrop-filter:blur(20px); }
+/* Waiting room: a vehicle grid with normal document flow prevents avatar/name overlap. */
+#game.freshLobby.active.freshWaiting { max-width:1120px; padding:24px 24px 120px; margin:0 auto; background:linear-gradient(#0a0d11d9,#0a0d11f5),url('assets/night-hunt.webp') center/cover; }
+#game.freshWaiting::before,#game.freshWaiting::after { display:none; }
+#game.freshWaiting .freshRoomHeader { position:static; width:100%; margin:24px 0; padding:24px; background:#151e28e8; border-color:var(--line); box-shadow:none; display:grid; grid-template-columns:1fr auto; gap:8px 24px; }
+#game.freshWaiting .freshRoomHeader h2 { margin:0; line-height:1.2; font-size:28px; }
+#game.freshWaiting .freshRoomHeader .codeBox { grid-column:2; grid-row:1/3; margin:0; min-width:180px; }
+#game.freshWaiting .gameStats { grid-column:1/-1; margin-top:14px; }
+#game .gameStats span { color:#a6b3c1; font-size:10px; }
+#game .gameStats strong { font-size:14px; }
+#game.freshWaiting .freshCrewBoard { margin:24px 0; width:100%; min-height:0; display:block; }
+#game.freshWaiting .freshCrewBoard>.panelTitle { position:static; transform:none; text-align:left; margin-bottom:16px; }
+#game.freshWaiting .freshCrewBoard>.panelTitle h3 { font-size:13px; letter-spacing:.1em; color:#afbecd; }
+#game.freshWaiting #players { min-height:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); align-items:stretch; gap:18px; perspective:none; }
+#game.freshWaiting .freshPlayerCard,#game.freshWaiting .freshPlayerCard.isHost { display:flex; flex-direction:column; width:100%; height:auto; min-height:0; transform:none; margin:0; padding:20px; border:1px solid #344252; border-radius:16px; background:#141c26; text-align:left; align-items:stretch; justify-content:flex-start; }
+#game.freshWaiting .freshPlayerCard.isHost { border-color:#967155; box-shadow:none; }
+#game.freshWaiting .freshPlayerTop { position:static; transform:none; width:auto; color:#a9bbcd; font-size:10px; letter-spacing:.07em; }
+#game.freshWaiting .freshPlayerCard h3 { position:static; transform:none; font-size:22px; margin:12px 0 10px; width:auto; text-shadow:none; line-height:1.3; overflow-wrap:anywhere; }
+#game.freshWaiting .freshPlayerCard h3 small { display:inline-block; margin:0 0 0 7px; font-size:8px; background:#344456; box-shadow:none; }
+#game.freshWaiting .freshLobbyProfile,#game.freshWaiting .freshPlayerCard.isHost .freshLobbyProfile { position:static; transform:none; width:44px; height:44px; margin:0 0 12px; border:1px solid #4b5b6c; box-shadow:none; }
+#game.freshWaiting .freshAvatarStage { width:100%; height:auto; min-height:0; margin:0; display:block; transform:none; }
+#game.freshWaiting .lobbyModelCar { position:static; width:100%; height:200px; max-height:200px; object-fit:contain; transform:none; filter:none; margin:0; }
+#game.freshWaiting .freshPlatform { display:none; }
+#game.freshWaiting .freshVehicleName { font-size:16px; line-height:1.4; margin:14px 0 4px; text-shadow:none; }
+#game.freshWaiting .freshVehicleColor { font-size:12px; color:#a7b6c6; margin:0 0 14px; }
+#game .freshPlayerStatus { font-size:10px; letter-spacing:.04em; border:1px solid #384858; background:#1f2c39; color:#c4d3e2; box-shadow:none; align-self:flex-start; padding:6px 9px; }
+#game .freshGpsState { display:block; font-size:11px; margin-top:10px; color:#a1b2c4; }
+#game .lobbyFriendButton { pointer-events:auto; touch-action:manipulation; min-height:42px; border:1px solid #4a5a6d; border-radius:9px; color:#d9e5f1; background:#223040; font-size:12px; padding:9px 12px; margin-top:14px; }
+#game .freshPlayerCard { pointer-events:auto; }
+#game.freshWaiting .freshEmptySeat { width:100%; height:auto; min-height:260px; margin:0; border:1px dashed #4d5d70; border-radius:16px; background:#141c2680; }
+#game.freshWaiting .freshEmptySeat strong { font-size:13px; }
+#game.freshWaiting .freshEmptySeat p { font-size:12px; }
+#game.freshWaiting #ready,#game.freshWaiting #start { position:static; transform:none; width:100%; max-width:100%; margin:14px 0 0; min-height:52px; font-size:14px; letter-spacing:.02em; box-shadow:none; border-radius:10px; }
+.freshToolButtons button,#freshChatButton { background:#1d2835; border:1px solid #3a4858; box-shadow:none; color:#d1dfec; }
+#game .freshRoomLabel { font-size:10px; letter-spacing:.1em; color:#b5c5d5; }
+#game .freshRoomLabel i { background:#8ec3ac; box-shadow:none; }
+#game.liveRound { --panel2:#223040; }
+#game.liveRound .freshRoomHeader,#game.liveRound #targets,#game.liveRound .freshMapFold,#game.liveRound .freshPlayerCard { background:#141d28; border-color:#354455; }
+#game.liveRound #targetButtons button { background:#305575; border-color:#5e829f; font-weight:600; }
+#game.liveRound #targetButtons button.findReady { background:#285f4c; border-color:#6a9e87; }
+.freshChatDrawer { background:#141d28; border:1px solid #3b4b5e; box-shadow:var(--shadow); }
+@media(min-width:900px) { .homeSecondary .statsGrid { grid-column:1/-1; } }
+@media(max-width:700px) {
+  .page { padding:20px 16px 110px; }
+  .appHeader { padding:12px 16px; }
+  .homeStage { min-height:390px; padding:26px; border-radius:16px; background-position:65% center; }
+  .homeStageTop { left:22px; right:20px; top:20px; }
+  .stageMark { font-size:8px; letter-spacing:.12em; }
+  .stageLogo strong { font-size:52px; }
+  .stageLogo em { font-size:29px; }
+  .stageTagline { font-size:12px; max-width:210px; }
+  .homeActions { grid-template-columns:1fr 1fr; gap:10px; }
+  .homeAction { min-height:80px; padding:15px; gap:10px; }
+  .homeActionPrimary { grid-column:1/-1; }
+  .actionSymbol { width:22px; }
+  .actionCopy strong { font-size:12px; }
+  .actionCopy small { font-size:11px; }
+  .homeActions .homeAction:not(.homeActionPrimary) .actionChevron { display:none; }
+  .homeSecondary { display:block; }
+  .homeSectionTitle { margin:24px 0 12px!important; }
+  .activeCarCard { padding:18px; display:block; }
+  .activeCarCard .carInfo { display:flex; margin-top:12px; }
+  .activeCarCard .vehicleIllustration { max-width:260px; }
+  .activeCarCard .cardTop { margin-bottom:10px; }
+  #garageCars { grid-template-columns:1fr; gap:16px; }
+  .garageCar { padding:18px; }
+  .profileHero { padding:32px 20px 24px; }
+  .profileStats>div { padding:16px 6px; }
+  .profileStats strong { font-size:23px; }
+  .profileStats span { font-size:9px; }
+  .panel { padding:18px; }
+  .socialRow { flex-wrap:wrap; }
+  .socialActions { margin-left:auto; }
+  #bottomNav { width:calc(100% - 20px); bottom:8px; }
+  .navButton { font-size:9px; }
+  #game.freshLobby.active.freshWaiting { padding:18px 16px 110px; }
+  #game.freshWaiting .freshRoomHeader { padding:18px; display:block; }
+  #game.freshWaiting .freshRoomHeader h2 { font-size:24px; margin:6px 0 18px; }
+  #game.freshWaiting .freshRoomHeader .codeBox { min-width:0; }
+  #game.freshWaiting #players { grid-template-columns:1fr; }
+  #game.freshWaiting .freshPlayerCard { display:grid; grid-template-columns:48px 1fr; gap:0 12px; }
+  #game.freshWaiting .freshPlayerTop { grid-column:1/-1; }
+  #game.freshWaiting .freshPlayerCard h3 { grid-column:2; grid-row:2; align-self:center; margin:12px 0; font-size:20px; }
+  #game.freshWaiting .freshLobbyProfile { grid-column:1; grid-row:2; margin:12px 0; }
+  #game.freshWaiting .freshAvatarStage,#game.freshWaiting .freshVehicleName,#game.freshWaiting .freshVehicleColor,#game.freshWaiting .freshPlayerStatus,#game.freshWaiting .freshGpsState,#game.freshWaiting .lobbyFriendButton { grid-column:1/-1; }
+  #game.freshWaiting .vehicleIllustration { max-width:270px; margin:auto; }
+  #game.freshWaiting .freshPlayerCard.isHost { display:grid; }
+  #game.freshWaiting .freshEmptySeat { min-height:170px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }

@@ -121,6 +121,7 @@ function newPlayer(data, authId) {
   return {
     id: crypto.randomUUID(), authId, name, vehicle,
     color: clean(data.color, 30) || 'Unbekannt',
+    bodyType: clean(data.bodyType,30),
     photoUrl: safePhotoUrl(data.photoUrl),
     avatarUrl: safePhotoUrl(data.avatarUrl),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
@@ -130,7 +131,7 @@ function newPlayer(data, authId) {
 }
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
-    id: p.id, name: p.name, vehicle: p.vehicle, color: p.color,
+    id: p.id, profileId: p.authId, name: p.name, vehicle: p.vehicle, color: p.color, bodyType: p.bodyType || '',
     photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found,
     connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge)
