@@ -138,6 +138,8 @@ function cloudVehicleToLocal(row) {
     id: row.id,
     brand: row.brand || '',
     model: row.model || '',
+    series: row.series || '',
+    body: row.body_type || '',
     year: row.model_year ? String(row.model_year) : '',
     color: row.color || '',
     active: !!row.is_active || row.id === dbProfile?.active_vehicle_id,
@@ -273,7 +275,7 @@ async function loadCloudGarage({ migrateLocal = true } = {}) {
     const userId = authSession.user.id;
     let { data, error } = await supabaseClient
       .from('vehicles')
-      .select('id,user_id,brand,model,model_year,color,is_active,photo_path,created_at,updated_at')
+      .select('id,user_id,brand,model,series,body_type,model_year,color,is_active,photo_path,created_at,updated_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
@@ -928,11 +930,13 @@ function renderGarage() {
             </span>
 
             <span>
-              ${esc(car.year || '–')}
+              ${esc(car.year ? 'Bj. '+car.year : 'Baujahr nicht angegeben')}
             </span>
 
           </div>
 
+          <p class="vehicleSeries">${esc(car.series || car.body || '')}</p>
+          <div class="garageActions"><button type="button" data-edit-car="${esc(car.id)}">Bearbeiten</button><button type="button" class="deleteVehicle" data-delete-car="${esc(car.id)}">Löschen</button></div>
           ${car.active ? '' : `<button class="activateVehicle" data-car-id="${esc(car.id)}" type="button">ALS AKTIVES FAHRZEUG WÄHLEN</button>`}
 
         </section>
@@ -942,7 +946,15 @@ function renderGarage() {
 
 
 function openCarModal() {
+  if (gameSession) { toast('Verlasse zuerst die Lobby, um deine Garage zu bearbeiten.'); return; }
+  editingVehicleId = null;
+  pendingCarPhoto = '';
+  for (const id of ['newCarBrand','newCarModel','newCarYear','newCarBody','newCarColor','newCarSeries']) $('#'+id).value='';
+  $('#saveCar').textContent='Fahrzeug speichern';
+  $('#carModal h2').textContent='FAHRZEUG HINZUFÜGEN';
   setupCarPhotoInput();
+  resetCarPhotoInput();
+  refreshVehicleForm();
   $('#carModal')
     ?.classList.remove('hidden');
 }
@@ -964,6 +976,12 @@ async function saveCar() {
   const model = $('#newCarModel')?.value.trim();
   const year = $('#newCarYear')?.value.trim();
   const color = $('#newCarColor')?.value.trim();
+  const series = $('#newCarSeries').value.trim();
+  const body = $('#newCarBody').value;
+  const generation = vehicleCatalog.ranges(brand,model).find(item=>item.label===series);
+  const yearProblem = vehicleCatalog.yearError(year,generation);
+  if(yearProblem){toast(yearProblem);return;}
+  if(gameSession){toast('Verlasse zuerst die Lobby, um deine Garage zu bearbeiten.');return;}
 
   if (!brand || !model || !color) {
     toast('Bitte Marke, Modell und Farbe angeben.');
@@ -975,6 +993,24 @@ async function saveCar() {
     return;
   }
 
+  if(editingVehicleId){
+    garageSyncBusy=true;
+    try {
+      const car=localGarage.find(item=>item.id===editingVehicleId);
+      if(!car)throw new Error('Fahrzeug nicht mehr vorhanden.');
+      const values={brand:brand.slice(0,60),model:model.slice(0,80),model_year:Number(year)||null,series:series.slice(0,100),body_type:body,color:color.slice(0,40),updated_at:new Date().toISOString()};
+      if(pendingCarPhoto)values.photo_path=await uploadVehiclePhoto(car.id,pendingCarPhoto);
+      const {data,error}=await supabaseClient.from('vehicles').update(values).eq('id',car.id).eq('user_id',authSession.user.id).select('id');
+      if(error)throw error;
+      if(!data?.length)throw new Error('Änderungen wurden nicht gespeichert.');
+      garageSyncBusy=false;
+      await loadCloudGarage({migrateLocal:false});
+      closeCarModal();pendingCarPhoto='';editingVehicleId=null;
+      toast('Fahrzeug aktualisiert.');
+    }catch(error){toast(error.message);}
+    finally{garageSyncBusy=false;}
+    return;
+  }
   garageSyncBusy = true;
   const userId = authSession.user.id;
   const vehicleId = crypto.randomUUID();
@@ -988,6 +1024,8 @@ async function saveCar() {
         user_id: userId,
         brand: brand.slice(0, 60),
         model: model.slice(0, 80),
+        series: series.slice(0,100),
+        body_type: body,
         model_year: Number(year) || null,
         color: color.slice(0, 40),
         is_active: false
@@ -1154,7 +1192,8 @@ function playerData() {
       'Spieler',
 
     vehicle:
-      `${car.brand} ${car.model}`.trim(),
+      `${car.brand} ${car.model}${car.year ? ' · Bj. '+car.year : ''}`.trim(),
+    bodyType: car.body || '',
 
     color:
       car.color ||
@@ -1684,71 +1723,6 @@ function renderGame() {
       0,
       escapeLeft
     );
-
-
-  $('#players').innerHTML =
-    lobby.players
-      .map(player => `
-        <div class="player ${
-          player.found
-            ? 'found'
-            : ''
-        }">
-
-          <div class="avatar">
-            ${profileImageSource(player.avatarUrl)
-              ? `<img src="${esc(profileImageSource(player.avatarUrl))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`
-              : esc(initials(player.name))}
-          </div>
-
-          <div class="pdata">
-
-            <b>
-              ${esc(player.name)}
-
-              ${
-                player.id ===
-                lobby.hostId
-                  ? '<em>HOST</em>'
-                  : ''
-              }
-            </b>
-
-            <small>
-              ${esc(player.vehicle)}
-              ·
-              ${esc(player.color)}
-            </small>
-
-            <small>
-              ${
-                player.connected
-                  ? '● Online'
-                  : '○ Reconnect…'
-              }
-
-              · Lv. ${player.level}
-            </small>
-
-          </div>
-
-          <div>
-            ${
-              player.ready
-                ? '✓'
-                : ''
-            }
-
-            ${
-              player.found
-                ? ' FOUND'
-                : ''
-            }
-          </div>
-
-        </div>
-      `)
-      .join('');
 
 
   const targets =
@@ -2516,7 +2490,11 @@ function carPhotoMarkup(car) {
   const source = vehiclePhotoSource(car?.photo);
   return source
     ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
-    : '<div style="font-size:72px;text-align:center" aria-label="Fahrzeug-Platzhalter">🚘</div>';
+    : vehicleIllustration(car);
+}
+function vehicleIllustration(car) {
+  const shape=vehicleCatalog.shape(car || {});
+  return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--'+shape+'" role="img" aria-label="Beispielansicht der Karosserie"></div><figcaption>Beispielansicht · Modell und Farbe können abweichen</figcaption></figure>';
 }
 async function loadImageFromBlob(blob) {
   const url = URL.createObjectURL(blob);
@@ -2612,7 +2590,7 @@ function resetCarPhotoInput() {
   const input = document.getElementById('newCarPhoto');
   if (input) input.value = '';
   const preview = document.getElementById('newCarPhotoPreview');
-  if (preview) preview.replaceChildren();
+  if (preview) preview.innerHTML = vehicleIllustration({brand:$('#newCarBrand')?.value,model:$('#newCarModel')?.value,body:$('#newCarBody')?.value});
 }
 function setupCarPhotoInput() {
   const input = document.getElementById('newCarPhoto');
@@ -3016,7 +2994,7 @@ function ensureFreshLobby() {
   const clearChatBlockers = () => {
     document.querySelectorAll('#freshChatBackdrop').forEach(element => element.remove());
     document.body.classList.remove('freshChatOpen');
-    game.classList.remove('chatDrawerOpen');
+    if (game.classList.contains('chatDrawerOpen')) game.classList.remove('chatDrawerOpen');
   };
 
   const setChatOpen = open => {
@@ -3164,7 +3142,7 @@ function updateFreshChat() {
     drawer?.classList.remove('open');
     drawer?.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('freshChatOpen');
-    game?.classList.remove('chatDrawerOpen');
+    if (game?.classList.contains('chatDrawerOpen')) game.classList.remove('chatDrawerOpen');
 
     const settingsDialog = document.getElementById('freshSettingsDialog');
     if (settingsDialog?.open) settingsDialog.close();
@@ -3188,7 +3166,7 @@ function updateFreshChat() {
     drawer?.style.setProperty('display', 'none', 'important');
     drawer?.setAttribute('inert', '');
     document.body.classList.remove('freshChatOpen');
-    game?.classList.remove('chatDrawerOpen');
+    if (game?.classList.contains('chatDrawerOpen')) game.classList.remove('chatDrawerOpen');
   }
 
   if (chatOpen && document.visibilityState === 'visible' && document.hasFocus()) {
@@ -3216,7 +3194,7 @@ function lobbyCarMarkup(player,mine=false){
     return `<img class="lobbyModelCar" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
 
-  return `<div class="lobbyCarFallback" role="img" aria-label="${esc(player.vehicle||'Fahrzeug')}"></div>`;
+  return vehicleIllustration({vehicle:player.vehicle,body:player.bodyType});
 }
 function lobbyProfileMarkup(player) {
   const source = profileImageSource(player?.avatarUrl);
@@ -3264,7 +3242,7 @@ function renderFreshLobby() {
   const half=Math.ceil(others.length/2);
   const displayPlayers=hostPlayer?[...others.slice(0,half),hostPlayer,...others.slice(half)]:[...lobby.players];
   const crew=document.getElementById('players');
-  crew.innerHTML=displayPlayers.map(player=>{
+  const crewMarkup=displayPlayers.map(player=>{
     const mine=player.id===lobby.me.id,owner=player.id===lobby.hostId;
     const status=player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
     return `<article class="freshPlayerCard ${mine?'isYou':''} ${owner?'isHost':''} ${player.ready?'isReady':''} ${player.found?'isFound':''}" style="--crew-color:${freshPlayerColor(player.id)};--car-color:${lobbyCarColor(player.color)}">
@@ -3276,9 +3254,11 @@ function renderFreshLobby() {
       <p class="freshVehicleColor">${esc(player.color||'Keine Farbe')} · Level ${Number(player.level)||1}</p>
       <div class="freshPlayerStatus">${player.ready||player.found?'✓ ':''}${status}</div>
       <small class="freshGpsState">${player.hasLocation?'● GPS bereit':'○ Warte auf GPS'}</small>
+      ${!mine && player.profileId ? `<button type="button" class="lobbyFriendButton" data-lobby-profile="${esc(player.id)}">Freundschaft</button>` : ''}
     </article>`;
   }).join('');
-  if(waiting&&lobby.players.length<2)crew.insertAdjacentHTML('beforeend','<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>');
+  if(crew.dataset.markup!==crewMarkup){crew.innerHTML=crewMarkup;crew.dataset.markup=crewMarkup;}
+  if(waiting&&lobby.players.length<2&&!crew.querySelector('.freshEmptySeat'))crew.insertAdjacentHTML('beforeend','<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>');
   if(typeof renderLobbyChat==='function')renderLobbyChat();
   if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();

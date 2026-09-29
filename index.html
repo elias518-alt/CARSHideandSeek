@@ -17,13 +17,14 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260929-14">
+    href="style.css?v=20260929-15">
 
   <link
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
 
   <title>CAR HIDE & SEEK</title>
+<link rel="stylesheet" href="premium.css?v=20260929-15">
 </head>
 
 
@@ -171,9 +172,7 @@
 
       <div class="homeStageTop">
 
-        <span class="stageMark">
-          ♛
-        </span>
+        <span class="stageMark">DAS SPIEL BEGINNT DRAUSSEN</span>
 
         <button
           class="stageSettings"
@@ -204,7 +203,7 @@
 
 
       <p class="stageTagline">
-        FIND · HIDE · DRIVE · WIN
+        Deine Stadt. Eure Crew. Eine Suche.
       </p>
 
 
@@ -2398,6 +2397,9 @@
 
 
 
+      <label>MODELLGENERATION<select id="newCarGeneration"><option value="">Baureihe selbst angeben / unbekannt</option></select></label>
+      <small id="generationHint" class="fieldHint"></small>
+      <label>BAUREIHE / BAUZEIT (OPTIONAL)<input id="newCarSeries" maxlength="100" placeholder="z. B. III · 2011–2018"></label>
       <!-- BAUJAHR / KAROSSERIE -->
 
       <div class="inputGrid">
@@ -2660,7 +2662,7 @@
 
     <button
       id="navPlay"
-      class="navPlay"
+      class="navPlay" aria-label="Spielen"
       type="button">
 
       <span>
@@ -2720,13 +2722,16 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="app.js?v=20260929-14"></script>
+<script src="vehicle-catalog.js?v=20260929-15"></script>
+<script src="app.js?v=20260929-15"></script>
 
-<script src="social.js?v=20260929-14"></script>
+<script src="garage-actions.js?v=20260929-15"></script>
+<script src="social.js?v=20260929-15"></script>
+<script src="ui-icons.js?v=20260929-15"></script>
 
 <script
   type="module"
-  src="map.js?v=20260929-14">
+  src="map.js?v=20260929-15">
 </script>
 
 

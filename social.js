@@ -45,19 +45,19 @@ function setupVehicleSearch() {
     suggestions(model, modelBox, models[canonical] || [], 'model');
   };
   brand.addEventListener('focus', showBrands);
-  brand.addEventListener('input', () => { showBrands(); model.value = ''; modelBox.innerHTML = ''; });
+  brand.addEventListener('input', () => { showBrands(); model.value = ''; modelBox.innerHTML = ''; refreshVehicleForm(); });
   model.addEventListener('focus', showModels);
-  model.addEventListener('input', showModels);
+  model.addEventListener('input', () => { showModels(); refreshVehicleForm(); });
   brandBox.addEventListener('click', event => {
     event.stopPropagation();
     const button = event.target.closest('[data-brand]'); if (!button) return;
-    brand.value = button.dataset.brand; brandBox.classList.add('hidden');
+    brand.value = button.dataset.brand; model.value=''; brandBox.classList.add('hidden'); refreshVehicleForm();
     model.focus(); showModels();
   });
   modelBox.addEventListener('click', event => {
     event.stopPropagation();
     const button = event.target.closest('[data-model]'); if (!button) return;
-    model.value = button.dataset.model; modelBox.classList.add('hidden');
+    model.value = button.dataset.model; modelBox.classList.add('hidden'); refreshVehicleForm();
     $('#newCarYear')?.focus();
   });
   document.addEventListener('click', event => {
@@ -384,3 +384,63 @@ function setupSocial() {
   }, 4000);
 }
 setupSocial();
+
+/* Lobby participants resolve to their authenticated profile, not their display name. */
+let lobbyFriendBusy=false;
+async function openLobbyFriend(playerId) {
+  const player=state?.lobby?.players.find(item=>item.id===playerId);
+  if(!player?.profileId || player.profileId===authSession?.user?.id)return;
+  let dialog=$('#lobbyFriendDialog');
+  if(!dialog){
+    dialog=document.createElement('dialog');dialog.id='lobbyFriendDialog';dialog.className='productDialog';
+    dialog.setAttribute('aria-labelledby','lobbyFriendTitle');
+    dialog.innerHTML='<button class="dialogClose" type="button" aria-label="Schließen">×</button><span class="sectionEyebrow">AUS DEINER LOBBY</span><h2 id="lobbyFriendTitle"></h2><p data-friend-status role="status"></p><div data-friend-actions></div>';
+    document.body.append(dialog);
+    dialog.querySelector('.dialogClose').onclick=()=>dialog.close();
+    dialog.addEventListener('click',handleLobbyFriendAction);
+  }
+  if(lobbyFriendBusy)return;
+  dialog.dataset.peer=player.profileId;
+  $('#lobbyFriendTitle').textContent=player.name;
+  if(!dialog.open)dialog.showModal();
+  await renderLobbyFriendStatus(dialog);
+}
+async function renderLobbyFriendStatus(dialog) {
+  const peer=dialog.dataset.peer;
+  const status=dialog.querySelector('[data-friend-status]'),actions=dialog.querySelector('[data-friend-actions]');
+  status.textContent='Freundschaft wird geprüft …';actions.replaceChildren();
+  try {
+    const rows=await socialRpc('chs_social_overview')||[];
+    if(dialog.dataset.peer!==peer)return;
+    const relation=rows.find(row=>row.peer_id===peer);
+    socialRows=rows;
+    if(relation?.status==='accepted'){status.textContent='Ihr seid bereits befreundet.';return;}
+    if(relation?.status==='pending'&&!relation.incoming){status.textContent='Freundschaftsanfrage gesendet. Warte auf die Antwort.';return;}
+    const button=document.createElement('button');button.type='button';button.className='primaryButton';
+    if(relation?.incoming){
+      status.textContent='Diese Person hat dir bereits eine Anfrage geschickt.';
+      button.textContent='Anfrage annehmen';button.dataset.lobbyAccept=relation.request_id;
+    }else{
+      status.textContent='Füge diese Person hinzu, um später wieder zusammen zu spielen.';
+      button.textContent='Freundschaftsanfrage senden';button.dataset.lobbyRequest=peer;
+    }
+    actions.append(button);
+  }catch(error){status.textContent=error.message;const retry=document.createElement('button');retry.textContent='Erneut versuchen';retry.type='button';retry.onclick=()=>renderLobbyFriendStatus(dialog);actions.append(retry);}
+}
+async function handleLobbyFriendAction(event) {
+  const button=event.target.closest('[data-lobby-request],[data-lobby-accept]');
+  if(!button||lobbyFriendBusy)return;
+  const dialog=$('#lobbyFriendDialog');
+  lobbyFriendBusy=true;button.disabled=true;
+  try {
+    if(button.dataset.lobbyAccept)await socialRpc('chs_respond_request',{request:button.dataset.lobbyAccept,accept:true});
+    else await socialRpc('chs_send_request',{target:button.dataset.lobbyRequest});
+    await renderLobbyFriendStatus(dialog);
+  }catch(error){dialog.querySelector('[data-friend-status]').textContent=error.message;}
+  finally{lobbyFriendBusy=false;button.disabled=false;}
+}
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-lobby-profile]');
+  if(button)openLobbyFriend(button.dataset.lobbyProfile);
+});
+
