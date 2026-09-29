@@ -122,6 +122,7 @@ function newPlayer(data, authId) {
     id: crypto.randomUUID(), authId, name, vehicle,
     color: clean(data.color, 30) || 'Unbekannt',
     photoUrl: safePhotoUrl(data.photoUrl),
+    avatarUrl: safePhotoUrl(data.avatarUrl),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: 1, role: null, ready: false, found: false, location: null,
     lastSeen: Date.now(), cooldownUntil: 0
@@ -130,7 +131,7 @@ function newPlayer(data, authId) {
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
     id: p.id, name: p.name, vehicle: p.vehicle, color: p.color,
-    photoUrl: p.photoUrl || '', mode: p.mode,
+    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found,
     connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge)
   };
@@ -295,6 +296,7 @@ async function route(action, data, authId) {
       existing.vehicle = clean(data.vehicle, 70) || existing.vehicle;
       existing.color = clean(data.color, 30) || existing.color;
       existing.photoUrl = safePhotoUrl(data.photoUrl) || existing.photoUrl || '';
+      existing.avatarUrl = safePhotoUrl(data.avatarUrl);
       existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
       existing.lastSeen = now;
       clearLobbyInvitesFor(authId, lobby.code);
