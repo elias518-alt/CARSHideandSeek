@@ -1,890 +1,1688 @@
-/* =========================================================
-   CAR HIDE & SEEK – CINEMATIC LOBBY V2
-   ========================================================= */
+*{
+  box-sizing:border-box;
+}
 
-#game.freshLobby.active{
-  position:relative;
-  width:100%;
-  max-width:none;
-  min-height:calc(100vh - 68px);
+:root{
+  --bg:#050608;
+  --panel:#0d0f12;
+  --panel2:#13161a;
+  --line:#24282e;
+  --text:#f4f4f4;
+  --muted:#888e97;
+  --orange:#ff5a12;
+  --orange2:#ff7a21;
+  --green:#3ee684;
+  --red:#ff4141;
+}
+
+html{
+  background:var(--bg);
+}
+
+body{
   margin:0;
-  padding:24px 28px 42px;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 70% -10%,rgba(255,90,18,.12),transparent 32%),
+    var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+  padding-bottom:100px;
+}
+
+button,
+input,
+select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.hidden{
+  display:none !important;
+}
+
+
+/* AUTH */
+
+.authGate{
+  min-height:100vh;
   display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  isolation:isolate;
-
-  /* WICHTIG: echtes 2K/4K Bild benutzen */
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(4,7,12,.25) 0%,
-      rgba(5,8,13,.18) 38%,
-      rgba(5,7,11,.72) 76%,
-      #05070b 100%
-    ),
-    url("assets/lobby-bg.webp");
-
-  background-size:cover;
-  background-position:center;
-  background-repeat:no-repeat;
-}
-
-/* Hintergrund weich abdunkeln – NICHT das Bild selbst verpixeln */
-#game.freshLobby::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:-2;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
   background:
-    radial-gradient(
-      circle at 50% 45%,
-      transparent 0 24%,
-      rgba(0,0,0,.18) 55%,
-      rgba(0,0,0,.72) 100%
-    );
-  pointer-events:none;
+    radial-gradient(circle at 50% 20%,rgba(255,90,18,.18),transparent 32%),
+    #050608;
 }
 
-/* Bodenlicht hinter den Autos */
-#game.freshLobby::after{
-  content:"";
-  position:absolute;
-  z-index:-1;
-  left:5%;
-  right:5%;
-  bottom:4%;
-  height:38%;
-  pointer-events:none;
-
-  background:
-    radial-gradient(
-      ellipse at center,
-      rgba(255,90,18,.14),
-      transparent 62%
-    );
+.authCard{
+  width:min(100%,440px);
+  padding:36px 26px;
+  border:1px solid var(--line);
+  border-radius:24px;
+  background:rgba(13,15,18,.96);
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
 }
 
+.authLogo{
+  margin-bottom:45px;
+  font-size:17px;
+  font-weight:900;
+  letter-spacing:2px;
+}
 
-/* =========================
-   TOP BAR
-   ========================= */
+.authLogo span{
+  color:var(--orange);
+}
 
-#game .freshLobbyTools{
-  position:relative;
-  top:auto;
-  order:0;
-  z-index:20;
+.authCard h1{
+  margin:8px 0 10px;
+  font-size:40px;
+  line-height:1;
+  letter-spacing:-2px;
+}
 
+.authCard p{
+  color:var(--muted);
+  line-height:1.55;
+  margin-bottom:28px;
+}
+
+.googleButton{
   width:100%;
-  padding:0 0 18px;
+  min-height:58px;
+  border:0;
+  border-radius:14px;
+  background:#fff;
+  color:#151515;
+  font-weight:900;
+  letter-spacing:.5px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:13px;
+}
 
+.googleButton:disabled{
+  opacity:.6;
+}
+
+.googleG{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:1px solid #ddd;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  color:#4285f4;
+}
+
+.authStatus{
+  margin-top:18px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+}
+
+
+/* HEADER */
+
+.appHeader{
+  height:68px;
+  position:sticky;
+  top:0;
+  z-index:50;
+  padding:0 18px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-
-  background:none;
-  backdrop-filter:none;
+  background:rgba(5,6,8,.94);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(255,255,255,.06);
 }
 
-.freshRoomLabel{
+.brand{
+  border:0;
+  background:none;
+  color:#fff;
+  font-weight:900;
+  letter-spacing:1.2px;
+  padding:0;
+}
+
+.brandCar{
+  color:var(--orange);
+}
+
+.profileMini{
+  border:0;
+  background:none;
+  color:#fff;
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:9px;
+}
 
-  color:#fff;
-  font-size:12px;
+.miniLevel{
+  color:var(--orange);
   font-weight:900;
-  letter-spacing:2.4px;
-  text-shadow:0 2px 10px #000;
+  font-size:13px;
 }
 
-.freshLiveDot{
-  width:9px;
-  height:9px;
-  border-radius:50%;
-
-  background:#49e69c;
-  box-shadow:
-    0 0 0 4px rgba(73,230,156,.12),
-    0 0 18px rgba(73,230,156,.8);
-}
-
-.freshToolButtons{
-  display:flex;
-  gap:10px;
-}
-
-.freshToolButtons button{
-  position:relative;
-  min-height:44px;
-  padding:0 16px;
-
-  border:1px solid rgba(255,255,255,.18);
-  border-radius:13px;
-
-  background:rgba(8,12,18,.72);
-  backdrop-filter:blur(18px);
-
-  color:#fff;
-  font-size:12px;
-  font-weight:900;
-
-  box-shadow:0 8px 30px rgba(0,0,0,.25);
-
-  transition:
-    transform .18s ease,
-    background .18s ease,
-    border-color .18s ease;
-}
-
-.freshToolButtons button:hover{
-  transform:translateY(-2px);
-  background:rgba(22,27,35,.9);
-  border-color:rgba(255,255,255,.35);
-}
-
-#freshChatButton{
-  background:#ff5a12;
-  border-color:#ff7b3d;
-  color:#fff;
-}
-
-#freshUnread{
-  position:absolute;
-  right:-7px;
-  top:-8px;
-
-  min-width:24px;
-  height:24px;
-  padding:0 6px;
-
-  display:grid;
-  place-items:center;
-
-  border-radius:30px;
-  border:3px solid #0a0d12;
-
-  background:#ff304c;
-  color:#fff;
-
-  font-size:10px;
-  font-weight:900;
-}
-
-#freshUnread[hidden]{
-  display:none;
-}
-
-
-/* =========================
-   LOBBY INFO
-   ========================= */
-
-#game .freshRoomHeader{
-  position:absolute;
-  z-index:10;
-  top:90px;
-  left:28px;
-
-  width:310px;
-  padding:18px;
-
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:18px;
-
-  background:rgba(6,9,14,.58);
-  backdrop-filter:blur(22px);
-
-  box-shadow:0 20px 60px rgba(0,0,0,.25);
-}
-
-#game .freshRoomHeader h2{
-  margin:5px 0 13px;
-
-  color:#fff;
-
-  font-size:clamp(22px,3vw,31px);
-  line-height:1;
-  letter-spacing:-1px;
-
-  text-shadow:0 3px 15px #000;
-}
-
-#game .freshRoomHeader .sectionEyebrow{
-  color:#ff7b3d;
-}
-
-#game .freshRoomHeader .codeBox{
-  margin:12px 0;
-  padding:11px 13px;
-
-  display:flex;
-  align-items:center;
-
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;
-
-  background:rgba(0,0,0,.32);
-}
-
-#game .freshRoomHeader .codeBox strong{
-  color:#fff;
-  font-size:21px;
-  letter-spacing:5px;
-}
-
-.freshCopyButton{
-  margin-left:auto;
-  padding:8px 9px;
-
-  border:0;
-  border-radius:8px;
-
-  background:#ff5a12;
-  color:#fff;
-
-  font-size:8px;
-  font-weight:900;
-}
-
-#game .freshRoomHeader .gameStats{
-  padding:0;
-  margin:0;
-  border:0;
-  background:none;
-}
-
-
-/* =========================
-   PLAYER STAGE
-   ========================= */
-
-#game .freshCrewBoard{
-  position:relative;
-  order:2;
-
-  width:min(100%,1180px);
-  min-height:560px;
-
-  margin:80px auto 0;
-  padding:0;
-
-  border:0;
-  background:none;
-  box-shadow:none;
-}
-
-/* Überschrift weg – Spieler stehen frei im Bild */
-#game .freshCrewBoard > .panelTitle{
-  position:absolute;
-  z-index:15;
-  left:50%;
-  top:-54px;
-  transform:translateX(-50%);
-
-  margin:0;
-
-  text-align:center;
-}
-
-#game .freshCrewBoard > .panelTitle > div > span{
-  display:none;
-}
-
-#game .freshCrewBoard > .panelTitle h3{
-  margin:0;
-  color:rgba(255,255,255,.8);
-  font-size:11px;
-  letter-spacing:3px;
-}
-
-#game #players{
-  width:100%;
-  min-height:500px;
-
-  display:flex;
-  justify-content:center;
-  align-items:flex-end;
-  gap:12px;
-
-  perspective:1200px;
-}
-
-
-/* =========================
-   EIN SPIELER
-   ========================= */
-
-.freshPlayerCard{
-  --crew-color:#ff5a12;
-
-  position:relative;
-
-  width:210px;
-  min-width:150px;
-  height:370px;
-
-  padding:0;
-
+.miniProfileText{
   display:flex;
   flex-direction:column;
-  justify-content:flex-end;
-  align-items:center;
-
-  overflow:visible;
-
-  border:0;
-  border-radius:0;
-
-  background:none;
-  box-shadow:none;
-
-  text-align:center;
-
-  transition:
-    transform .22s ease,
-    filter .22s ease;
-}
-
-.freshPlayerCard:hover{
-  transform:translateY(-8px);
-}
-
-
-/* HOST steht größer in der Mitte */
-
-.freshPlayerCard.isHost{
-  width:280px;
-  height:450px;
-
-  order:-1;
-
-  transform:translateY(-16px);
-}
-
-.freshPlayerCard.isHost:hover{
-  transform:translateY(-24px);
-}
-
-
-/* Name über dem Fahrzeug */
-
-.freshPlayerCard h3{
-  position:absolute;
-  z-index:8;
-
-  top:35px;
-  left:50%;
-  transform:translateX(-50%);
-
-  width:100%;
-
-  margin:0 !important;
-
-  color:#fff !important;
-
-  font-size:20px !important;
-  font-weight:950;
-  letter-spacing:.2px !important;
-
-  text-shadow:
-    0 2px 4px #000,
-    0 5px 20px rgba(0,0,0,.9);
-}
-
-.freshPlayerCard.isHost h3{
-  top:18px;
-  font-size:27px !important;
-}
-
-.freshPlayerCard h3 small{
-  display:block;
-
-  width:max-content;
-
-  margin:6px auto 0;
-  padding:4px 7px;
-
-  border-radius:20px;
-
-  background:#ff5a12;
-  color:#fff;
-
-  font-size:8px;
-  letter-spacing:1px;
-}
-
-
-/* HOST / DU */
-
-.freshPlayerTop{
-  position:absolute;
-  z-index:10;
-
-  top:0;
-  left:50%;
-  transform:translateX(-50%);
-
-  width:max-content;
-
-  color:#ffb187;
-
-  font-size:9px;
-  font-weight:950;
-  letter-spacing:1.5px;
-
-  text-shadow:0 2px 8px #000;
-}
-
-.freshPlayerCard.isHost .freshPlayerTop{
-  top:-12px;
-}
-
-
-/* Verbindungspunkt */
-
-.freshConnection{
-  display:none;
-}
-
-
-/* =========================
-   MODELLAUTO
-   ========================= */
-
-.freshAvatarStage{
-  position:relative;
-
-  width:100%;
-  height:235px;
-
-  margin:0;
-
-  display:flex;
   align-items:flex-end;
-  justify-content:center;
 }
 
-.freshPlayerCard.isHost .freshAvatarStage{
-  height:300px;
+.miniProfileText strong{
+  font-size:12px;
 }
 
-
-/* Der alte Buchstaben-Avatar verschwindet */
-
-.freshAvatarOrb{
-  display:none;
+.miniProfileText span{
+  font-size:10px;
+  color:var(--muted);
 }
 
-
-/* Modellauto */
-
-.lobbyModelCar{
-  position:relative;
-  z-index:5;
-
-  display:block;
-
-  width:100%;
-  max-width:230px;
-  height:175px;
-
-  object-fit:contain;
-  object-position:center bottom;
-
-  image-rendering:auto;
-
-  filter:
-    drop-shadow(0 22px 16px rgba(0,0,0,.65))
-    drop-shadow(0 0 22px color-mix(in srgb, var(--car-color) 20%, transparent));
-
-  transform:translateZ(0);
-
-  transition:
-    transform .25s ease,
-    filter .25s ease;
-}
-
-.freshPlayerCard:hover .lobbyModelCar{
-  transform:scale(1.055);
-}
-
-.freshPlayerCard.isHost .lobbyModelCar{
-  max-width:310px;
-  height:235px;
-}
-
-
-/* Kein Emoji, sondern sauberer Fallback */
-
-.lobbyCarFallback{
-  position:relative;
-  z-index:5;
-
-  width:190px;
-  height:92px;
-
-  border-radius:55% 55% 25% 25% / 60% 60% 30% 30%;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255,255,255,.35),
-      transparent 23%
-    ),
-    var(--car-color,#888);
-
-  box-shadow:
-    inset 0 -18px 20px rgba(0,0,0,.28),
-    0 24px 28px rgba(0,0,0,.55);
-}
-
-.lobbyCarFallback::before{
-  content:"";
-
-  position:absolute;
-
-  width:110px;
-  height:50px;
-
-  left:40px;
-  top:-27px;
-
-  border-radius:60px 70px 5px 5px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #24323d 0 47%,
-      var(--car-color,#888) 49%
-    );
-}
-
-.lobbyCarFallback::after{
-  content:"";
-
-  position:absolute;
-
-  left:22px;
-  bottom:-13px;
-
-  width:34px;
-  height:34px;
-
+.miniAvatar{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
   border-radius:50%;
-
-  background:#08090b;
-
-  border:6px solid #25282d;
-
-  box-shadow:
-    111px 0 0 #08090b,
-    111px 0 0 6px #25282d;
+  background:var(--panel2);
+  border:1px solid var(--line);
+  font-weight:900;
 }
 
 
-/* Plattform / Boden unter Fahrzeug */
+/* GENERAL */
 
-.freshPlatform{
-  position:absolute;
+.page{
+  display:none;
+  width:min(100%,720px);
+  margin:auto;
+  padding:24px 18px 35px;
+}
 
-  z-index:1;
+.page.active{
+  display:block;
+}
 
-  left:7%;
-  right:7%;
-  bottom:2px;
+.eyebrow,
+.sectionEyebrow{
+  color:var(--orange);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.5px;
+}
 
-  width:auto;
-  height:38px;
+.orangeText{
+  color:var(--orange);
+}
 
+.muted{
+  color:var(--muted);
+}
+
+.textButton{
+  border:0;
+  background:none;
+  color:var(--orange);
+  font-size:11px;
+  font-weight:900;
+}
+
+.pageHeading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:5px 0 25px;
+}
+
+.pageHeading>div{
+  flex:1;
+}
+
+.pageHeading span{
+  color:var(--orange);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.4px;
+}
+
+.pageHeading h1{
+  margin:3px 0 0;
+  font-size:30px;
+}
+
+.backButton{
+  width:42px;
+  height:42px;
+  margin-right:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--panel);
+  color:#fff;
+  font-size:28px;
+}
+
+.roundAction{
+  width:43px;
+  height:43px;
   border:0;
   border-radius:50%;
-
-  background:
-    radial-gradient(
-      ellipse,
-      color-mix(in srgb,var(--crew-color) 30%,transparent),
-      transparent 68%
-    );
-
-  filter:blur(2px);
-}
-
-
-/* Fahrzeugname */
-
-.freshVehicleName{
-  position:relative;
-  z-index:6;
-
-  margin:10px 0 2px;
-
-  min-height:0;
-
+  background:var(--orange);
   color:#fff;
-
-  font-size:13px;
-  font-weight:850;
-
-  text-shadow:0 2px 8px #000;
-}
-
-.freshVehicleColor{
-  position:relative;
-  z-index:6;
-
-  margin:0 0 12px;
-
-  color:rgba(255,255,255,.65);
-
-  font-size:10px;
-
-  text-shadow:0 2px 6px #000;
+  font-size:24px;
 }
 
 
-/* Status */
+/* HOME */
 
-.freshPlayerStatus{
-  position:relative;
-  z-index:6;
+.welcome{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin:15px 0 25px;
+}
 
-  padding:7px 11px;
+.welcome h1{
+  margin:8px 0 0;
+  font-size:47px;
+  line-height:.88;
+  letter-spacing:-3px;
+}
 
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:30px;
+.welcome h1 span{
+  color:var(--orange);
+}
 
-  background:rgba(5,8,12,.7);
-
-  color:#ddd;
-
+.onlinePill{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid #1e3427;
+  background:#0d1711;
+  color:var(--green);
+  padding:8px 10px;
+  border-radius:100px;
   font-size:9px;
   font-weight:900;
-  letter-spacing:1px;
-
-  backdrop-filter:blur(10px);
 }
 
-.freshPlayerCard.isReady .freshPlayerStatus{
-  border-color:rgba(66,226,145,.35);
-  background:rgba(22,104,65,.7);
-  color:#8cffbd;
+.onlinePill i{
+  width:7px;
+  height:7px;
+  background:var(--green);
+  border-radius:50%;
 }
 
-.freshGpsState{
-  margin-top:7px;
-
-  color:rgba(255,255,255,.55);
-
-  font-size:9px;
-
-  text-shadow:0 2px 5px #000;
-}
-
-
-/* Der eigene Spieler */
-
-.freshPlayerCard.isYou::after{
-  content:"";
-
-  position:absolute;
-
-  z-index:-1;
-
-  left:10%;
-  right:10%;
-  bottom:15px;
-
-  height:200px;
-
+.activeCarCard{
+  position:relative;
+  overflow:hidden;
+  min-height:260px;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:20px;
   background:
-    radial-gradient(
-      ellipse,
-      rgba(255,90,18,.15),
-      transparent 70%
-    );
+    linear-gradient(145deg,#15181d,#090b0e);
+  margin-bottom:14px;
 }
 
-
-/* =========================
-   READY / START
-   ========================= */
-
-#game #ready{
-  position:fixed;
-
-  z-index:25;
-
-  left:50%;
-  bottom:28px;
-  transform:translateX(-50%);
-
-  min-width:170px;
-  min-height:50px;
-
-  border:1px solid rgba(255,255,255,.18);
-  border-radius:14px;
-
-  background:rgba(7,10,15,.82);
-  backdrop-filter:blur(15px);
-
-  color:#fff;
-
-  font-size:12px;
-  font-weight:950;
+.carGlow{
+  position:absolute;
+  width:200px;
+  height:200px;
+  border-radius:50%;
+  background:rgba(255,90,18,.12);
+  filter:blur(40px);
+  right:-40px;
+  top:20px;
 }
 
-#game #ready.active{
-  background:#26c879;
-  border-color:#6affb0;
-  color:#071b11;
+.cardTop,
+.panelTitle,
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-#game #start{
-  position:fixed;
+.cardTop{
+  position:relative;
+  z-index:2;
+  font-size:10px;
+  color:var(--muted);
+  font-weight:900;
+}
 
-  z-index:26;
+.carVisual{
+  height:120px;
+  display:grid;
+  place-items:center;
+}
 
-  left:50%;
-  bottom:27px;
-  transform:translateX(-50%);
+.carIcon{
+  font-size:75px;
+  filter:drop-shadow(0 15px 25px #000);
+}
 
-  width:min(320px,80vw);
+.carInfo{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+}
 
+.carInfo span{
+  color:var(--orange);
+  font-size:10px;
+  font-weight:900;
+}
+
+.carInfo h2{
+  margin:4px 0;
+  font-size:23px;
+}
+
+.carInfo p{
   margin:0;
-  padding:17px;
-
-  border:0;
-  border-radius:14px;
-
-  background:linear-gradient(135deg,#ff4b0b,#ff741c);
-
-  color:#fff;
-
+  color:var(--muted);
   font-size:13px;
-  font-weight:950;
-  letter-spacing:1px;
+}
 
-  box-shadow:
-    0 10px 35px rgba(255,90,18,.3),
-    0 3px 0 #9c2b00;
+.carStatus,
+.activeTag{
+  color:var(--green) !important;
+  background:#0e1b13;
+  border:1px solid #1c3c28;
+  border-radius:100px;
+  padding:7px 9px;
+  font-size:9px !important;
+  font-weight:900;
+}
+
+.playHero{
+  width:100%;
+  min-height:95px;
+  padding:18px;
+  border:0;
+  border-radius:18px;
+  background:
+    linear-gradient(120deg,#ff4b0b,#ff7018);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  text-align:left;
+  margin-bottom:14px;
+  box-shadow:0 14px 40px rgba(255,90,18,.18);
+}
+
+.playIcon{
+  width:50px;
+  height:50px;
+  flex:0 0 50px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(0,0,0,.2);
+  margin-right:15px;
+}
+
+.playHero div:nth-child(2){
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.playHero span{
+  font-size:9px;
+  font-weight:900;
+  opacity:.8;
+}
+
+.playHero strong{
+  font-size:25px;
+  line-height:1;
+  margin:3px 0 5px;
+}
+
+.playHero small{
+  opacity:.75;
+}
+
+.playArrow{
+  font-size:35px;
+}
+
+.quickStats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+  margin-bottom:14px;
+}
+
+.quickStats div{
+  min-height:100px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel);
+}
+
+.quickStats strong{
+  font-size:24px;
+  margin:5px 0 2px;
+}
+
+.quickStats small{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+}
+
+.statIcon{
+  font-size:18px;
 }
 
 
-/* Karte während Warteraum klein halten */
+/* PANELS */
 
-#game.freshWaiting .freshMapFold{
-  display:none;
+.panel,
+.infoPanel,
+.comingSoon{
+  border:1px solid var(--line);
+  background:var(--panel);
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:14px;
+}
+
+.panelTitle{
+  margin-bottom:16px;
+}
+
+.panelTitle span{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+}
+
+.panelTitle h3{
+  margin:3px 0 0;
+}
+
+.progress{
+  height:7px;
+  overflow:hidden;
+  border-radius:20px;
+  background:#202329;
+}
+
+.progress>div{
+  height:100%;
+  background:linear-gradient(90deg,var(--orange),var(--orange2));
+  border-radius:20px;
+  transition:width .3s ease;
+}
+
+.progressLabels{
+  display:flex;
+  justify-content:space-between;
+  margin-top:7px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.emptyState{
+  padding:20px;
+  border:1px dashed #30343a;
+  border-radius:13px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
 }
 
 
-/* =========================
-   RESPONSIVE
-   ========================= */
+/* FORMS */
 
-@media(max-width:800px){
+label{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.7px;
+  margin-bottom:14px;
+}
 
-  #game.freshLobby.active{
-    min-height:100dvh;
-    padding:16px 12px 90px;
-    background-position:center;
-  }
+input,
+select{
+  width:100%;
+  height:50px;
+  margin-top:7px;
+  padding:0 14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  outline:none;
+  background:#080a0c;
+  color:#fff;
+}
 
-  #game .freshRoomHeader{
-    position:relative;
+input:focus,
+select:focus{
+  border-color:var(--orange);
+}
 
-    top:auto;
-    left:auto;
+input[readonly]{
+  opacity:.8;
+}
 
-    width:100%;
+.inputGrid,
+.settingsGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
 
-    order:1;
+.primaryButton{
+  width:100%;
+  min-height:52px;
+  border:0;
+  border-radius:12px;
+  background:var(--orange);
+  color:#fff;
+  font-weight:900;
+}
 
-    margin-bottom:0;
-  }
+.primaryButton:disabled{
+  opacity:.45;
+}
 
-  #game .freshCrewBoard{
-    margin-top:35px;
-    min-height:430px;
-  }
+.modeHeader{
+  display:flex;
+  gap:13px;
+  align-items:center;
+  margin-bottom:20px;
+}
 
-  #game #players{
-    min-height:400px;
-    gap:3px;
-  }
+.modeIcon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:#2a140b;
+  color:var(--orange);
+  font-size:24px;
+}
 
-  .freshPlayerCard{
-    width:30vw;
-    min-width:105px;
-    height:310px;
-  }
+.modeHeader span{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
 
-  .freshPlayerCard.isHost{
-    width:36vw;
-    height:360px;
-  }
+.modeHeader h2{
+  margin:3px 0 0;
+  font-size:19px;
+}
 
-  .freshPlayerCard h3{
-    font-size:14px !important;
-  }
+.joinPanel h2{
+  margin:4px 0 15px;
+}
 
-  .freshPlayerCard.isHost h3{
-    font-size:18px !important;
-  }
+.joinBox{
+  display:flex;
+  gap:8px;
+}
 
-  .freshAvatarStage{
-    height:180px;
-  }
+.joinBox input{
+  margin:0;
+  text-transform:uppercase;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:4px;
+}
 
-  .freshPlayerCard.isHost .freshAvatarStage{
-    height:215px;
-  }
+.joinBox button{
+  border:0;
+  border-radius:11px;
+  padding:0 17px;
+  background:#fff;
+  color:#111;
+  font-weight:900;
+}
 
-  .lobbyModelCar{
-    max-width:155px;
-    height:125px;
-  }
 
-  .freshPlayerCard.isHost .lobbyModelCar{
-    max-width:200px;
-    height:165px;
-  }
+/* GARAGE */
 
-  .freshVehicleName{
-    font-size:10px;
-  }
+.addVehicleCard{
+  width:100%;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-align:left;
+  color:#fff;
+  border:1px dashed #3b4047;
+  border-radius:17px;
+  background:transparent;
+  margin-bottom:14px;
+}
 
-  .freshVehicleColor{
-    font-size:8px;
+.addVehicleCard>span{
+  width:45px;
+  height:45px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--panel2);
+  color:var(--orange);
+  font-size:24px;
+}
+
+.addVehicleCard div{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.addVehicleCard small{
+  color:var(--muted);
+}
+
+.garageCar{
+  padding:20px;
+  margin-bottom:12px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+}
+
+.garageCar.activeVehicle{
+  border-color:#63301a;
+}
+
+.garageCarTop{
+  min-height:27px;
+}
+
+.garageVehicleVisual{
+  height:105px;
+  display:grid;
+  place-items:center;
+  font-size:70px;
+}
+
+.manufacturer{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
+
+.garageCar h2{
+  margin:5px 0 12px;
+}
+
+.vehicleDetails{
+  display:flex;
+  gap:8px;
+}
+
+.vehicleDetails span{
+  padding:7px 9px;
+  border-radius:8px;
+  background:#191c20;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.infoPanel span{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
+
+.infoPanel p,
+.comingSoon p{
+  color:var(--muted);
+  line-height:1.5;
+}
+
+
+/* FRIENDS */
+
+.searchBar{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:0 14px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--panel);
+}
+
+.searchBar input{
+  border:0;
+  background:transparent;
+  margin:0;
+  padding-left:0;
+}
+
+.friendsTabs{
+  display:flex;
+  margin:18px 0 12px;
+  border-bottom:1px solid var(--line);
+}
+
+.friendsTabs button{
+  flex:1;
+  padding:13px;
+  border:0;
+  border-bottom:2px solid transparent;
+  background:none;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+}
+
+.friendsTabs button.active{
+  color:#fff;
+  border-bottom-color:var(--orange);
+}
+
+.friendList{
+  margin-bottom:14px;
+}
+
+.comingSoon span{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
+
+.comingSoon h3{
+  margin-bottom:5px;
+}
+
+
+/* PROFILE */
+
+.profileHero{
+  text-align:center;
+  padding:30px 10px 20px;
+  position:relative;
+}
+
+.settingsButton{
+  position:absolute;
+  right:0;
+  top:0;
+  width:40px;
+  height:40px;
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:var(--panel);
+  color:#fff;
+}
+
+.profileAvatar{
+  width:92px;
+  height:92px;
+  margin:auto;
+  position:relative;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:
+    linear-gradient(145deg,#252a30,#111317);
+  border:2px solid #353a41;
+  font-size:28px;
+  font-weight:900;
+}
+
+.profileAvatar span{
+  position:absolute;
+  right:-3px;
+  bottom:3px;
+  min-width:27px;
+  height:27px;
+  padding:0 5px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--orange);
+  border:3px solid var(--bg);
+  font-size:10px;
+}
+
+.profileHero h1{
+  margin:14px 0 3px;
+}
+
+.profileHero>p{
+  margin:0 0 20px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.profileProgress{
+  max-width:380px;
+  margin:auto;
+}
+
+.profileProgress>div:first-child{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:8px;
+  font-size:10px;
+  font-weight:900;
+}
+
+.profileStats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  margin-bottom:14px;
+  border:1px solid var(--line);
+  border-radius:17px;
+  background:var(--panel);
+}
+
+.profileStats div{
+  padding:17px 4px;
+  text-align:center;
+  border-right:1px solid var(--line);
+}
+
+.profileStats div:last-child{
+  border-right:0;
+}
+
+.profileStats strong{
+  display:block;
+  font-size:19px;
+}
+
+.profileStats span{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+}
+
+.achievementGrid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:9px;
+}
+
+.menuRow{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 0;
+  border:0;
+  border-bottom:1px solid var(--line);
+  background:none;
+  color:#fff;
+  text-align:left;
+}
+
+.menuRow:last-child{
+  border-bottom:0;
+}
+
+.menuRow>span{
+  width:37px;
+  height:37px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#191c20;
+}
+
+.menuRow div{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.menuRow small{
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.menuRow b{
+  color:var(--muted);
+  font-size:20px;
+}
+
+.logoutRow strong{
+  color:#ff6969;
+}
+
+.plusCard{
+  padding:24px;
+  border-radius:20px;
+  background:
+    linear-gradient(135deg,#201008,#111317);
+  border:1px solid #4b2818;
+}
+
+.plusCard>span{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
+
+.plusCard h2{
+  margin:3px 0 8px;
+  font-size:30px;
+}
+
+.plusCard p{
+  color:var(--muted);
+  line-height:1.45;
+}
+
+.plusCard button{
+  padding:10px 13px;
+  border:1px solid #5a321f;
+  border-radius:9px;
+  background:#27150c;
+  color:var(--orange);
+  font-weight:900;
+}
+
+
+/* GAME */
+
+.gameHeaderCard{
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+  margin-bottom:12px;
+}
+
+.gameHeaderCard h2{
+  margin:4px 0;
+}
+
+.closeGame{
+  width:39px;
+  height:39px;
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:#17191d;
+  color:#fff;
+  font-size:24px;
+}
+
+.codeBox{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:16px 0;
+  padding:13px;
+  border:1px solid #353a40;
+  border-radius:12px;
+  background:#080a0c;
+}
+
+.codeBox div{
+  display:flex;
+  flex-direction:column;
+}
+
+.codeBox span{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:900;
+}
+
+.codeBox strong{
+  margin-top:4px;
+  font-size:21px;
+  letter-spacing:4px;
+}
+
+.copyIcon{
+  font-size:20px !important;
+}
+
+.gameStats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+}
+
+.gameStats div{
+  padding:11px;
+  border-radius:10px;
+  background:#17191d;
+}
+
+.gameStats span{
+  display:block;
+  color:var(--muted);
+  font-size:8px;
+  margin-bottom:5px;
+}
+
+.gameStats strong{
+  font-size:11px;
+}
+
+.driverWarning{
+  display:flex;
+  gap:12px;
+  padding:14px;
+  margin-bottom:12px;
+  border:1px solid #5b4617;
+  border-radius:14px;
+  background:#1b1608;
+}
+
+.driverWarning strong{
+  color:#ffd56a;
+}
+
+.driverWarning p{
+  margin:4px 0 0;
+  color:#b5a67e;
+  font-size:11px;
+}
+
+.radarCard{
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+  margin-bottom:14px;
+}
+
+.radarHeader{
+  display:flex;
+  justify-content:space-between;
+}
+
+.radarHeader div:first-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.radarHeader span{
+  color:var(--orange);
+  font-size:8px;
+  font-weight:900;
+}
+
+.gpsStatus{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:900;
+}
+
+.gpsStatus i{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#555;
+}
+
+.gpsStatus i.on{
+  background:var(--green);
+  box-shadow:0 0 10px var(--green);
+}
+
+.radar{
+  width:250px;
+  height:250px;
+  max-width:80vw;
+  max-height:80vw;
+  margin:22px auto;
+  position:relative;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  border:1px solid #26312c;
+  background:
+    radial-gradient(circle,#0d1813,#07100c 65%,#050806);
+}
+
+.ring{
+  position:absolute;
+  border:1px solid rgba(76,200,128,.16);
+  border-radius:50%;
+}
+
+.r1{
+  width:33%;
+  height:33%;
+}
+
+.r2{
+  width:66%;
+  height:66%;
+}
+
+.r3{
+  width:94%;
+  height:94%;
+}
+
+.radarSweep{
+  position:absolute;
+  width:50%;
+  height:50%;
+  left:50%;
+  top:0;
+  transform-origin:0 100%;
+  background:
+    linear-gradient(45deg,rgba(61,230,132,.17),transparent);
+  animation:sweep 4s linear infinite;
+}
+
+@keyframes sweep{
+  to{
+    transform:rotate(360deg);
   }
 }
 
-@media(max-width:500px){
+.meDot{
+  z-index:4;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--orange);
+  color:#fff;
+  font-size:8px;
+  font-weight:900;
+  box-shadow:0 0 25px rgba(255,90,18,.55);
+}
 
-  .freshToolButtons button span{
-    display:none;
+.enemyDot{
+  position:absolute;
+  left:50%;
+  top:50%;
+  z-index:5;
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--red);
+  font-weight:900;
+}
+
+.proximity{
+  padding:12px;
+  border-radius:10px;
+  text-align:center;
+  background:#111418;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.proximity.hot{
+  color:#ff7676;
+  background:#211010;
+}
+
+.escape{
+  margin-top:9px;
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  border:1px solid #613d1e;
+  border-radius:10px;
+  color:#ffb66f;
+  background:#1c1109;
+}
+
+.gpsButton{
+  width:100%;
+  min-height:45px;
+  margin-top:10px;
+  border:1px solid #254433;
+  border-radius:10px;
+  background:#0c1711;
+  color:var(--green);
+  font-size:10px;
+  font-weight:900;
+}
+
+.readyButton{
+  padding:8px 11px;
+  border:1px solid #394047;
+  border-radius:8px;
+  background:#171a1e;
+  color:#aaa;
+  font-size:9px;
+  font-weight:900;
+}
+
+.readyButton.active{
+  color:var(--green);
+  border-color:#27573b;
+  background:#0d1a12;
+}
+
+.player{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:12px 0;
+  border-top:1px solid var(--line);
+}
+
+.player.found{
+  opacity:.45;
+}
+
+.avatar{
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#1a1d21;
+}
+
+.pdata{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.pdata b{
+  font-size:12px;
+}
+
+.pdata em{
+  margin-left:5px;
+  color:var(--orange);
+  font-size:7px;
+  font-style:normal;
+}
+
+.pdata small{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.danger{
+  width:100%;
+  min-height:48px;
+  margin-top:8px;
+  border:1px solid #5d2525;
+  border-radius:10px;
+  background:#211010;
+  color:#ff6b6b;
+  font-weight:900;
+}
+
+.resultCard{
+  padding:30px 20px;
+  text-align:center;
+  border:1px solid #4d2a18;
+  border-radius:20px;
+  background:linear-gradient(145deg,#1d100a,#0d0f12);
+}
+
+.resultCard>div:first-child{
+  font-size:40px;
+}
+
+.resultCard>span{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
+
+.resultCard h2{
+  margin:5px 0;
+}
+
+.resultCard p{
+  color:var(--muted);
+}
+
+.xpReward{
+  margin:20px 0;
+  font-size:35px;
+  font-weight:900;
+  color:var(--orange);
+}
+
+.xpReward small{
+  font-size:10px;
+}
+
+
+/* MODAL */
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:flex;
+  align-items:flex-end;
+}
+
+.modalBackdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(5px);
+}
+
+.modalSheet{
+  position:relative;
+  z-index:2;
+  width:min(100%,600px);
+  max-height:90vh;
+  overflow:auto;
+  margin:auto;
+  padding:15px 20px 30px;
+  border:1px solid var(--line);
+  border-bottom:0;
+  border-radius:24px 24px 0 0;
+  background:#0d0f12;
+}
+
+.modalHandle{
+  width:45px;
+  height:4px;
+  margin:0 auto 20px;
+  border-radius:10px;
+  background:#34383e;
+}
+
+.modalHeading{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+
+.modalHeading span{
+  color:var(--orange);
+  font-size:9px;
+  font-weight:900;
+}
+
+.modalHeading h2{
+  margin:3px 0;
+}
+
+.modalHeading button{
+  width:38px;
+  height:38px;
+  border:1px solid var(--line);
+  border-radius:50%;
+  background:#181b1f;
+  color:#fff;
+  font-size:22px;
+}
+
+.modalNote{
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+
+
+/* NAV */
+
+#bottomNav{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  z-index:60;
+  width:min(100%,720px);
+  height:75px;
+  display:grid;
+  grid-template-columns:1fr 1fr 70px 1fr 1fr;
+  align-items:center;
+  background:rgba(9,10,12,.97);
+  border-top:1px solid var(--line);
+  backdrop-filter:blur(18px);
+}
+
+.navButton{
+  height:100%;
+  border:0;
+  background:none;
+  color:#6f747c;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  font-size:8px;
+  font-weight:900;
+}
+
+.navButton span{
+  font-size:18px;
+}
+
+.navButton.active{
+  color:var(--orange);
+}
+
+.navPlay{
+  width:58px;
+  height:58px;
+  margin:auto;
+  transform:translateY(-13px);
+  border:5px solid var(--bg);
+  border-radius:50%;
+  background:var(--orange);
+  color:#fff;
+  font-size:19px;
+  box-shadow:0 6px 25px rgba(255,90,18,.35);
+}
+
+
+/* TOAST */
+
+#toast{
+  position:fixed;
+  z-index:200;
+  left:50%;
+  bottom:95px;
+  transform:translate(-50%,20px);
+  width:max-content;
+  max-width:calc(100% - 30px);
+  padding:12px 16px;
+  border:1px solid #35393f;
+  border-radius:10px;
+  background:#15181c;
+  color:#fff;
+  font-size:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:.2s;
+  box-shadow:0 10px 35px rgba(0,0,0,.4);
+}
+
+#toast.show{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+
+
+/* MOBILE */
+
+@media(max-width:520px){
+
+  .welcome h1{
+    font-size:41px;
   }
 
-  .freshToolButtons button{
-    width:44px;
-    padding:0;
+  .onlinePill{
+    margin-top:4px;
   }
 
-  #game #players{
-    align-items:flex-end;
+  .inputGrid,
+  .settingsGrid{
+    grid-template-columns:1fr;
   }
 
-  .freshPlayerCard{
-    min-width:95px;
+  .profileStats strong{
+    font-size:16px;
   }
 
-  .freshPlayerStatus{
+  .profileStats span{
     font-size:7px;
-    padding:6px 7px;
   }
 
-  .freshGpsState{
-    display:none;
+  .gameStats{
+    grid-template-columns:1fr 1fr 1fr;
   }
+
+  .authCard{
+    padding:30px 21px;
+  }
+
 }
+
+/* App-Oberfläche: einheitlich, kontrastreich und mobil lesbar */
+:root{
+  --bg:#10171b;
+  --panel:#202a2f;
+  --panel2:#29353a;
+  --line:#435057;
+  --text:#f7f8f7;
+  --muted:#c0c9cd;
+  --orange:#ff712b;
+  --orange2:#ff9848;
+  --green:#8ff0a1;
+}
+html,body{background:var(--bg);color:var(--text)}
+body{font-family:Arial,Helvetica,sans-serif;overflow-x:hidden}
+button,input,select{font:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #ffb074;outline-offset:2px}
+.appHeader{background:#172126;border-bottom:1px solid var(--line)}
+body:has(.appHome.active) .appHeader{display:none}
+.page{width:min(100%,520px);padding:24px 18px 110px}
+.appHome{padding:0 0 110px;background:#10171b}
+
+/* Startbildschirm */
+.homeStage{
+  position:relative;
+  height:clamp(260px,40vh,355px);
+  overflow:hidden;
+  padding:22px;
+  background:
+    radial-gradient(circle at 50% 73%,rgba(255,113,43,.55),transparent 32%),
+    linear-gradient(180deg,#202e34 0%,#28373b 50%,#603b2b 82%,#172126 100%);
+}
+.homeStage::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:56px;
+  background:linear-gradient(180deg,transparent,#10171b);
+}
+.homeStageTop{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center}
+.stageMark{font-size:29px;color:var(--orange)}
+.stageSettings{padding:3px 8px;border:0;background:#172126aa;color:#fff;border-radius:9px;font-size:24px}
+.stageLogo{position:absolute;z-index:2;left:24px;top:24%;display:flex;flex-direction:column;line-height:.94;transform:rotate(-4deg);text-shadow:2px 4px 0 #111b1d}
+.stageLogo strong{font-family:Impact,"Arial Black",sans-serif;font-size:clamp(75px,20vw,106px);font-style:italic;letter-spacing:-.035em;color:#fff}
+.stageLogo em{font-family:Impact,"Arial Black",sans-serif;font-size:clamp(39px,10vw,56px);font-weight:900;color:var(--orange);white-space:nowrap}
+.stageTagline{position:absolute;z-index:2;left:26px;top:68%;color:#fff;font-weight:900;font-size:10px;letter-spacing:.2em}
+.stageRoad{position:absolute;left:-5%;right:-5%;bottom:12%;height:19px;border-top:3px solid #172126;background:#293238;transform:skewY(-3deg)}
+.stageRoad span{position:absolute;top:9px;width:16%;height:2px;background:#e6e0d2}.stageRoad span:first-child{left:22%}.stageRoad span:last-child{right:22%}
+.homeActions{position:relative;z-index:3;display:grid;gap:12px;margin:-23px 18px 25px}
+.homeAction{width:100%;min-height:76px;display:flex;align-items:center;gap:8px;padding:12px 16px;text-align:left;border:1px solid #536169;border-radius:12px;background:#253137;color:#fff;box-shadow:0 5px 12px #0004}
+.homeActionPrimary{border-color:#ffa062;background:#ff792f;color:#171b1c}
+.actionSymbol{width:42px;flex:none;text-align:center;font-size:26px}.actionCopy{display:grid;gap:4px}.actionCopy strong{font-size:17px;font-weight:900}.actionCopy small{font-size:12px;color:#c3cdd0}.homeActionPrimary .actionCopy small{color:#44281c}.actionChevron{margin-left:auto;font-size:28px}
+.homeSecondary{padding:0 18px}.homeSectionTitle{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 11px;font-size:11px;letter-spacing:.12em;font-weight:900;color:#e9eff0}
+.homeSecondary .activeCarCard{min-height:192px}.homeSecondary .carVisual{height:65px}.homeSecondary .carIcon{font-size:44px}
+
+/* Gemeinsame Elemente */
+.panel,.infoPanel,.comingSoon,.quickStats div,.activeCarCard,.profileHero,.gameHeaderCard,.radarCard,.resultCard,.authCard,.modalSheet{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:none}
+.panel,.infoPanel,.comingSoon{padding:18px;margin-bottom:15px}
+.activeCarCard{background:#283237;overflow:hidden}.carGlow{background:rgba(255,113,43,.19)}
+.carStatus,.activeTag{color:#aaf2b6!important;background:#1d3a30;border-color:#426d57}
+.muted,.panel p,.infoPanel p,.comingSoon p{color:var(--muted)}
+.emptyState{border-color:#5a686e;color:var(--muted)}
+input,select{background:#172126!important;border:1px solid #617078!important;color:#fff!important}
+input::placeholder{color:#a6b1b5}
+label{color:#dce3e5}
+.primaryButton,.playHero,.googleButton{background:var(--orange);color:#161b1d;border-radius:10px;box-shadow:none;font-weight:900}
+.textButton,.orangeText,.sectionEyebrow,.eyebrow,.pageHeading span{color:#ff9e68}
+.quickStats div{min-height:90px}.quickStats small{color:#c3ccce}
+
+/* Laufendes Spiel */
+#game .gameHeaderCard,#game .radarCard{background:#253137}
+#game .radar{
+  background:
+    repeating-linear-gradient(30deg,transparent 0 36px,#43575e 38px 42px,transparent 44px 82px),
+    repeating-linear-gradient(120deg,transparent 0 25px,#384b52 27px 31px,transparent 33px 72px),
+    #233138;
+}
+#game .proximity{color:#f4f6f5}
+#targetButtons button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Öffentliche Runden */
+.publicPanel h2{margin:9px 0;font-size:21px}.publicPanel p{font-size:13px;line-height:1.5}
+#publicLobbies{display:grid;gap:9px;margin-top:15px}
+.publicLobby{width:100%;display:grid;grid-template-columns:1fr auto;gap:5px;text-align:left;padding:15px;color:#fff;background:#29383d;border:1px solid #5a6a70;border-radius:10px}
+.publicLobby small{grid-column:1;color:#c7d0d2}.publicLobby span{grid-column:2;grid-row:1/3;align-self:center;font-size:10px;font-weight:900;color:#ff9d62}
+
+/* Navigation */
+#bottomNav{width:min(100%,520px);height:76px;background:#1b272c;border-top:1px solid #4f5e64}
+.navButton{color:#c0c9cc;font-size:9px}.navButton.active{color:#ff9b5b}
+.navPlay{background:var(--orange);border-color:#10171b;color:#121619;box-shadow:none}
+@media(max-width:380px){.stageLogo strong{font-size:72px}.stageLogo em{font-size:37px}.actionCopy strong{font-size:15px}}
+
+/* Suche, Freunde und Nachrichten */
+.vehicleSuggestions{display:grid;gap:4px;max-height:220px;overflow:auto;margin:-6px 0 16px;background:#172126;border:1px solid #617078;border-radius:9px;padding:5px}
+.vehicleSuggestions:empty,.vehicleSuggestions.hidden{display:none}
+.vehicleSuggestions button{display:block;width:100%;text-align:left;padding:10px 12px;background:#29383d;color:#fff;border:0;border-radius:6px}
+.vehicleSuggestions button:hover,.vehicleSuggestions button:focus-visible{background:#3c5158}
+.socialList{display:grid;gap:8px;margin:10px 0}
+.socialRow{display:flex;align-items:center;gap:10px;padding:12px;background:#223037;border:1px solid #485a62;border-radius:10px;min-width:0}
+.socialAvatar{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:9px;background:#ff792f;color:#172126;font-weight:900}
+.socialPerson{display:grid;gap:3px;min-width:0;flex:1}.socialPerson strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.socialPerson small{color:#c3cdd0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.socialActions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.socialRow button{border:1px solid #ff914e;border-radius:7px;background:#3b302b;color:#ffd0aa;font-size:10px;font-weight:900;padding:8px}
+.socialLinked{font-size:10px;color:#9eecae}.friendsTabs button.active{color:#ff9e68;border-bottom-color:#ff792f}
+.lobbyChat{margin-top:20px;padding-top:17px;border-top:1px solid #516068}.lobbyChat h3{margin:0 0 12px}
+.messageList{display:flex;flex-direction:column;gap:9px;min-height:110px;max-height:260px;overflow-y:auto;padding:10px;background:#172126;border:1px solid #43555d;border-radius:9px}
+.message{align-self:flex-start;max-width:88%;display:grid;gap:5px;background:#35464c;color:#fff;padding:9px 12px;border-radius:10px 10px 10px 2px;overflow-wrap:anywhere}.message.mine{align-self:flex-end;background:#a84e23;border-radius:10px 10px 2px 10px}.message small{color:#e4e8e8;font-size:10px}.message span{font-size:13px;line-height:1.35;white-space:pre-wrap}
+.messageForm{display:flex;gap:8px;margin-top:9px}.messageForm input{margin:0;min-width:0;flex:1}.messageForm button{border:0;background:#ff792f;color:#172126;font-size:11px;font-weight:900;border-radius:8px;padding:0 13px}
+#dmPanel{margin-top:15px}#friendSearchResults:empty{display:none}
+@media(max-width:380px){.socialRow{flex-wrap:wrap}.socialActions{width:100%}}
+.activateVehicle{width:100%;margin-top:12px;padding:11px;border:1px solid #ff9d62;border-radius:8px;background:#3e332c;color:#ffd2ae;font-size:11px;font-weight:900}
+
+/* Echte Straßenkarte im Spiel */
+.mapShell{position:relative;height:400px;margin-top:14px;border:1px solid #40525a;border-radius:13px;overflow:hidden;background:#17262c}
+.liveMap{width:100%;height:100%}
+.mapShell.mapReady + .mapLegend + .radar{display:none}
+.mapFollow{position:absolute;z-index:3;top:10px;right:10px;width:39px;height:39px;padding:0;border:1px solid #66777d;border-radius:9px;background:#16232bea;color:#ff8b45;font-size:28px;line-height:1}
+.mapStatus{position:absolute;z-index:2;left:12px;right:12px;bottom:30px;padding:10px;background:#102028ed;border:1px solid #526269;border-radius:8px;color:#f5f7f6;text-align:center;font-size:12px;pointer-events:none}
+.mapStatus[hidden]{display:none}
+.mapLegend{padding:10px 2px 0;color:#d0dadb;font-size:11px;font-weight:700;white-space:pre-wrap}
+.mapPlayer{display:grid;place-items:center;width:35px;height:35px;border-radius:50%;border:3px solid #f5eee7;box-shadow:0 2px 10px #000a;color:#fff;font-size:17px;cursor:pointer}
+.mapPlayer.isMe{background:#ff712b;color:#1b1c1d;font-size:18px;box-shadow:0 0 0 7px #ff712b55,0 2px 10px #000a}
+.mapPlayer.isOther{background:#243b47}
+.maplibregl-popup-content{background:#1c2c32!important;color:#fff!important;border:1px solid #52646d;border-radius:9px!important;line-height:1.5;font-size:12px}
+.maplibregl-popup-tip{border-top-color:#1c2c32!important}
+.maplibregl-ctrl-attrib{font-size:9px!important}
+@media(max-width:520px){.mapShell{height:clamp(320px,52vh,430px)}}
