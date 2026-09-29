@@ -39,6 +39,7 @@ let state = null;
 let pollTimer = null;
 let watch = null;
 let gpsStarting = false;
+let gpsHeartbeat = null;
 
 
 /* =========================================================
@@ -182,6 +183,8 @@ async function googleLogin() {
 
 async function logout() {
   clearTimeout(pollTimer);
+  clearInterval(gpsHeartbeat);
+  gpsHeartbeat = null;
 
   if (
     watch !== null &&
@@ -1602,12 +1605,31 @@ function renderGame() {
         lobby.hostId !== me.id
       );
   }
+
+  window.chsMapUpdate?.(state);
 }
 
 
 /* =========================================================
    GPS
 ========================================================= */
+
+async function sendGameLocation(position) {
+  if (!gameSession) return;
+  try {
+    await api('location', gameCredentials({
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+      altitude: position.coords.altitude,
+      speed: position.coords.speed
+    }));
+    $('#gps').textContent = 'GPS AKTIV ✓';
+    $('#gpsDot')?.classList.add('on');
+  } catch (error) {
+    console.error('Standortübertragung fehlgeschlagen', error);
+  }
+}
 
 function gps() {
   if (
@@ -1631,6 +1653,17 @@ function gps() {
 
   gpsStarting = true;
 
+  if (gpsHeartbeat === null) {
+    gpsHeartbeat = setInterval(() => {
+      if (!gameSession || watch === null) return;
+      navigator.geolocation.getCurrentPosition(
+        position => sendGameLocation(position),
+        error => console.error('GPS-Aktualisierung:', error),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      );
+    }, 10000);
+  }
+
   $('#gps').textContent =
     'GPS WIRD ERMITTELT...';
 
@@ -1638,48 +1671,9 @@ function gps() {
   watch =
     navigator.geolocation.watchPosition(
 
-      async position => {
+      position => {
         gpsStarting = false;
-
-
-        try {
-          await api(
-            'location',
-            gameCredentials({
-              lat:
-                position.coords.latitude,
-
-              lng:
-                position.coords.longitude,
-
-              accuracy:
-                position.coords.accuracy,
-
-              altitude:
-                position.coords.altitude,
-
-              speed:
-                position.coords.speed
-            })
-          );
-
-
-          $('#gps').textContent =
-            'GPS AKTIV ✓';
-
-
-          $('#gpsDot')
-            ?.classList.add(
-              'on'
-            );
-        }
-
-        catch (error) {
-          console.error(
-            'Standortübertragung fehlgeschlagen',
-            error
-          );
-        }
+        sendGameLocation(position);
       },
 
 
@@ -1704,6 +1698,8 @@ function gps() {
 
 
         watch = null;
+        clearInterval(gpsHeartbeat);
+        gpsHeartbeat = null;
 
 
         $('#gps').textContent =
@@ -1893,6 +1889,8 @@ function resetGame() {
   clearTimeout(
     pollTimer
   );
+  clearInterval(gpsHeartbeat);
+  gpsHeartbeat = null;
 
 
   if (
@@ -1910,6 +1908,7 @@ function resetGame() {
   gpsStarting = false;
   state = null;
   gameSession = null;
+  window.chsMapReset?.();
 
 
   localStorage.removeItem(
