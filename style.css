@@ -4683,3 +4683,81 @@ body.freshChatOpen {
     flex: 1;
   }
 }
+
+
+/* =========================================================
+   LOBBY CONTROLS V9 — TOUCH / CLICK RELIABILITY
+========================================================= */
+
+.freshLobbyTools {
+  z-index: 500 !important;
+  pointer-events: auto !important;
+}
+
+.freshToolButtons,
+.freshToolButtons button,
+#freshInviteButton,
+#freshSettingsButton,
+#freshChatButton,
+#leave {
+  position: relative;
+  z-index: 501 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+#game #ready,
+#game #start {
+  z-index: 550 !important;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game #ready:disabled,
+#game #start:disabled {
+  pointer-events: none !important;
+}
+
+.freshPlayersStage,
+#players {
+  pointer-events: none;
+}
+
+.freshPlayerCard {
+  pointer-events: none;
+}
+
+.freshEmptySeat[data-open-lobby-invite] {
+  appearance: none;
+  -webkit-appearance: none;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+.freshEmptySeat[data-open-lobby-invite]:active {
+  transform: scale(.98);
+  border-color: rgba(104,185,255,.62);
+  background: rgba(9,28,48,.62);
+}
+
+.freshMapFold {
+  z-index: 120 !important;
+}
+
+.freshMapFold > summary {
+  position: relative;
+  z-index: 122;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#freshChatDrawer:not(.open),
+#freshChatDrawer:not(.open) * {
+  pointer-events: none !important;
+}
+
