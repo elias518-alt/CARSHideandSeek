@@ -2270,31 +2270,46 @@ function cropTransparentVehicle(img) {
   if (!safeCarPhoto(result)) throw new Error('Das freigestellte Fahrzeugbild ist zu groß. Bitte ein kleineres Foto wählen.');
   return result;
 }
+async function prepareVehiclePhoto(file) {
+  if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    throw new Error('Bitte JPG, PNG oder WebP wählen. iPhone-HEIC-Fotos vorher als JPG exportieren.');
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error('Bitte ein Foto unter 15 MB wählen.');
+  }
+
+  const img = await loadImageFromBlob(file);
+  const width = img.naturalWidth || img.width;
+  const height = img.naturalHeight || img.height;
+  const maxSide = 1600;
+  const scale = Math.min(1, maxSide / Math.max(width, height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.86);
+}
+
 async function shrinkCarPhoto(file) {
-  if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Bitte JPG, PNG oder WebP wählen. iPhone-HEIC-Fotos vorher als JPG exportieren.');
-  if (file.size > 15 * 1024 * 1024) throw new Error('Bitte ein Foto unter 15 MB wählen.');
   toast('Fahrzeug wird freigestellt …');
+  const prepared = await prepareVehiclePhoto(file);
+
+  let result;
   try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm');
-    const removeBackground = mod.removeBackground || mod.default;
-    if (typeof removeBackground !== 'function') throw new Error('Freistellung konnte nicht geladen werden.');
-    const transparentBlob = await removeBackground(file, {
-      model: 'small',
-      proxyToWorker: false,
-      output: { format: 'image/png', quality: 0.9 },
-      progress: (key, current, total) => {
-        if (!total || !String(key).startsWith('fetch:')) return;
-        const percent = Math.max(1, Math.min(99, Math.round(current / total * 100)));
-        const preview = document.getElementById('newCarPhotoPreview');
-        if (preview) preview.setAttribute('data-processing', `Freistellung ${percent}%`);
-      }
-    });
-    const img = await loadImageFromBlob(transparentBlob);
-    return cropTransparentVehicle(img);
+    result = await api('remove-background', { image: prepared });
   } catch (error) {
     console.error('Background removal failed:', error);
-    throw new Error('Das Fahrzeug konnte nicht automatisch freigestellt werden. Bitte Internetverbindung prüfen und erneut versuchen.');
+    throw new Error(error.message || 'Fahrzeug konnte nicht freigestellt werden.');
   }
+
+  if (!result?.image || !/^data:image\/png;base64,/.test(result.image)) {
+    throw new Error('Der Server hat kein gültiges freigestelltes Bild zurückgegeben.');
+  }
+
+  const transparentBlob = await (await fetch(result.image)).blob();
+  const img = await loadImageFromBlob(transparentBlob);
+  return cropTransparentVehicle(img);
 }
 function resetCarPhotoInput() {
   const input = document.getElementById('newCarPhoto');
@@ -2319,7 +2334,7 @@ function setupCarPhotoInput() {
       if (preview) preview.innerHTML = carPhotoMarkup({photo:pendingCarPhoto,brand:'Dein',model:'Fahrzeug'});
       toast('Fahrzeug freigestellt ✓');
     } catch(error) { pendingCarPhoto = ''; toast(error.message); }
-    finally { carPhotoBusy = false; event.target.disabled = false; preview?.removeAttribute('data-processing'); }
+    finally { carPhotoBusy = false; event.target.disabled = false; }
   });
 }
 document.getElementById('garageCars')?.addEventListener('change', async event => {
@@ -2481,18 +2496,6 @@ function setupProfileActions() {
 }
 setupProfileActions();
 
-/* Stabiler mobiler Lobby-Chat: iOS/Android-Tastatur verändert nur die Chat-Höhe,
-   nicht mehr den gesamten Warteraum. */
-function syncFreshChatViewport() {
-  const viewport = window.visualViewport;
-  const height = viewport ? viewport.height : window.innerHeight;
-  document.documentElement.style.setProperty('--fresh-chat-vh', `${Math.round(height)}px`);
-}
-syncFreshChatViewport();
-window.addEventListener('resize', syncFreshChatViewport, { passive: true });
-window.visualViewport?.addEventListener('resize', syncFreshChatViewport, { passive: true });
-window.visualViewport?.addEventListener('scroll', syncFreshChatViewport, { passive: true });
-
 const freshLobbyStyle = document.createElement("style");
 freshLobbyStyle.textContent = ``;
 document.head.append(freshLobbyStyle);
@@ -2525,32 +2528,45 @@ function ensureFreshLobby() {
   const copyButton = document.getElementById('copyLobbyCode');
   const mapFold = document.getElementById('freshMapFold');
 
+  let chatBackdrop = document.getElementById('freshChatBackdrop');
+  if (!chatBackdrop) {
+    chatBackdrop = document.createElement('div');
+    chatBackdrop.id = 'freshChatBackdrop';
+    chatBackdrop.setAttribute('aria-hidden', 'true');
+    document.body.append(chatBackdrop);
+  }
+
   const openChat = () => {
     if (!chatDrawer) return;
     chatDrawer.classList.add('open');
     chatDrawer.setAttribute('aria-hidden', 'false');
-    if (typeof renderLobbyChat === 'function') renderLobbyChat();
+    chatBackdrop.classList.add('open');
+    game.classList.add('chatDrawerOpen');
+    if (typeof renderLobbyChat === 'function') renderLobbyChat(true);
     markFreshChatRead();
-    const list = document.getElementById('lobbyMessages');
-    if (list) list.scrollTop = list.scrollHeight;
-    // Auf Mobilgeräten den Chat erst öffnen, ohne sofort die Tastatur aufzureißen.
-    // Der Nutzer tippt anschließend bewusst in das Eingabefeld.
-    document.documentElement.classList.add('freshChatOpen');
-    document.body.classList.add('freshChatOpen');
+    requestAnimationFrame(() => {
+      const list = document.getElementById('lobbyMessages');
+      if (list) list.scrollTop = list.scrollHeight;
+    });
   };
+
   const closeChat = () => {
     if (!chatDrawer) return;
     const input = document.getElementById('lobbyChatInput');
     if (input && document.activeElement === input) input.blur();
     chatDrawer.classList.remove('open');
     chatDrawer.setAttribute('aria-hidden', 'true');
-    document.documentElement.classList.remove('freshChatOpen');
-    document.body.classList.remove('freshChatOpen');
+    chatBackdrop.classList.remove('open');
+    game.classList.remove('chatDrawerOpen');
     chatButton?.focus({ preventScroll: true });
   };
 
   chatButton?.addEventListener('click', openChat);
   chatClose?.addEventListener('click', closeChat);
+  chatBackdrop.addEventListener('click', closeChat);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && chatDrawer?.classList.contains('open')) closeChat();
+  });
 
   settingsButton?.addEventListener('click', () => {
     if (state?.lobby?.hostId !== state?.lobby?.me?.id || state?.lobby?.state !== 'LOBBY') return;
@@ -2577,7 +2593,7 @@ function ensureFreshLobby() {
   });
 
   const readIfVisible = () => {
-    if (chatDrawer?.classList.contains('open') && document.visibilityState === 'visible' && document.hasFocus()) {
+    if (chatDrawer?.classList.contains('open') && document.visibilityState === 'visible') {
       markFreshChatRead();
     }
   };
@@ -2601,10 +2617,8 @@ function paintFreshUnread() {
   const badge=document.getElementById('freshUnread');if(!badge)return;
   badge.textContent=count>99?'99+':String(count);badge.hidden=!count;
   const button=document.getElementById('freshChatButton');
-  if (button) {
-    button.classList.toggle('hasUnread',count>0);
-    button.setAttribute('aria-label',count?`Lobby-Chat: ${count} ungelesene Nachrichten`:'Lobby-Chat öffnen');
-  }
+  button.classList.toggle('hasUnread',count>0);
+  button.setAttribute('aria-label',count?`Lobby-Chat: ${count} ungelesene Nachrichten`:'Lobby-Chat öffnen');
   const announcement=document.getElementById('freshChatAnnouncement');
   const label=count?`${count} ungelesene Chat-Nachrichten`:'';
   if (announcement && announcement.textContent !== label) {
