@@ -29,41 +29,76 @@ const models = {
   'Land Rover':['Defender','Discovery','Range Rover','Range Rover Sport','Evoque']
 };
 const norm = s => String(s || '').toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+// Vollständige scrollbare Vorschläge statt auf neun Treffer begrenzter Liste.
+function vehicleMatches(entries, query, kind) {
+  const aliases = { Volkswagen: 'vw volkswagen', 'Mercedes-Benz': 'mercedes benz mercedesbenz', 'Škoda': 'skoda', BMW: 'bmw bayerische motorenwerke' };
+  const tokens = norm(query).trim().split(/\s+/).filter(Boolean);
+  return entries.filter(item => tokens.every(token => norm(item + ' ' + (kind === 'brand' ? aliases[item] || '' : '')).includes(token)));
+}
 function suggestions(input, box, entries, kind) {
-  const q = norm(input.value.trim());
-  const matches = entries.filter(item => !q || norm(item).includes(q)).slice(0, 9);
-  box.innerHTML = matches.map(item => `<button type="button" data-${kind}="${esc(item)}">${esc(item)}</button>`).join('');
-  box.classList.toggle('hidden', !matches.length);
+  if (!box) return;
+  const matches = vehicleMatches(entries, input.value, kind);
+  box.replaceChildren();
+  box.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;max-height:220px;overflow-y:auto;padding:10px 0;width:100%';
+  for (const item of matches) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.dataset[kind] = item; button.textContent = item;
+    button.style.cssText = 'color:#fff;background:#293743;border:1px solid #677b89;border-radius:8px;padding:12px;min-height:44px;cursor:pointer';
+    box.append(button);
+  }
+  if (!matches.length) {
+    const hint = document.createElement('p');
+    hint.textContent = 'Nicht in der Vorschlagsliste? Du kannst deine Eingabe direkt als Fahrzeug speichern.';
+    box.append(hint);
+  }
+  box.classList.remove('hidden');
 }
 function setupVehicleSearch() {
   const brand = $('#newCarBrand'), model = $('#newCarModel');
-  const brandBox = $('#brandSuggestions'), modelBox = $('#modelSuggestions');
   if (!brand || !model) return;
+  for (const [input, id] of [[brand, 'brandSuggestions'], [model, 'modelSuggestions']]) {
+    if (!document.getElementById(id)) { const box = document.createElement('div'); box.id = id; input.after(box); }
+    input.autocomplete = 'off';
+  }
+  const brandBox = $('#brandSuggestions'), modelBox = $('#modelSuggestions');
+  Object.assign(models, {
+    'Suzuki':['Alto','Swift','Splash','Ignis','Baleno','Vitara','SX4','S-Cross','Jimny'],
+    'Jeep':['Avenger','Renegade','Compass','Cherokee','Grand Cherokee','Wrangler'],
+    'Mitsubishi':['Colt','Space Star','Lancer','ASX','Eclipse Cross','Outlander','Pajero'],
+    'Subaru':['Impreza','WRX','BRZ','Forester','Outback','XV'],
+    'Smart':['fortwo','forfour','#1','#3'],
+    'Saab':['900','9000','9-3','9-5'],
+    'Alfa Romeo':['147','156','159','Giulietta','Giulia','Stelvio','Tonale','MiTo'],
+    'Chevrolet':['Spark','Aveo','Cruze','Malibu','Camaro','Corvette','Captiva','Tahoe'],
+    'Dodge':['Challenger','Charger','Durango','Journey','Ram'],
+    'BYD':['Dolphin','Atto 3','Seal','Seal U','Tang','Han'],
+    'MG':['MG3','MG4','MG5','ZS','HS','Cyberster'],
+    'Polestar':['1','2','3','4'],
+    'Lexus':['IS','ES','LS','CT','UX','NX','RX','LC']
+  });
+  models.BMW = [...new Set([...models.BMW, 'E36 316i','E36 318i','E36 318is','E36 320i','E36 323i','E36 325i','E36 328i','E36 M3','E38 750i','E38 750iL','E39','E60','E61','E70','E71','F10','F11','G30','G31 520d'])];
+  models.Volkswagen = [...new Set([...models.Volkswagen, 'Lupo','Bora','Beetle','Scirocco','Sharan','Amarok'])];
+  const canonicalBrand = () => brands.find(x => norm(x) === norm(brand.value.trim())) || (norm(brand.value.trim()) === 'vw' ? 'Volkswagen' : norm(brand.value.trim()) === 'mercedes' ? 'Mercedes-Benz' : null);
   const showBrands = () => suggestions(brand, brandBox, brands, 'brand');
-  const showModels = () => {
-    const canonical = brands.find(x => norm(x) === norm(brand.value.trim()));
-    suggestions(model, modelBox, models[canonical] || [], 'model');
-  };
+  const showModels = () => suggestions(model, modelBox, models[canonicalBrand()] || [], 'model');
   brand.addEventListener('focus', showBrands);
-  brand.addEventListener('input', () => { showBrands(); model.value = ''; modelBox.innerHTML = ''; });
+  brand.addEventListener('input', () => { showBrands(); model.value = ''; modelBox.replaceChildren(); });
+  brand.addEventListener('blur', () => { const canonical = canonicalBrand(); if (canonical) brand.value = canonical; });
   model.addEventListener('focus', showModels);
   model.addEventListener('input', showModels);
   brandBox.addEventListener('click', event => {
-    event.stopPropagation();
     const button = event.target.closest('[data-brand]'); if (!button) return;
-    brand.value = button.dataset.brand; brandBox.classList.add('hidden');
+    event.preventDefault(); event.stopPropagation();
+    brand.value = button.dataset.brand; model.value = ''; brandBox.classList.add('hidden');
     model.focus(); showModels();
   });
   modelBox.addEventListener('click', event => {
-    event.stopPropagation();
     const button = event.target.closest('[data-model]'); if (!button) return;
-    model.value = button.dataset.model; modelBox.classList.add('hidden');
-    $('#newCarYear')?.focus();
+    event.preventDefault(); event.stopPropagation();
+    model.value = button.dataset.model; modelBox.classList.add('hidden'); $('#newCarYear')?.focus();
   });
-  document.addEventListener('click', event => {
-    if (!event.target.closest('#newCarBrand,#brandSuggestions')) brandBox.classList.add('hidden');
-    if (!event.target.closest('#newCarModel,#modelSuggestions')) modelBox.classList.add('hidden');
-  });
+  new MutationObserver(() => { if (!$('#carModal').classList.contains('hidden')) { showBrands(); modelBox.classList.add('hidden'); } })
+    .observe($('#carModal'), {attributes:true, attributeFilter:['class']});
 }
 
 let socialRows = [];
@@ -155,11 +190,15 @@ async function sendDm(event) {
 }
 function renderLobbyChat() {
   if (!$('#game')?.classList.contains('active') || !state?.chat) return;
-  const messages = state.chat, last = messages.at(-1)?.id || null;
+  const messages = state.chat, last = `${state.lobby?.code || ''}:${messages.at(-1)?.id || 'empty'}`;
   if (chatLastId === last) return;
   chatLastId = last;
-  $('#lobbyMessages').innerHTML = messages.length ? messages.map(msg => `<div class="message ${msg.sender === gameSession?.userId ? 'mine' : ''}"><small>${esc(msg.name)} · ${new Date(msg.at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</small><span>${esc(msg.body)}</span></div>`).join('') : '<p class="muted">Noch keine Nachrichten in der Lobby.</p>';
-  $('#lobbyMessages').scrollTop = $('#lobbyMessages').scrollHeight;
+  const list = $('#lobbyMessages');
+  if (!list) return;
+  const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+  const oldScroll = list.scrollTop;
+  list.innerHTML = messages.length ? messages.map(msg => `<div class="message ${msg.sender === gameSession?.userId ? 'mine' : ''}"><small>${esc(msg.name)} · ${new Date(msg.at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</small><span>${esc(msg.body)}</span></div>`).join('') : '<p class="muted">Noch keine Nachrichten in der Lobby.</p>';
+  list.scrollTop = nearBottom ? list.scrollHeight : oldScroll;
 }
 async function sendLobbyChat(event) {
   event.preventDefault();
@@ -190,4 +229,3 @@ function setupSocial() {
   }, 4000);
 }
 setupSocial();
-
