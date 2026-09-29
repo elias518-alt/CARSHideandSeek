@@ -1606,6 +1606,7 @@ function renderGame() {
       );
   }
 
+  renderLobbySettings();
   window.chsMapUpdate?.(state);
 }
 
@@ -2079,3 +2080,101 @@ $('#saveCar')
 syncVehicleUI();
 
 initializeAuth();
+
+
+/* Host-Einstellungen: Änderungen werden ausschließlich serverseitig freigegeben. */
+let lobbySettingsKey = '';
+let lobbySettingsSaving = false;
+function renderLobbySettings() {
+  const lobby = state?.lobby;
+  if (!lobby?.me) return;
+  let panel = document.getElementById('lobbySettingsPanel');
+  if (!panel) {
+    panel = document.createElement('section');
+    panel.id = 'lobbySettingsPanel';
+    panel.className = 'panel';
+    panel.innerHTML = `
+      <div class="panelTitle"><div><span>DEINE LOBBY</span><h3>EINSTELLUNGEN</h3></div></div>
+      <p id="lobbySettingsSummary" class="muted"></p>
+      <p id="lobbySettingsNotice" role="status"></p>
+      <details id="lobbySettingsEditor">
+        <summary style="cursor:pointer;padding:12px 0;font-weight:bold">⚙ Lobby bearbeiten</summary>
+        <form id="lobbySettingsForm">
+          <label>LOBBY-NAME<input id="editLobbyName" maxlength="40" required></label>
+          <div class="settingsGrid">
+            <label>SICHTBARKEIT<select id="editLobbyVisibility"><option value="PRIVATE">Privat – Beitritt mit Code</option><option value="PUBLIC">Öffentlich – in der Suche sichtbar</option></select></label>
+            <label>RADIUS IN METERN<input id="editLobbyRadius" type="number" min="1000" max="10000" step="1" required></label>
+            <label>SPIELZEIT IN MINUTEN<input id="editLobbyDuration" type="number" min="5" max="60" step="1" required></label>
+            <label>STARTVORSPRUNG IN SEKUNDEN<input id="editLobbyHeadstart" type="number" min="30" max="300" step="1" required></label>
+          </div>
+          <p class="muted">Änderungen gelten für alle. Danach müssen sich die Spieler erneut bereit melden. Der Mittelpunkt bleibt bestehen.</p>
+          <button id="saveLobbySettings" type="submit" class="primaryButton">ÄNDERUNGEN SPEICHERN</button>
+          <button id="cancelLobbySettings" type="button" class="textButton" style="padding:12px">ABBRECHEN</button>
+          <p id="lobbySettingsError" role="alert"></p>
+        </form>
+      </details>`;
+    document.querySelector('#game .gameHeaderCard').after(panel);
+    document.getElementById('lobbySettingsEditor').addEventListener('toggle', event => {
+      if (event.target.open) fillLobbySettings();
+    });
+    document.getElementById('cancelLobbySettings').addEventListener('click', () => {
+      document.getElementById('lobbySettingsEditor').open = false;
+    });
+    document.getElementById('lobbySettingsForm').addEventListener('submit', saveLobbySettings);
+  }
+  const settings = lobby.settings;
+  const editor = document.getElementById('lobbySettingsEditor');
+  const notice = document.getElementById('lobbySettingsNotice');
+  const host = lobby.hostId === lobby.me.id;
+  editor.hidden = !host || lobby.state !== 'LOBBY' || !settings;
+  if (editor.hidden) editor.open = false;
+  document.getElementById('lobbySettingsSummary').textContent = settings
+    ? `${lobby.visibility === 'PUBLIC' ? 'Öffentlich' : 'Privat'} · Radius ${settings.radius / 1000} km · ${settings.duration / 60} Min. Spielzeit · ${settings.headstart} Sek. Vorsprung`
+    : 'Bitte auch die aktualisierte server.js bereitstellen.';
+  const key = `${lobby.code}:${settings?.revision || 0}:${lobby.hostId}`;
+  if (lobbySettingsKey && lobbySettingsKey !== key && editor.open) {
+    editor.open = false;
+    toast('Lobby-Einstellungen aktualisiert. Bei Bedarf erneut öffnen.');
+  }
+  lobbySettingsKey = key;
+  notice.textContent = lobby.state !== 'LOBBY'
+    ? 'Während der Runde sind die Einstellungen gesperrt.'
+    : settings?.revision > 0
+      ? 'Einstellungen geändert – bitte prüfen und erneut bereit melden.'
+      : host ? 'Als Host kannst du die Lobby vor dem Start anpassen.' : 'Der Host kann diese Einstellungen vor dem Start ändern.';
+  document.getElementById('saveLobbySettings').disabled = lobbySettingsSaving;
+}
+function fillLobbySettings() {
+  const lobby = state?.lobby;
+  if (!lobby?.settings) return;
+  const fields = { editLobbyName: lobby.name, editLobbyVisibility: lobby.visibility,
+    editLobbyRadius: lobby.settings.radius, editLobbyDuration: lobby.settings.duration / 60,
+    editLobbyHeadstart: lobby.settings.headstart };
+  for (const [id, value] of Object.entries(fields)) document.getElementById(id).value = value;
+  document.getElementById('lobbySettingsForm').dataset.revision = lobby.settings.revision;
+  document.getElementById('lobbySettingsError').textContent = '';
+}
+async function saveLobbySettings(event) {
+  event.preventDefault();
+  if (lobbySettingsSaving || !state?.lobby) return;
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  lobbySettingsSaving = true;
+  document.getElementById('saveLobbySettings').disabled = true;
+  const value = id => document.getElementById(id).value;
+  try {
+    await api('settings', gameCredentials({
+      revision: Number(form.dataset.revision), lobbyName: value('editLobbyName'),
+      visibility: value('editLobbyVisibility'), radius: Number(value('editLobbyRadius')),
+      duration: Number(value('editLobbyDuration')) * 60, headstart: Number(value('editLobbyHeadstart'))
+    }));
+    document.getElementById('lobbySettingsEditor').open = false;
+    toast('Lobby gespeichert. Alle Spieler müssen sich erneut bereit melden.');
+    await poll();
+  } catch (error) {
+    document.getElementById('lobbySettingsError').textContent = error.message;
+  } finally {
+    lobbySettingsSaving = false;
+    document.getElementById('saveLobbySettings').disabled = false;
+  }
+}
