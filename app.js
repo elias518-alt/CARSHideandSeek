@@ -1901,6 +1901,9 @@ async function leave() {
 
 
 function resetGame() {
+  document.getElementById('freshChatDrawer')?.classList.remove('open');
+  document.getElementById('freshChatBackdrop')?.classList.remove('open');
+  document.body.classList.remove('freshChatOpen');
   clearTimeout(
     pollTimer
   );
@@ -2281,14 +2284,14 @@ async function prepareVehiclePhoto(file) {
   const img = await loadImageFromBlob(file);
   const width = img.naturalWidth || img.width;
   const height = img.naturalHeight || img.height;
-  const maxSide = 1600;
+  const maxSide = 1200;
   const scale = Math.min(1, maxSide / Math.max(width, height));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(width * scale));
   canvas.height = Math.max(1, Math.round(height * scale));
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.86);
+  return canvas.toDataURL('image/jpeg', 0.78);
 }
 
 async function shrinkCarPhoto(file) {
@@ -2333,7 +2336,13 @@ function setupCarPhotoInput() {
       pendingCarPhoto = await shrinkCarPhoto(file);
       if (preview) preview.innerHTML = carPhotoMarkup({photo:pendingCarPhoto,brand:'Dein',model:'Fahrzeug'});
       toast('Fahrzeug freigestellt ✓');
-    } catch(error) { pendingCarPhoto = ''; toast(error.message); }
+    } catch(error) {
+      pendingCarPhoto = '';
+      toast(error.message);
+      if (preview) {
+        preview.innerHTML = `<div class="carPhotoError"><strong>FREISTELLUNG FEHLGESCHLAGEN</strong><span>${esc(error.message || 'Unbekannter Fehler')}</span></div>`;
+      }
+    }
     finally { carPhotoBusy = false; event.target.disabled = false; }
   });
 }
@@ -2533,14 +2542,23 @@ function ensureFreshLobby() {
     chatBackdrop = document.createElement('div');
     chatBackdrop.id = 'freshChatBackdrop';
     chatBackdrop.setAttribute('aria-hidden', 'true');
-    document.body.append(chatBackdrop);
   }
+
+  /*
+    WICHTIG: #game nutzt isolation:isolate und bildet damit einen eigenen
+    Stacking-Context. Der Backdrop lag zuvor im body, der Chat selbst aber in
+    #game. Dadurch konnte der Backdrop auf Mobilgeräten über dem Chat liegen
+    und Eingaben/Klicks abfangen. Beide Elemente liegen jetzt direkt im body.
+  */
+  if (chatBackdrop.parentElement !== document.body) document.body.append(chatBackdrop);
+  if (chatDrawer && chatDrawer.parentElement !== document.body) document.body.append(chatDrawer);
 
   const openChat = () => {
     if (!chatDrawer) return;
     chatDrawer.classList.add('open');
     chatDrawer.setAttribute('aria-hidden', 'false');
     chatBackdrop.classList.add('open');
+    document.body.classList.add('freshChatOpen');
     game.classList.add('chatDrawerOpen');
     if (typeof renderLobbyChat === 'function') renderLobbyChat(true);
     markFreshChatRead();
@@ -2557,6 +2575,7 @@ function ensureFreshLobby() {
     chatDrawer.classList.remove('open');
     chatDrawer.setAttribute('aria-hidden', 'true');
     chatBackdrop.classList.remove('open');
+    document.body.classList.remove('freshChatOpen');
     game.classList.remove('chatDrawerOpen');
     chatButton?.focus({ preventScroll: true });
   };
