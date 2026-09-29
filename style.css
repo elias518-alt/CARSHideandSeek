@@ -4404,3 +4404,144 @@ body.freshChatOpen {
   line-height: 1.4;
   opacity: .9;
 }
+
+
+/* =========================================================
+   LOBBY INVITES + MOBILE CHAT SAFETY
+========================================================= */
+
+/*
+  Der Chat-Backdrop dient nur noch als visuelle Abdunklung.
+  Er darf niemals Klicks auf Bereit, Einstellungen oder Verlassen blockieren.
+*/
+#freshChatBackdrop {
+  pointer-events: none !important;
+}
+
+#freshChatDrawer {
+  pointer-events: none;
+}
+
+#freshChatDrawer.open {
+  pointer-events: auto;
+}
+
+.freshInviteDialog {
+  width: min(92vw, 560px);
+  max-height: 82dvh;
+}
+
+.freshInviteFriends {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  max-height: 56dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.freshInviteFriend {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  background: rgba(8,16,25,.78);
+}
+
+.freshInviteFriend button,
+.lobbyInviteActions button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.freshInviteFriend button {
+  background: var(--orange);
+  color: #fff;
+}
+
+.lobbyInviteInbox {
+  position: fixed;
+  z-index: 15000;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  top: max(12px, env(safe-area-inset-top));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.lobbyInviteInbox.hidden {
+  display: none;
+}
+
+.lobbyInviteCard {
+  width: min(100%, 520px);
+  margin-left: auto;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  background: rgba(7,13,21,.96);
+  box-shadow: 0 18px 50px rgba(0,0,0,.42);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
+}
+
+.lobbyInviteCard > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.lobbyInviteCard span {
+  color: var(--orange2);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.lobbyInviteCard strong {
+  font-size: 16px;
+}
+
+.lobbyInviteCard small {
+  color: var(--muted);
+}
+
+.lobbyInviteActions {
+  display: flex;
+  gap: 8px;
+}
+
+.lobbyInviteActions button:first-child {
+  flex: 1;
+  background: var(--orange);
+  color: white;
+}
+
+.lobbyInviteActions button:last-child {
+  background: rgba(255,255,255,.08);
+  color: white;
+}
+
+@media (max-width: 640px) {
+  .freshInviteFriend {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .freshInviteFriend > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  #freshInviteButton span {
+    display: none;
+  }
+}
