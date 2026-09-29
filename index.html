@@ -17,7 +17,7 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260929-5">
+    href="style.css?v=20260929-8">
 
   <link
     rel="stylesheet"
@@ -669,6 +669,45 @@
 
 
 
+    <!-- PUBLIC LOBBIES -->
+
+    <section class="panel publicPanel">
+
+      <span class="sectionEyebrow">
+        JETZT BEITRETEN
+      </span>
+
+      <h2>
+        OFFENE LOBBYS
+      </h2>
+
+      <p class="muted">
+        Offene öffentliche Lobbys in deiner Nähe werden automatisch geladen.
+        Dein genauer Standort wird anderen Spielern nicht angezeigt.
+      </p>
+
+
+      <button
+        id="findPublic"
+        class="primaryButton"
+        type="button">
+
+        AKTUALISIEREN
+
+      </button>
+
+
+      <div
+        id="publicLobbies"
+        aria-live="polite">
+      </div>
+
+    </section>
+
+
+
+
+
     <!-- CREATE LOBBY -->
 
     <section class="panel">
@@ -874,44 +913,6 @@
         LOBBY ERSTELLEN
 
       </button>
-
-    </section>
-
-
-
-    <!-- PUBLIC LOBBIES -->
-
-    <section class="panel publicPanel">
-
-      <span class="sectionEyebrow">
-        IN DEINER NÄHE
-      </span>
-
-      <h2>
-        ÖFFENTLICHE RUNDEN
-      </h2>
-
-      <p class="muted">
-        Zeigt offene Lobbys im Umkreis von 20 km.
-        Dein genauer Standort wird anderen Spielern
-        nicht angezeigt.
-      </p>
-
-
-      <button
-        id="findPublic"
-        class="primaryButton"
-        type="button">
-
-        RUNDEN SUCHEN
-
-      </button>
-
-
-      <div
-        id="publicLobbies"
-        aria-live="polite">
-      </div>
 
     </section>
 
@@ -1528,6 +1529,20 @@
 
 
         <button
+          id="freshInviteButton"
+          type="button"
+          aria-label="Freunde in die Lobby einladen">
+
+          👥
+
+          <span>
+            FREUNDE
+          </span>
+
+        </button>
+
+
+        <button
           id="freshChatButton"
           type="button"
           aria-label="Lobby Chat">
@@ -1817,6 +1832,41 @@
 
     </aside>
 
+
+
+    <!-- ==================================================
+         FRIEND INVITES
+    ================================================== -->
+
+    <dialog
+      id="lobbyInviteDialog"
+      class="lobbyInviteDialog">
+
+      <div class="freshDrawerHeader">
+        <div>
+          <span>LOBBY</span>
+          <h3>FREUNDE EINLADEN</h3>
+        </div>
+
+        <button
+          id="lobbyInviteClose"
+          type="button"
+          aria-label="Einladungen schließen">
+          ✕
+        </button>
+      </div>
+
+      <p class="muted">
+        Wähle einen Freund aus. Die Einladung ist 10 Minuten gültig.
+      </p>
+
+      <div
+        id="lobbyInviteFriends"
+        class="lobbyInviteFriends"
+        aria-live="polite">
+      </div>
+
+    </dialog>
 
 
     <!-- ==================================================
@@ -2669,13 +2719,13 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="app.js?v=20260929-5"></script>
+<script src="app.js?v=20260929-8"></script>
 
-<script src="social.js?v=20260929-5"></script>
+<script src="social.js?v=20260929-8"></script>
 
 <script
   type="module"
-  src="map.js?v=20260929-5">
+  src="map.js?v=20260929-8">
 </script>
 
 
