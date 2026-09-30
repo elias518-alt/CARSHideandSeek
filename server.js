@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const https = require('node:https');
+const { assignRoundRoles } = require('./game-rules');
 
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
@@ -187,7 +188,7 @@ function resultState(lobby, me) {
     cooldownUntil: me.cooldownUntil, escapeUntil: 0,
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility,
-      settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, revision: lobby.settingsRevision || 0 },
+      settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, escape: lobby.escape, revision: lobby.settingsRevision || 0 },
       state: lobby.state, hostId: lobby.hostId,
       players: lobby.players.map(p => publicPlayer(p, now, locationMaxAge)),
       me: publicPlayer(me, now, locationMaxAge), countdownEndsAt: lobby.countdownEndsAt,
@@ -323,7 +324,7 @@ async function route(action, data, authId) {
     const name = clean(data.lobbyName, 40);
     if (!name) fail(400, 'Bitte einen Lobby-Namen eingeben.');
     if (!['PUBLIC', 'PRIVATE'].includes(data.visibility)) fail(400, 'Ungültige Sichtbarkeit.');
-    const bounds = { radius: [200, 10000], duration: [300, 3600], headstart: [30, 300] };
+    const bounds = { radius: [200, 10000], duration: [300, 3600], headstart: [30, 300], escape: [10, 30] };
     const values = {};
     for (const [key, [min, max]] of Object.entries(bounds)) {
       if (typeof data[key] !== 'number' || !Number.isInteger(data[key]) || data[key] < min || data[key] > max)
@@ -379,7 +380,7 @@ async function route(action, data, authId) {
       fail(409, 'Mindestens ein Spieler ist außerhalb des Spielradius.');
     }
     if (!lobby.players.every(p => p.id === me.id || p.ready)) fail(409, 'Noch nicht alle Spieler sind bereit.');
-    for (const p of lobby.players) { p.role = p.id === lobby.hostId ? 'SEEKER' : 'HIDER'; p.found = false; }
+    assignRoundRoles(lobby.players);
     lobby.state = 'COUNTDOWN'; lobby.countdownEndsAt = now + 5000;
     clearLobbyInvitesForCode(lobby.code);
     return { ok: true };
