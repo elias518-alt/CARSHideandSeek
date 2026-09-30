@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const https = require('node:https');
-const { assignRoundRoles } = require('./game-rules');
+const { assignRoundRoles, roundRewardFor } = require('./game-rules');
 
 const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
@@ -126,7 +126,8 @@ function newPlayer(data, authId) {
     photoUrl: safePhotoUrl(data.photoUrl),
     avatarUrl: safePhotoUrl(data.avatarUrl),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
-    level: 1, role: null, ready: false, found: false, location: null,
+    level: Math.max(1, Math.min(50, Math.trunc(number(data.level) || 1))),
+    role: null, ready: false, found: false, roundFinds: 0, location: null,
     lastSeen: Date.now(), cooldownUntil: 0
   };
 }
@@ -150,7 +151,9 @@ function updateGame(lobby, now = Date.now()) {
 function finish(lobby, seekersWin) {
   lobby.state = 'RESULT';
   lobby.result = {
-    seekersWin, found: lobby.players.filter(p => p.role === 'HIDER' && p.found).length,
+    id: crypto.randomUUID(),
+    seekersWin,
+    found: lobby.players.filter(p => p.role === 'HIDER' && p.found).length,
     totalHiders: lobby.players.filter(p => p.role === 'HIDER').length
   };
 }
@@ -173,8 +176,11 @@ function resultState(lobby, me) {
   const nearbyTargets = me.role === 'SEEKER' && lobby.state === 'ACTIVE' && goodFindFix(me, now)
     ? opponents.filter(p => p.role === 'HIDER' && goodFindFix(p, now) && withinFindRange(me, p)).map(p => p.id)
     : [];
+  const reward = lobby.state === 'RESULT' && lobby.result?.id
+    ? { resultId: lobby.result.id, ...roundRewardFor(me, lobby.result) }
+    : null;
   return {
-    serverTime: now, proximity, nearbyTargets,
+    serverTime: now, proximity, nearbyTargets, reward,
     chat: lobby.messages.slice(-50),
     map: {
       center: lobby.origin ? { lat: lobby.origin.lat, lng: lobby.origin.lng } : null,
@@ -300,6 +306,7 @@ async function route(action, data, authId) {
       existing.photoUrl = safePhotoUrl(data.photoUrl) || existing.photoUrl || '';
       existing.avatarUrl = safePhotoUrl(data.avatarUrl);
       existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
+      existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       existing.lastSeen = now;
       clearLobbyInvitesFor(authId, lobby.code);
       return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
@@ -400,6 +407,7 @@ async function route(action, data, authId) {
       fail(409, 'Fund noch nicht bestätigt: Abstand plus beide GPS-Ungenauigkeiten müssen zusammen höchstens 35 m sein. Geht näher zusammen oder wartet auf genaueres GPS.', { distance: meters });
     }
     target.found = true;
+    me.roundFinds = Math.min(20, (Number(me.roundFinds) || 0) + 1);
     me.cooldownUntil = now + 3000;
     if (lobby.players.filter(p => p.role === 'HIDER').every(p => p.found)) finish(lobby, true);
     return { ok: true, distance: meters };
@@ -407,7 +415,7 @@ async function route(action, data, authId) {
   if (action === 'rematch') {
     if (me.id !== lobby.hostId || lobby.state !== 'RESULT') fail(403, 'Nur der Host kann eine neue Runde starten.');
     lobby.state = 'LOBBY'; lobby.result = null; lobby.countdownEndsAt = lobby.headstartEndsAt = lobby.endsAt = null;
-    for (const p of lobby.players) { p.role = null; p.found = false; p.ready = false; p.cooldownUntil = 0; }
+    for (const p of lobby.players) { p.role = null; p.found = false; p.roundFinds = 0; p.ready = false; p.cooldownUntil = 0; }
     return { ok: true };
   }
   if (action === 'leave') {
