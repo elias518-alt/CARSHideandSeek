@@ -1355,8 +1355,13 @@ function characterStyleKey() {
 }
 
 function getCharacterStyle() {
-  const saved = Number(localStorage.getItem(characterStyleKey()));
-  return Number.isInteger(saved) && saved >= 0 && saved <= 2 ? saved : 0;
+  const localValue = localStorage.getItem(characterStyleKey());
+  if (localValue != null) {
+    const saved = Number(localValue);
+    if (Number.isInteger(saved) && saved >= 0 && saved <= 2) return saved;
+  }
+  const cloudValue = Number(authSession?.user?.user_metadata?.character_style);
+  return Number.isInteger(cloudValue) && cloudValue >= 0 && cloudValue <= 2 ? cloudValue : 0;
 }
 
 function setCharacterStyle(value) {
@@ -3164,7 +3169,17 @@ function openProfileEditor() {
           avatar_url: data.avatar_url,
           updated_at: data.updated_at || dbProfile.updated_at
         };
-        setCharacterStyle(form.elements.characterStyle.value);
+        const characterStyle=setCharacterStyle(form.elements.characterStyle.value);
+        try {
+          const { data: authUpdate, error: authUpdateError } = await supabaseClient.auth.updateUser({
+            data: { character_style: characterStyle }
+          });
+          if (authUpdateError) throw authUpdateError;
+          if (authUpdate?.user && authSession) authSession = { ...authSession, user: authUpdate.user };
+        } catch (metadataError) {
+          // The local preference remains usable; cloud sync can retry next save.
+          console.error('Charakterauswahl konnte nicht ins Konto synchronisiert werden:', metadataError);
+        }
 
         // Keep an already running lobby profile in sync without leaving the game.
         if (gameSession) {
