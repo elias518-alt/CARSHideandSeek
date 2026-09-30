@@ -9,6 +9,19 @@ test('body selection takes precedence over model inference',()=>{
   assert.equal(catalog.shape({model:'Unknown',body:'Coupé'}),'coupe');
   assert.equal(catalog.shape({model:'Transit'}),'van');
 });
+
+test('existing car atlas distinguishes small cars, classic saloons and sports cars',()=>{
+  const corsa=catalog.illustration({vehicle:'Opel Corsa'});
+  const bmw=catalog.illustration({brand:'BMW',model:'3er',series:'E36'});
+  const porsche=catalog.illustration({vehicle:'Porsche 911'});
+  assert.equal(new Set([corsa.index,bmw.index,porsche.index]).size,3);
+  assert.equal(catalog.illustration({vehicle:'Audi A4 Avant'}).index,6);
+  assert.equal(catalog.illustration({vehicle:'VW Caddy'}).index,9);
+  assert.equal(catalog.illustration({vehicle:'BMW Z4 Roadster'}).index,11);
+  assert.equal(catalog.illustration({vehicle:'Porsche 911',body:'SUV'}).index,7);
+  assert.equal(catalog.illustration({vehicle:'Volkswagen Golf'}).index,1);
+  assert.equal(catalog.illustration({vehicle:'Smart Fortwo'}).index,10);
+});
 test('generation validation accepts boundaries and leaves unknown models editable',()=>{
   const generation=catalog.ranges(' Ford ','Focus')[2];
   assert.equal(catalog.yearError('2011',generation),'');
