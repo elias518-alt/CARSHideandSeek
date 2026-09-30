@@ -2454,7 +2454,7 @@ function resetGame() {
    NAVIGATION
 ========================================================= */
 
-$('[data-page]')
+$$('[data-page]')
   .forEach(button => {
 
     button.addEventListener(
