@@ -2112,7 +2112,7 @@ function gpsConfigForState() {
   if (phase === 'RESULT' || (phase !== 'LOBBY' && (me?.found || me?.eliminated || me?.left)))
     return {phase:'STOPPED',interval:0,options:{}};
   const close = state?.replacementNeedsStop || state?.locks?.length || state?.proximity?.level === 'VERY_CLOSE';
-  const near = state?.proximity?.level === 'CLOSE';
+  const near = state?.outsideDeadline || state?.gpsWarning || !me?.hasLocation || state?.proximity?.level === 'CLOSE';
   const interval = phase === 'ACTIVE' ? close ? 2000 : near ? 5000 : 15000 : phase === 'LOBBY' ? 10000 : 5000;
   return {phase:phase+':'+interval,interval,options:{enableHighAccuracy:phase!=='ACTIVE'||close||near,maximumAge:0,timeout:10000}};
 }

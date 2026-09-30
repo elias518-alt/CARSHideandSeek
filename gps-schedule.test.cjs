@@ -4,9 +4,10 @@ const fs=require('node:fs');const vm=require('node:vm');
 const source=fs.readFileSync(__dirname+'/app.js','utf8');
 const configSource=source.slice(source.indexOf('function gpsConfigForState()'),source.indexOf('async function sendGameLocation'));
 test('one GPS scheduler switches far/near/close accuracy and stops for results or eliminated participants',()=>{
-  const state={lobby:{state:'ACTIVE',me:{}},proximity:null};const context=vm.createContext({state});vm.runInContext(configSource,context);
+  const state={lobby:{state:'ACTIVE',me:{hasLocation:true}},proximity:null};const context=vm.createContext({state});vm.runInContext(configSource,context);
   const config=()=>vm.runInContext('gpsConfigForState()',context);
   assert.equal(config().interval,15000);assert.equal(config().options.enableHighAccuracy,false);
+  state.gpsWarning=true;assert.equal(config().interval,5000);assert.equal(config().options.enableHighAccuracy,true);state.gpsWarning=false;
   state.proximity={level:'CLOSE'};assert.equal(config().interval,5000);assert.equal(config().options.enableHighAccuracy,true);
   state.proximity={level:'VERY_CLOSE'};assert.equal(config().interval,2000);
   state.proximity=null;state.locks=[{id:'lock'}];assert.equal(config().interval,2000);

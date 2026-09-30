@@ -159,12 +159,12 @@ function tick(lobby,now,distance,random=Math.random){
       const stopped=(p.fixes||[]).filter(f=>now-f.at<=12000&&f.accuracy<=8&&Number.isFinite(f.speed)&&f.speed<=LIMITS.driverSpeed);
       if(stopped.length>=3&&stopped.at(-1).at-stopped.at(-3).at>=3000){p.replacementNeedsStop=false;event(lobby,'REPLACEMENT_READY',p.name+' hat sicher angehalten und kann suchen.',{playerId:p.id},now);}
     }
-    if(fresh(p,now)&&p.location.accuracy<=25&&lobby.origin){
+    if(fresh(p,now)&&p.location.accuracy<=100&&lobby.origin){
       const meters=distance(p.location,lobby.origin),outside=meters-p.location.accuracy>lobby.radius;
       if(evidence(p,'outsideEvidence',outside,now)&&!p.outsideSince){p.outsideSince=now;event(lobby,'OUTSIDE',p.name+' ist außerhalb des Spielgebiets · 2 Minuten zur Rückkehr.',{playerId:p.id,until:now+LIMITS.outside},now);}
       if(meters+p.location.accuracy<=lobby.radius&&p.outsideSince){p.stats.outsideMs+=now-p.outsideSince;delete p.outsideSince;event(lobby,'RETURNED',p.name+' ist zurück im Spielgebiet.',{playerId:p.id},now);}
       if(p.outsideSince&&now-p.outsideSince>=LIMITS.outside&&outside){eliminate(lobby,p,'OUTSIDE',now);continue;}
-      if(lobby.state==='HEADSTART'&&p.role==='SEEKER'&&p.holdPoint&&!p.replacementUntil&&p.location.at<lobby.headstartEndsAt){
+      if(p.location.accuracy<=25&&lobby.state==='HEADSTART'&&p.role==='SEEKER'&&p.holdPoint&&!p.replacementUntil&&p.location.at<lobby.headstartEndsAt){
         if(evidence(p,'holdEvidence',distance(p.location,p.holdPoint)-p.location.accuracy>LIMITS.start,now)){
           eliminate(lobby,p,'EARLY_START',now);event(lobby,'DISQUALIFIED',p.name+' hat den Startbereich zu früh verlassen.',{playerId:p.id},now);replacement(lobby,now,random);
         }

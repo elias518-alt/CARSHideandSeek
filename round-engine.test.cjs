@@ -55,7 +55,7 @@ test('two-player round ends clearly when the only seeker is disqualified and no 
   assert.equal(f.lobby.state,'RESULT');assert.equal(f.lobby.result.reason,'NO_SEEKERS');assert.equal(f.lobby.result.seekersWin,false);
 });
 test('radius outliers do not eliminate; confirmed absence has a resettable two-minute grace',()=>{
-  const f=fixture();f.target.location.lat+=.01;engine.tick(f.lobby,f.now,distance);assert.equal(f.target.outsideSince,undefined);
+  const f=fixture();f.target.location.accuracy=80;f.target.location.lat+=.01;engine.tick(f.lobby,f.now,distance);assert.equal(f.target.outsideSince,undefined);
   fixes(f,f.now+4000);engine.tick(f.lobby,f.now+4000,distance);assert.equal(f.target.outsideSince,f.now+4000);
   f.target.location.lat=52;fixes(f,f.now+8000);engine.tick(f.lobby,f.now+8000,distance);assert.equal(f.target.outsideSince,undefined);assert.equal(f.target.stats.outsideMs,4000);
   f.target.location.lat+=.01;fixes(f,f.now+10000);engine.tick(f.lobby,f.now+10000,distance);fixes(f,f.now+14000);engine.tick(f.lobby,f.now+14000,distance);
