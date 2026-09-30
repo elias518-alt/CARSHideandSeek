@@ -1781,7 +1781,7 @@ input[readonly] {
       rgba(3,5,8,.95) 100%
     ),
 
-    url("lobby-bg.png");
+    url("assets/lobby-reference.svg");
 
   background-size: cover;
 

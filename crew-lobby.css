@@ -1,6 +1,9 @@
 /* Waiting-room crew scene. Active-round layout and game controls retain their existing styles. */
 #game.freshLobby.active.freshWaiting {
-  background:linear-gradient(#08132155,#081321a8),url('lobby-bg.png') center 58%/cover no-repeat;
+  background:
+    linear-gradient(180deg,rgba(8,7,13,.12) 0%,rgba(9,7,13,.16) 48%,rgba(5,7,10,.58) 100%),
+    url('assets/lobby-reference.svg') center 54%/cover no-repeat;
+  background-attachment:fixed;
 }
 #game.freshWaiting #players {
   display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,340px) minmax(0,1fr);
@@ -45,8 +48,8 @@
 #game.freshWaiting .freshAvatarStage .vehicleRender { border-radius:0; }
 #game.freshWaiting .freshAvatarStage figcaption { display:none; }
 .lobbyCrewCharacter {
-  position:absolute; z-index:4; left:31%; bottom:12px; height:218px; width:145.33px;
-  transform:translateX(-50%) rotate(-1.4deg);
+  position:absolute; z-index:4; left:69%; bottom:8px; height:218px; width:145.33px;
+  transform:translateX(-50%) rotate(1deg);
   transform-origin:50% 100%;
   background-image:url('assets/crew-characters.png'); background-size:300% 100%; background-repeat:no-repeat;
   filter:drop-shadow(0 9px 8px #0008); pointer-events:none;
@@ -55,15 +58,16 @@
 .lobbyCrewCharacter--1 { background-position:50% 50%; }
 .lobbyCrewCharacter--2 { background-position:100% 50%; }
 
-/* Stable poses bind the character visually to the same car instead of floating
-   independently in the scene. */
-.lobbyCrewPose--0{left:30%;bottom:13px;transform:translateX(-50%) rotate(-2deg);}
-.lobbyCrewPose--1{left:69%;bottom:10px;transform:translateX(-50%) rotate(2deg) scale(.98);}
-.lobbyCrewPose--2{left:58%;bottom:20px;transform:translateX(-50%) rotate(-.5deg) scale(.93);}
-#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter { height:318px; width:212px; }
-#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewPose--0{left:29%;bottom:18px;}
-#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewPose--1{left:70%;bottom:16px;}
-#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewPose--2{left:58%;bottom:28px;}
+/* One consistent Fast-&-Furious-style stance: the character stands beside the
+   passenger/front side of the car instead of jumping to a random position. */
+.lobbyCrewPose--side{left:69%;bottom:8px;transform:translateX(-50%) rotate(1deg);}
+#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter {
+  height:318px; width:212px; left:70%; bottom:14px;
+  transform:translateX(-50%) rotate(1deg);
+}
+#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewPose--side{
+  left:70%;bottom:14px;transform:translateX(-50%) rotate(1deg);
+}
 #game.freshWaiting .freshPlatform {
   display:block; position:absolute; z-index:0; width:96%; height:24px; left:50%; bottom:-5px;
   transform:translateX(-50%); border:0; box-shadow:none; background:radial-gradient(ellipse,#8eadd527,transparent 68%);
@@ -123,9 +127,9 @@
   #game.freshWaiting .freshCrewWing--right { grid-column:2; }
   #game.freshWaiting .freshPlayerCard h3 { font-size:14px; }
   #game.freshWaiting .freshAvatarStage { height:200px; }
-  #game.freshWaiting .lobbyCrewCharacter { height:187px; width:124.67px; }
+  #game.freshWaiting .lobbyCrewCharacter { height:187px; width:124.67px; left:68%; bottom:7px; }
   #game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage { height:310px; }
-  #game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter { height:290px; width:193.33px; }
+  #game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter { height:290px; width:193.33px; left:69%; bottom:12px; }
   #game.freshWaiting .freshEmptySeat { min-height:210px; margin-top:35px; font-size:12px; }
   #carModal .modalSheet { padding:22px 18px; }
 }

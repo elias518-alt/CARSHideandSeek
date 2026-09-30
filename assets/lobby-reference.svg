@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#17111f"/>
+    <stop offset=".38" stop-color="#4c2859"/>
+    <stop offset=".68" stop-color="#a8547e"/>
+    <stop offset="1" stop-color="#e08278"/>
+  </linearGradient>
+  <radialGradient id="sun" cx="51%" cy="59%" r="46%">
+    <stop offset="0" stop-color="#ffb06e" stop-opacity=".75"/>
+    <stop offset=".27" stop-color="#e56e92" stop-opacity=".36"/>
+    <stop offset="1" stop-color="#3c2050" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="deck" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#26202c"/>
+    <stop offset=".35" stop-color="#15131b"/>
+    <stop offset="1" stop-color="#080a0f"/>
+  </linearGradient>
+  <linearGradient id="wet" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#6f315f" stop-opacity=".35"/>
+    <stop offset=".45" stop-color="#f08b79" stop-opacity=".12"/>
+    <stop offset="1" stop-color="#4a2467" stop-opacity=".34"/>
+  </linearGradient>
+  <filter id="cloud" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency=".005 .02" numOctaves="3" seed="18"/>
+    <feColorMatrix values="0.55 0 0 0 0.09  0 0.35 0 0 0.02  0 0 0.75 0 0.10  0 0 0 .34 0"/>
+    <feGaussianBlur stdDeviation="7"/>
+  </filter>
+  <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence baseFrequency=".35" numOctaves="2" seed="7" type="fractalNoise"/>
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="table" tableValues="0 .11"/></feComponentTransfer>
+  </filter>
+  <filter id="glow"><feGaussianBlur stdDeviation="13"/></filter>
+  <pattern id="windows" width="24" height="25" patternUnits="userSpaceOnUse">
+    <rect x="5" y="6" width="3" height="5" rx="1" fill="#ffd6a1" opacity=".55"/>
+    <rect x="15" y="15" width="3" height="4" rx="1" fill="#d99bd5" opacity=".32"/>
+  </pattern>
+</defs>
+
+<rect width="1600" height="900" fill="url(#sky)"/>
+<rect width="1600" height="650" fill="url(#sun)"/>
+<rect x="-80" y="40" width="1760" height="470" filter="url(#cloud)" opacity=".82" fill="#fff"/>
+<path d="M0 482 C210 430 360 458 530 436 C720 409 910 471 1090 430 C1280 385 1450 423 1600 394 L1600 565 L0 565Z" fill="#25182d" opacity=".76"/>
+<path d="M0 508 C180 472 340 500 520 478 C735 450 865 507 1060 474 C1260 438 1438 474 1600 451 L1600 580 L0 580Z" fill="#16151f" opacity=".76"/>
+
+<!-- distant skyline -->
+<g fill="#11131b">
+  <path d="M0 560V405h58v155zm70 0V455h76v105zm92 0V365h68v195zm85 0V438h92v122zm107 0V398h54v162zm68 0V462h84v98zm101 0V338h72v222zm88 0V425h55v135zm70 0V454h92v106zm108 0V378h64v182zm78 0V430h71v130zm88 0V327h66v233zm82 0V397h86v163zm103 0V351h54v209zm70 0V455h76v105zm91 0V382h87v178zm102 0V414h59v146z"/>
+  <path d="M115 454h24v-31h11v31zm405-116h20v-42h8v42zm459-11h18v-54h8v54zm371 24h21v-49h8v49z"/>
+</g>
+<g opacity=".9">
+  <rect y="360" width="1600" height="205" fill="url(#windows)" opacity=".55" mask="url(#m)"/>
+</g>
+<!-- explicit window fields -->
+<g fill="url(#windows)" opacity=".75">
+  <rect x="162" y="365" width="68" height="195"/><rect x="523" y="338" width="72" height="222"/>
+  <rect x="867" y="378" width="64" height="182"/><rect x="1025" y="327" width="66" height="233"/>
+  <rect x="1173" y="351" width="54" height="209"/><rect x="1333" y="382" width="87" height="178"/>
+</g>
+
+<!-- deck architecture -->
+<path d="M0 0H245v122H380v122H245v305H0Z" fill="#15131a" opacity=".94"/>
+<path d="M1600 0h-205v165h-118v83h118v303h205Z" fill="#15131a" opacity=".94"/>
+<g stroke="#8b6d91" stroke-opacity=".22" stroke-width="3">
+  <path d="M0 122h380M245 0v550M1600 165h-323M1395 0v550"/>
+</g>
+<rect y="550" width="1600" height="350" fill="url(#deck)"/>
+<rect y="550" width="1600" height="350" fill="url(#wet)"/>
+<rect y="550" width="1600" height="350" filter="url(#grain)" opacity=".65"/>
+
+<!-- low rooftop wall -->
+<rect y="535" width="1600" height="32" fill="#16151c"/>
+<rect y="535" width="1600" height="3" fill="#9d5b84" opacity=".65"/>
+
+<!-- purple practical lights -->
+<g>
+  <g fill="#ffb994"><circle cx="140" cy="540" r="7"/><circle cx="455" cy="540" r="7"/><circle cx="800" cy="540" r="7"/><circle cx="1160" cy="540" r="7"/><circle cx="1470" cy="540" r="7"/></g>
+  <g fill="#f28ad6" opacity=".3" filter="url(#glow)"><circle cx="140" cy="540" r="35"/><circle cx="455" cy="540" r="35"/><circle cx="800" cy="540" r="35"/><circle cx="1160" cy="540" r="35"/><circle cx="1470" cy="540" r="35"/></g>
+</g>
+
+<!-- wet reflections -->
+<g opacity=".22">
+  <path d="M120 565l-65 335h130l-35-335z" fill="#d16fc4"/>
+  <path d="M438 565l-90 335h150l-35-335z" fill="#ff9a7c"/>
+  <path d="M785 565l-112 335h202l-52-335z" fill="#ce6acc"/>
+  <path d="M1145 565l-75 335h160l-58-335z" fill="#ff987c"/>
+  <path d="M1455 565l-65 335h144l-45-335z" fill="#c466db"/>
+</g>
+
+<!-- perspective parking markings -->
+<g fill="none" stroke="#c8b6cc" stroke-opacity=".22" stroke-width="3">
+  <path d="M800 570L260 900M800 570L515 900M800 570L690 900M800 570L910 900M800 570L1085 900M800 570L1340 900"/>
+  <path d="M0 735H1600M0 835H1600"/>
+</g>
+<g stroke="#f0ddd9" stroke-opacity=".32" stroke-width="8">
+  <path d="M180 676h155M1265 676h160M435 792h175M1020 792h170"/>
+</g>
+<rect width="1600" height="900" fill="none" stroke="#000" stroke-opacity=".32" stroke-width="80"/>
+</svg>
