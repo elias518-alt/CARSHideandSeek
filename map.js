@@ -44,6 +44,14 @@ let latest = null;
 let fitted = false;
 let lastCircleKey = '';
 const markers = new Map();
+let meetupMarker=null;
+let meetupRequestAt=0;
+let meetupKey='';
+let meetupMessage='';
+let meetupEpoch=0;
+let meetupBusy=false;
+let meetupFitted=false;
+
 
 function circleGeoJSON(center, radiusMeters) {
   const earthRadius = 6371008.8;
@@ -91,6 +99,8 @@ function initialize(data) {
       map.addSource('game-radius', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({ id: 'game-radius-fill', type: 'fill', source: 'game-radius', paint: { 'fill-color': '#ff762b', 'fill-opacity': 0.09 } });
       map.addLayer({ id: 'game-radius-outline', type: 'line', source: 'game-radius', paint: { 'line-color': '#ff762b', 'line-width': 3, 'line-dasharray': [2, 2] } });
+      map.addSource('meetup-route', {type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addLayer({id:'meetup-route-line',type:'line',source:'meetup-route',paint:{'line-color':'#b5ff32','line-width':5}});
       updateMap(latest);
       if (!latest?.map) setStatus('Karte bereit. Warte auf Standortdaten vom Spielserver…');
       map.resize();
@@ -176,6 +186,7 @@ function updateMap(gameState) {
   if (!gameState?.map) setStatus('Keine Kartendaten vom Spielserver. Bitte die Serverversion des Karten-Updates bereitstellen.');
   else if (!data.positions?.length) setStatus('Straßenkarte bereit. Warte auf GPS – Standortzugriff erlauben.');
   else setStatus('');
+  updateMeetup(gameState);
 }
 document.getElementById('mapFollow')?.addEventListener('click', () => {
   if (!map || !latest?.map) return;
@@ -186,6 +197,7 @@ document.getElementById('mapFollow')?.addEventListener('click', () => {
 window.chsMapUpdate = updateMap;
 window.chsMapReset = () => {
   latest = null;
+  clearMeetup();
   for (const marker of markers.values()) marker.remove();
   markers.clear();
   fitted = false;
@@ -202,3 +214,56 @@ if (gameNode && mapNode) {
   activate();
 }
 
+
+function clearMeetup() {
+  meetupEpoch++;
+  meetupMarker?.remove();meetupMarker=null;
+  meetupKey='';meetupRequestAt=0;meetupMessage='';meetupBusy=false;meetupFitted=false;
+  map?.getSource('meetup-route')?.setData({type:'FeatureCollection',features:[]});
+}
+async function updateMeetup(gameState) {
+  const lobby=gameState?.lobby,point=gameState?.map?.meetup;
+  if(lobby?.state!=='LOBBY'||!validPoint(point)){if(meetupKey||meetupMarker)clearMeetup();return;}
+  if(!meetupMarker){
+    const element=document.createElement('div');element.className='mapMeetup';element.textContent='⚑';
+    meetupMarker=new maplibregl.Marker({element}).setLngLat([point.lng,point.lat]).addTo(map);
+  }
+  meetupMarker.setLngLat([point.lng,point.lat]);
+  const element=meetupMarker.getElement();
+  element.setAttribute('aria-label','Treffpunkt bei '+point.name+(point.stale?' · letzte Position':''));
+  element.classList.toggle('isStale',!!point.stale);
+  const key=lobby.code+':'+lobby.hostId+':'+lobby.me.id;
+  if(meetupKey!==key){
+    meetupEpoch++;meetupRequestAt=0;meetupMessage='';meetupBusy=false;meetupFitted=false;
+    map.getSource('meetup-route')?.setData({type:'FeatureCollection',features:[]});meetupKey=key;
+  }
+  if(lobby.me.id===lobby.hostId){setStatus('Du bist der Treffpunkt deiner Crew.');return;}
+  if(point.stale||!lobby.me.hasLocation){
+    meetupEpoch++;meetupBusy=false;meetupRequestAt=0;
+    map.getSource('meetup-route')?.setData({type:'FeatureCollection',features:[]});
+    setStatus('Treffpunkt bei '+point.name+' · warte auf aktuelles GPS für die Route.');return;
+  }
+  setStatus(meetupMessage||'Treffpunkt bei '+point.name+' · Straßenroute wird geladen…');
+  if(meetupBusy||Date.now()-meetupRequestAt<15000)return;
+  meetupBusy=true;meetupRequestAt=Date.now();const epoch=meetupEpoch;
+  try {
+    const result=await api('meetup-route',gameCredentials(),'GET');
+    if(epoch!==meetupEpoch||latest?.lobby?.state!=='LOBBY')return;
+    const source=map.getSource('meetup-route');
+    if(result.route&&result.hostId===latest.lobby.hostId){
+      source?.setData({type:'Feature',geometry:result.route.geometry,properties:{}});
+      meetupMessage='Treffpunkt bei '+point.name+' · '+(result.route.distance/1000).toFixed(1)+' km · ca. '+Math.max(1,Math.round(result.route.duration/60))+' Min.';
+      if(!meetupFitted){
+        meetupFitted=true;
+        const bounds=new maplibregl.LngLatBounds();
+        result.route.geometry.coordinates.forEach(coordinate=>bounds.extend(coordinate));
+        map.fitBounds(bounds,{padding:45,maxZoom:16,duration:450});
+      }
+    }else {source?.setData({type:'FeatureCollection',features:[]});meetupMessage=result.message||'Treffpunkt sichtbar · Straßenroute nicht verfügbar.';}
+    setStatus(meetupMessage);
+  } catch(error) {
+    if(epoch!==meetupEpoch)return;
+    map.getSource('meetup-route')?.setData({type:'FeatureCollection',features:[]});
+    meetupMessage='Treffpunkt sichtbar · '+error.message;setStatus(meetupMessage);
+  } finally {if(epoch===meetupEpoch)meetupBusy=false;}
+}

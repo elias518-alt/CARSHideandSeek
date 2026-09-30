@@ -197,22 +197,42 @@ async function socialRpc(name, params = {}) {
 }
 const socialError = error => toast(error.message || 'Aktion fehlgeschlagen.');
 async function loadFriends() {
-  if (!authSession || socialBusy || !$('#friends')?.classList.contains('active')) return;
+  if (!authSession) { socialRows=[];renderFriendNotice();return; }
+  if (socialBusy) return;
+  const accountId=authSession.user.id;
   socialBusy = true;
   try {
-    socialRows = await socialRpc('chs_social_overview') || [];
-    renderFriends();
+    const rows=await socialRpc('chs_social_overview') || [];
+    if(authSession?.user?.id!==accountId)return;
+    socialRows=rows;
+    renderFriendNotice();
+    if($('#friends')?.classList.contains('active'))renderFriends();
   } catch (error) {
-    $('#friendList').textContent = error.message;
+    if($('#friends')?.classList.contains('active'))$('#friendList').textContent = error.message;
   } finally { socialBusy = false; }
 }
+
+function friendDisplayName(row) { return row.username?.trim() || row.player_tag || 'Spieler'; }
+function renderFriendNotice() {
+  let notice=document.getElementById('incomingFriendNotice');
+  const incoming=authSession ? socialRows.filter(row=>row.status==='pending'&&row.incoming) : [];
+  if(!incoming.length){notice?.remove();return;}
+  if(!notice){
+    notice=document.createElement('aside');notice.id='incomingFriendNotice';notice.className='friendRequestNotice';
+    notice.setAttribute('aria-label','Freundschaftsanfragen');notice.setAttribute('aria-live','polite');
+    notice.addEventListener('click',socialAction);document.body.append(notice);
+  }
+  const markup=incoming.map(row=>'<div><strong>'+esc(friendDisplayName(row))+'</strong><span> möchte dich als Freund hinzufügen.</span><button type="button" data-accept="'+esc(row.request_id)+'">Annehmen</button><button type="button" data-decline="'+esc(row.request_id)+'" aria-label="Anfrage von '+esc(friendDisplayName(row))+' ablehnen">Ablehnen</button></div>').join('');
+  if(notice.dataset.markup!==markup){notice.innerHTML=markup;notice.dataset.markup=markup;}
+}
+
 function renderFriends() {
   const list = $('#friendList');
   const rows = socialRows.filter(x => socialTab === 'friends' ? x.status === 'accepted' : x.status === 'pending');
   list.innerHTML = rows.length ? rows.map(row => `
     <div class="socialRow">
       <div class="socialAvatar">${esc((row.username || '?').slice(0,1).toUpperCase())}</div>
-      <div class="socialPerson"><strong>${esc(row.username)}</strong><small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}${row.status === 'pending' ? (row.incoming ? ' · Anfrage erhalten' : ' · Anfrage gesendet') : ''}</small></div>
+      <div class="socialPerson"><strong>${esc(friendDisplayName(row))}</strong><small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}${row.status === 'pending' ? (row.incoming ? ' · Anfrage erhalten' : ' · Anfrage gesendet') : ''}</small></div>
       <div class="socialActions">
         ${row.status === 'accepted' ? `<button data-dm="${row.peer_id}">CHAT</button><button data-remove="${row.request_id}" aria-label="Freund entfernen">×</button>` : row.incoming ? `<button data-accept="${row.request_id}">ANNEHMEN</button><button data-decline="${row.request_id}" aria-label="Ablehnen">×</button>` : `<button data-remove="${row.request_id}">ZURÜCKZIEHEN</button>`}
       </div>
@@ -247,7 +267,7 @@ async function socialAction(event) {
       $('#dmPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    toast('Erledigt ✓'); await loadFriends(); await searchPlayers();
+    toast('Erledigt ✓'); await loadFriends(); if($('#friends')?.classList.contains('active'))await searchPlayers();
   } catch (error) { socialError(error); }
   finally { button.disabled = false; }
 }
@@ -489,9 +509,11 @@ function setupSocial() {
     if (event.target.closest('[data-page="friends"]')) setTimeout(loadFriends, 0);
   });
   syncLobbyInviteButton();
+  loadFriends();
   loadIncomingLobbyInvites();
   setInterval(() => {
-    if ($('#friends')?.classList.contains('active')) { loadFriends(); if (activePeer) loadDm(); }
+    loadFriends();
+    if ($('#friends')?.classList.contains('active') && activePeer) loadDm();
     renderLobbyChat();
     syncLobbyInviteButton();
     loadIncomingLobbyInvites();
