@@ -26,7 +26,7 @@ function formFixture(cars=[]){
   }
   const fields=new Map();
   const $=selector=>{if(!fields.has(selector))fields.set(selector,new Field());return fields.get(selector);};
-  const colors=['Schwarz','Weiß','Blau','Grün'].map(color=>{const button=new Field();button.dataset.carColor=color;return button;});
+  const colors=['Schwarz','Weiß','Blau','Grün','Orange'].map(color=>{const button=new Field();button.dataset.carColor=color;return button;});
   const writes=[],messages=[],uploads=[],activations=[];
   const context=vm.createContext({$,vehicleCatalog,vehicleSearch,Event,Date,
     document:{querySelectorAll:()=>colors,addEventListener(){}},
