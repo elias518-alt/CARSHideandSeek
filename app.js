@@ -1128,10 +1128,14 @@ async function saveCar() {
       const car=localGarage.find(item=>item.id===editingVehicleId);
       if(!car)throw new Error('Fahrzeug nicht mehr vorhanden.');
       const values={brand:brand.slice(0,60),model:model.slice(0,80),model_year:Number(year)||null,series:series.slice(0,100),body_type:body,color:color.slice(0,40),updated_at:new Date().toISOString()};
+      const previousPhotoPath=car.photoPath||'';
       if(pendingCarPhoto)values.photo_path=await uploadVehiclePhoto(car.id,pendingCarPhoto,true);
       const {data,error}=await supabaseClient.from('vehicles').update(values).eq('id',car.id).eq('user_id',authSession.user.id).select('id');
       if(error)throw error;
       if(!data?.length)throw new Error('Änderungen wurden nicht gespeichert.');
+      if(values.photo_path && previousPhotoPath && previousPhotoPath!==values.photo_path){
+        try{await supabaseClient.storage?.from?.('vehicle-images')?.remove?.([previousPhotoPath]);}catch{}
+      }
       garageSyncBusy=false;
       await loadCloudGarage({migrateLocal:false});
       closeCarModal();pendingCarPhoto='';editingVehicleId=null;
