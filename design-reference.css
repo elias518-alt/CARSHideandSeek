@@ -281,9 +281,9 @@ input:focus,select:focus,textarea:focus{
 #game.freshLobby.active.freshWaiting{
   max-width:1180px;
   background:
-    linear-gradient(180deg,rgba(8,10,15,.12),rgba(8,10,15,.42) 55%,#070a0f 100%),
-    linear-gradient(90deg,rgba(57,33,70,.22),transparent 70%),
-    url('lobby-bg.png') center 58%/cover no-repeat!important;
+    linear-gradient(180deg,rgba(8,7,13,.08),rgba(8,7,13,.20) 58%,#070a0f 100%),
+    linear-gradient(90deg,rgba(72,35,83,.10),transparent 70%),
+    url('assets/lobby-reference.svg') center 54%/cover no-repeat!important;
 }
 #game.freshWaiting .freshLobbyTools{
   border-bottom:1px solid rgba(255,255,255,.07);
