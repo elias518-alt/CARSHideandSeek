@@ -155,7 +155,7 @@ function cloudVehicleToLocal(row) {
   };
 }
 
-async function uploadVehiclePhoto(vehicleId, dataUrl) {
+async function uploadVehiclePhoto(vehicleId, dataUrl, cutout = false) {
   if (!authSession?.user?.id || !dataUrl) return '';
   const source = vehiclePhotoSource(dataUrl);
   if (!source.startsWith('data:image/')) {
@@ -168,7 +168,8 @@ async function uploadVehiclePhoto(vehicleId, dataUrl) {
   }
 
   const extension = blob.type === 'image/png' ? 'png' : 'webp';
-  const path = `${authSession.user.id}/${vehicleId}.${extension}`;
+  const suffix = cutout ? `.cutout.${extension}` : `.${extension}`;
+  const path = `${authSession.user.id}/${vehicleId}${suffix}`;
 
   const { error } = await supabaseClient.storage
     .from('vehicle-images')
@@ -1127,7 +1128,7 @@ async function saveCar() {
       const car=localGarage.find(item=>item.id===editingVehicleId);
       if(!car)throw new Error('Fahrzeug nicht mehr vorhanden.');
       const values={brand:brand.slice(0,60),model:model.slice(0,80),model_year:Number(year)||null,series:series.slice(0,100),body_type:body,color:color.slice(0,40),updated_at:new Date().toISOString()};
-      if(pendingCarPhoto)values.photo_path=await uploadVehiclePhoto(car.id,pendingCarPhoto);
+      if(pendingCarPhoto)values.photo_path=await uploadVehiclePhoto(car.id,pendingCarPhoto,true);
       const {data,error}=await supabaseClient.from('vehicles').update(values).eq('id',car.id).eq('user_id',authSession.user.id).select('id');
       if(error)throw error;
       if(!data?.length)throw new Error('Änderungen wurden nicht gespeichert.');
@@ -1161,7 +1162,7 @@ async function saveCar() {
     if (insertError) throw insertError;
 
     if (pendingCarPhoto) {
-      uploadedPath = await uploadVehiclePhoto(vehicleId, pendingCarPhoto);
+      uploadedPath = await uploadVehiclePhoto(vehicleId, pendingCarPhoto, true);
       const { error: photoError } = await supabaseClient
         .from('vehicles')
         .update({ photo_path: uploadedPath, updated_at: new Date().toISOString() })
@@ -2898,7 +2899,7 @@ document.getElementById('garageCars')?.addEventListener('change', async event =>
 
   try {
     const photo = await shrinkCarPhoto(input.files[0]);
-    const path = await uploadVehiclePhoto(car.id, photo);
+    const path = await uploadVehiclePhoto(car.id, photo, true);
 
     if (car.photoPath && car.photoPath !== path) {
       await supabaseClient.storage.from('vehicle-images').remove([car.photoPath]);
@@ -3481,8 +3482,11 @@ function lobbyCarColor(color) {
 }
 function isLobbyCutout(source) {
   if (!source) return false;
-  if (/^data:image\/png;base64,/i.test(source)) return true;
-  try { return new URL(source).pathname.toLowerCase().endsWith('.png'); }
+  if (/^data:image\/(?:png|webp);base64,/i.test(source)) return true;
+  try {
+    const path = new URL(source).pathname.toLowerCase();
+    return path.includes('.cutout.png') || path.includes('.cutout.webp');
+  }
   catch { return false; }
 }
 
