@@ -276,14 +276,14 @@ input:focus,select:focus,textarea:focus{
 }
 .uiIcon{stroke-width:1.8;}
 
-/* WAITING LOBBY — keep the functional host/crew formation, but use the exact
-   parkdeck + orange visual language of the reference. */
+/* WAITING LOBBY — keep host/crew functionality while matching the violet
+   rooftop/parking-deck scene from the approved visual reference. */
 #game.freshLobby.active.freshWaiting{
   max-width:1180px;
   background:
     linear-gradient(180deg,rgba(8,7,13,.08),rgba(8,7,13,.20) 58%,#070a0f 100%),
     linear-gradient(90deg,rgba(72,35,83,.10),transparent 70%),
-    url('assets/lobby-reference.svg') center 54%/cover no-repeat!important;
+    url('assets/lobby-rooftop-violet.webp') center 52%/cover no-repeat!important;
 }
 #game.freshWaiting .freshLobbyTools{
   border-bottom:1px solid rgba(255,255,255,.07);

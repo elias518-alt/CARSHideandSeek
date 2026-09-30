@@ -130,7 +130,7 @@ h1,h2,h3 { letter-spacing:-.035em; }
 .authGate { background:linear-gradient(90deg,#080b10aa,#080b1077),url('assets/night-hunt.webp') center/cover; }
 .authCard { background:#111923ed; border:1px solid #3b4654; border-radius:18px; backdrop-filter:blur(20px); }
 /* Waiting room: a vehicle grid with normal document flow prevents avatar/name overlap. */
-#game.freshLobby.active.freshWaiting { max-width:1120px; padding:24px 24px 120px; margin:0 auto; background:linear-gradient(#09070d4a,#09070d99),url('assets/lobby-reference.svg') center 54%/cover no-repeat; }
+#game.freshLobby.active.freshWaiting { max-width:1120px; padding:24px 24px 120px; margin:0 auto; background:linear-gradient(#09070d4a,#09070d99),url('assets/lobby-rooftop-violet.webp') center 54%/cover no-repeat; }
 #game.freshWaiting::before,#game.freshWaiting::after { display:none; }
 #game.freshWaiting .freshRoomHeader { position:static; width:100%; margin:24px 0; padding:24px; background:#151e28e8; border-color:var(--line); box-shadow:none; display:grid; grid-template-columns:1fr auto; gap:8px 24px; }
 #game.freshWaiting .freshRoomHeader h2 { margin:0; line-height:1.2; font-size:28px; }
