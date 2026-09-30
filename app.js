@@ -3547,21 +3547,25 @@ function openLobbyPlayerCard(playerId) {
   dialog.querySelector('[data-edit-own-lobby-profile]')?.addEventListener('click',()=>{dialog.close();openProfileEditor();},{once:true});
   if (!dialog.open) dialog.showModal();
 }
-document.addEventListener('click', event => {
-  const profile = event.target.closest('[data-lobby-card]');
-  if (profile) {
-    event.preventDefault();
-    event.stopPropagation();
-    openLobbyPlayerCard(profile.dataset.lobbyCard);
-  }
-});
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('click', event => {
+    const profile = event.target.closest?.('[data-lobby-card]');
+    if (profile) {
+      event.preventDefault();
+      event.stopPropagation();
+      openLobbyPlayerCard(profile.dataset.lobbyCard);
+    }
+  });
+}
 
-window.addEventListener('offline', () => {
-  if (gameSession) showRejoin('Keine Internetverbindung. Deine letzte GPS-Position bleibt für die Runde gespeichert.');
-});
-window.addEventListener('online', () => {
-  if (gameSession && connectionLost) rejoinGame();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('offline', () => {
+    if (gameSession) showRejoin('Keine Internetverbindung. Deine letzte GPS-Position bleibt für die Runde gespeichert.');
+  });
+  window.addEventListener('online', () => {
+    if (gameSession && connectionLost) rejoinGame();
+  });
+}
 
 function renderFreshLobby() {
   if(!state?.lobby)return;
