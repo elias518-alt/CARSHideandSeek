@@ -74,6 +74,22 @@ test('one query and a color create an owned vehicle with one year and inferred b
   assert.equal(f.$('#carModal').classList.contains('hidden'),true);
 });
 
+test('structured make-model picker infers BMW 420i as a coupe and repaints the preview',async()=>{
+  const f=formFixture();f.run('openCarModal()');
+  const brand=f.$('#newCarBrandPicker');brand.value='BMW';brand.dispatchEvent({type:'change'});
+  const model=f.$('#newCarModelPicker');
+  const index=model._vehicleChoices.findIndex(item=>item.model==='420i');
+  assert.ok(index>=0);
+  model.value=String(index+1);model.dispatchEvent({type:'change'});
+  assert.equal(f.$('#newCarBrand').value,'BMW');
+  assert.equal(f.$('#newCarModel').value,'420i');
+  assert.equal(f.$('#newCarBody').value,'Coupé');
+  f.color('Orange');
+  assert.equal(JSON.parse(f.$('#newCarPhotoPreview').innerHTML).color,'Orange');
+  await f.run('saveCar()');
+  assert.equal(f.writes[0].values.body_type,'Coupé');
+});
+
 test('editing preserves an explicit series in overlapping years, body and existing photo',async()=>{
   const car={id:'old-id',brand:'BMW',model:'3er',year:'1999',series:'E36 · 1990–2000',body:'Coupé',color:'Weiß',photo:'https://example.test/old.webp'};
   const f=formFixture([car]);f.run('editVehicle("old-id")');
