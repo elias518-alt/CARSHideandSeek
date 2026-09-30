@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { seekerCountFor, assignRoundRoles } = require('./game-rules');
+const { seekerCountFor, assignRoundRoles, roundRewardFor } = require('./game-rules');
 
 test('seeker count follows the agreed 2–20 player ratio', () => {
   assert.equal(seekerCountFor(1), 0);
@@ -29,4 +29,20 @@ test('host identity is not part of role assignment', () => {
   assignRoundRoles(players, () => 0);
   assert.equal(players.filter(player => player.role === 'SEEKER').length, 2);
   assert.notEqual(players[0].role === 'SEEKER' && players.slice(1).every(p => p.role === 'HIDER'), true);
+});
+
+
+test('round reward uses personal finds and survival state', () => {
+  assert.deepEqual(
+    roundRewardFor({ role: 'SEEKER', roundFinds: 3, found: false }, { seekersWin: true }),
+    { role: 'SEEKER', won: true, finds: 3, survived: false, baseXp: 340 }
+  );
+  assert.deepEqual(
+    roundRewardFor({ role: 'HIDER', roundFinds: 4, found: false }, { seekersWin: false }),
+    { role: 'HIDER', won: true, finds: 0, survived: true, baseXp: 280 }
+  );
+  assert.deepEqual(
+    roundRewardFor({ role: 'HIDER', found: true }, { seekersWin: false }),
+    { role: 'HIDER', won: false, finds: 0, survived: false, baseXp: 140 }
+  );
 });
