@@ -2452,7 +2452,8 @@ $('[data-page]')
       event => {
         if (gameSession && document.getElementById('game')?.classList.contains('active')) {
           event.preventDefault();
-          if (button.classList.contains('profileMini')) openLobbyPlayerCard(state?.lobby?.me?.id);
+          // The profileMini has its own overlay handler. Other page links are
+          // intentionally ignored until the player leaves the current round.
           return;
         }
         openPage(
