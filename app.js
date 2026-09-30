@@ -51,6 +51,7 @@ let lastGpsRequestAt = 0;
 let achievementCatalog = [];
 let achievementUnlocked = new Set();
 let resultClaimInFlight = '';
+let resultClaimRetryAt = 0;
 const claimedGameResults = new Set();
 
 
@@ -422,6 +423,7 @@ async function logout() {
   achievementCatalog = [];
   achievementUnlocked = new Set();
   resultClaimInFlight = '';
+  resultClaimRetryAt = 0;
   claimedGameResults.clear();
 
   $('#app')?.classList.add('hidden');
@@ -745,6 +747,7 @@ async function claimGameProgress(reward) {
   const resultId = reward?.resultId;
   if (!resultId || !authSession?.user?.id || !dbProfile) return;
   if (claimedGameResults.has(resultId) || resultClaimInFlight === resultId) return;
+  if (Date.now() < resultClaimRetryAt) return;
 
   resultClaimInFlight = resultId;
 
@@ -761,6 +764,7 @@ async function claimGameProgress(reward) {
     if (!data?.profile) throw new Error('Fortschritt konnte nicht bestätigt werden.');
 
     claimedGameResults.add(resultId);
+    resultClaimRetryAt = 0;
     dbProfile = {
       ...dbProfile,
       ...data.profile
@@ -779,6 +783,7 @@ async function claimGameProgress(reward) {
         : `Runde gespeichert · ${Number(data.xp_awarded) || 0} XP`);
     }
   } catch (error) {
+    resultClaimRetryAt = Date.now() + 10000;
     console.error('Rundenfortschritt konnte nicht gespeichert werden:', error);
   } finally {
     if (resultClaimInFlight === resultId) resultClaimInFlight = '';
