@@ -32,7 +32,6 @@ function editVehicle(id) {
   if(typeof syncVehiclePickers==='function')syncVehiclePickers(car);
   $('#carSearchResults').classList.add('hidden');
   $('#newCarSearch').setAttribute('aria-expanded','false');
-  $('#newCarColor').dispatchEvent(new Event('input'));
   $('#saveCar').textContent='Änderungen speichern';
   $('#carModal h2').textContent='FAHRZEUG BEARBEITEN';
   const known=vehicleCatalog.ranges(car.brand,car.model);
@@ -41,6 +40,7 @@ function editVehicle(id) {
   // Preserve an explicit saved series when the year alone cannot identify it.
   $('#newCarSeries').dataset.manual=String(!!car.series&&(!inferred||![inferred.label,inferred.name].includes(car.series)));
   refreshVehicleForm();
+  $('#newCarColor').dispatchEvent(new Event('input'));
   $('#newCarPhotoPreview').innerHTML=carPhotoMarkup(car);
 }
 
