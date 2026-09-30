@@ -84,8 +84,8 @@ test('structured make-model picker infers BMW 420i as a coupe and repaints the p
   assert.equal(f.$('#newCarBrand').value,'BMW');
   assert.equal(f.$('#newCarModel').value,'420i');
   assert.equal(f.$('#newCarBody').value,'Coupé');
-  f.color('Orange');
-  assert.equal(JSON.parse(f.$('#newCarPhotoPreview').innerHTML).color,'Orange');
+  f.color('Blau');
+  assert.equal(JSON.parse(f.$('#newCarPhotoPreview').innerHTML).color,'Blau');
   await f.run('saveCar()');
   assert.equal(f.writes[0].values.body_type,'Coupé');
 });
