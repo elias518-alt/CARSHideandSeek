@@ -99,6 +99,8 @@ function initialize(data) {
       map.addSource('game-radius', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({ id: 'game-radius-fill', type: 'fill', source: 'game-radius', paint: { 'fill-color': '#ff762b', 'fill-opacity': 0.09 } });
       map.addLayer({ id: 'game-radius-outline', type: 'line', source: 'game-radius', paint: { 'line-color': '#ff762b', 'line-width': 3, 'line-dasharray': [2, 2] } });
+      map.addSource('find-trail',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addLayer({id:'find-trail-line',type:'line',source:'find-trail',paint:{'line-color':'#ffcc44','line-width':4}});
       map.addSource('meetup-route', {type:'geojson',data:{type:'FeatureCollection',features:[]}});
       map.addLayer({id:'meetup-route-line',type:'line',source:'meetup-route',paint:{'line-color':'#b5ff32','line-width':5}});
       updateMap(latest);
@@ -184,8 +186,10 @@ function updateMap(gameState) {
   updateCircle(data);
   updateMarkers(data, gameState?.lobby?.me?.id);
   if (!gameState?.map) setStatus('Keine Kartendaten vom Spielserver. Bitte die Serverversion des Karten-Updates bereitstellen.');
+  else if (gameState?.lobby?.state==='RESULT'||gameState?.lobby?.me?.eliminated||gameState?.lobby?.me?.found) setStatus('Standortübertragung beendet.');
   else if (!data.positions?.length) setStatus('Straßenkarte bereit. Warte auf GPS – Standortzugriff erlauben.');
   else setStatus('');
+  updateFindTrail(gameState);
   updateMeetup(gameState);
 }
 document.getElementById('mapFollow')?.addEventListener('click', () => {
@@ -197,6 +201,7 @@ document.getElementById('mapFollow')?.addEventListener('click', () => {
 window.chsMapUpdate = updateMap;
 window.chsMapReset = () => {
   latest = null;
+  clearFindTrail();
   clearMeetup();
   for (const marker of markers.values()) marker.remove();
   markers.clear();
@@ -266,4 +271,17 @@ async function updateMeetup(gameState) {
     map.getSource('meetup-route')?.setData({type:'FeatureCollection',features:[]});
     meetupMessage='Treffpunkt sichtbar · '+error.message;setStatus(meetupMessage);
   } finally {if(epoch===meetupEpoch)meetupBusy=false;}
+}
+
+let findTrailId='',findTrailPoints=[];
+function clearFindTrail(){findTrailId='';findTrailPoints=[];map?.getSource('find-trail')?.setData({type:'FeatureCollection',features:[]});}
+function updateFindTrail(gameState){
+  const lock=gameState?.locks?.find(item=>item.seekerId===gameState.lobby?.me?.id);
+  const target=gameState?.map?.positions?.find(item=>item.id===lock?.targetId);
+  if(!lock||gameState?.lobby?.state!=='ACTIVE'||!validPoint(target)){clearFindTrail();return;}
+  if(findTrailId!==lock.id){clearFindTrail();findTrailId=lock.id;}
+  const last=findTrailPoints.at(-1);
+  if(!last||last.at!==target.updatedAt)findTrailPoints.push({at:target.updatedAt,coordinate:[target.lng,target.lat]});
+  findTrailPoints=findTrailPoints.slice(-30);
+  map.getSource('find-trail')?.setData(findTrailPoints.length<2?{type:'FeatureCollection',features:[]}:{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:findTrailPoints.map(item=>item.coordinate)}});
 }

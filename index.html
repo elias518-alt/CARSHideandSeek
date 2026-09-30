@@ -17,13 +17,13 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260930-22">
+    href="style.css?v=20260930-gameplay">
 
 
   <title>CAR HIDE & SEEK</title>
 <link rel="stylesheet" href="premium.css?v=20260930-22">
-<link rel="stylesheet" href="design-reference.css?v=20260930-adaptive">
-<link rel="stylesheet" href="crew-lobby.css?v=20260930-adaptive">
+<link rel="stylesheet" href="design-reference.css?v=20260930-gameplay">
+<link rel="stylesheet" href="crew-lobby.css?v=20260930-gameplay">
 </head>
 
 
@@ -859,7 +859,7 @@
 
         <label>
 
-          ESCAPE
+          FUND-COUNTDOWN
 
           <select id="escape">
 
@@ -873,10 +873,6 @@
 
               15 Sek.
 
-            </option>
-
-            <option value="30">
-              30 Sek.
             </option>
 
           </select>
@@ -1902,7 +1898,9 @@
 
 <label class="lobbyBackgroundChoice">HINTERGRUND<select id="lobbyBackground"></select><small class="fieldHint">Für die gesamte Crew. Bereit-Meldungen bleiben erhalten.</small></label>
 
-        <div class="settingsGrid">
+        <label>SPIELVORLAGE<select id="lobbyPreset"><option value="custom">Individuell</option><option value="quick">Schnell · 500 m · 5 Min.</option><option value="normal">Normal · 1 km · 15 Min.</option><option value="large">Groß · 3 km · 30 Min.</option></select></label>
+<label>ERSATZSUCHER<select id="lobbyReplacement"><option value="true">Bei Ausfall Verstecker nachrücken lassen</option><option value="false">Ohne Ersatz weiterspielen; ohne Sucher endet die Runde</option></select></label>
+<div class="settingsGrid">
 
           <label>
 
@@ -1971,6 +1969,7 @@
                 1 Min.
               </option>
 
+              <option value="120">2 Min.</option>
               <option value="180">
                 3 Min.
               </option>
@@ -1986,7 +1985,7 @@
 
           <label>
 
-            ESCAPE
+            FUND-COUNTDOWN
 
             <select id="lobbyEscape">
 
@@ -1996,10 +1995,6 @@
 
               <option value="15">
                 15 Sek.
-              </option>
-
-              <option value="30">
-                30 Sek.
               </option>
 
             </select>
@@ -2160,7 +2155,7 @@
           class="escape hidden">
 
           <span>
-            ESCAPE WINDOW
+            FUND-COUNTDOWN
           </span>
 
           <strong>
@@ -2224,7 +2219,7 @@
 
 
       <div id="targetButtons"></div>
-      <p id="findFeedback" role="status" aria-live="polite">Fahrzeug entdeckt? Tippe auf „Fund melden“. GPS und Entfernung werden geprüft.</p>
+      <p id="findFeedback" role="status" aria-live="polite">Fahrzeug entdeckt? Starte den Fund-Countdown, sobald die Position bestätigt ist. GPS und Entfernung werden geprüft.</p>
 
 
       <small id="cooldown"></small>
@@ -2652,18 +2647,19 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="vehicle-catalog.js?v=20260930-adaptive"></script>
+<script src="vehicle-catalog.js?v=20260930-gameplay"></script>
 <script src="vehicle-search.js?v=20260930-22"></script>
-<script src="lobby-scene.js?v=20260930-adaptive"></script>
-<script src="app.js?v=20260930-adaptive"></script>
+<script src="lobby-scene.js?v=20260930-gameplay"></script>
+<script src="gameplay-ui.js?v=20260930-gameplay"></script>
+<script src="app.js?v=20260930-gameplay"></script>
 
 <script src="garage-actions.js?v=20260930-22"></script>
-<script src="social.js?v=20260930-adaptive"></script>
+<script src="social.js?v=20260930-gameplay"></script>
 <script src="ui-icons.js?v=20260930-22"></script>
 
 <script
   type="module"
-  src="map.js?v=20260930-adaptive">
+  src="map.js?v=20260930-gameplay">
 </script>
 
 

@@ -4939,3 +4939,5 @@ body.freshChatOpen {
   #game.liveRound .freshToolButtons button { min-width: 42px; min-height: 42px; }
 }
 
+
+.gameplayDetails{padding:12px;margin:12px 0;border:1px solid #3c4650;border-radius:12px;background:#10171e;overflow:auto}.gameplayDetails p{font-size:13px;line-height:1.5}.gameplayDetails button{margin:4px;padding:10px;font-size:12px}.gameplayDetails label{display:block;margin:10px 0;font-size:12px}.gameplayDetails input{width:auto}.gameplayResults{width:100%;font-size:12px;border-collapse:collapse}.gameplayResults td,.gameplayResults th{padding:8px;text-align:left;border-bottom:1px solid #3c4650}
