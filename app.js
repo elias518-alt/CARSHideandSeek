@@ -3591,8 +3591,7 @@ function lobbyCharacterMarkup(player) {
   let hash=0;for(const ch of String(player.profileId||player.id))hash=(hash*31+ch.charCodeAt(0))>>>0;
   const fallback=hash%3;
   const skin=Number.isInteger(player?.characterStyle) ? Math.max(0,Math.min(2,player.characterStyle)) : fallback;
-  const pose=hash%3;
-  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin} lobbyCrewPose--${pose}" aria-hidden="true"></span>`;
+  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin} lobbyCrewPose--side" aria-hidden="true"></span>`;
 }
 
 function openLobbyPlayerCard(playerId) {
