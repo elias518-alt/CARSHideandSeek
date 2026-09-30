@@ -312,7 +312,9 @@ async function route(action, data, authId) {
       existing.bodyType = clean(data.bodyType, 30) || existing.bodyType || '';
       existing.photoUrl = safePhotoUrl(data.photoUrl) || existing.photoUrl || '';
       existing.avatarUrl = safePhotoUrl(data.avatarUrl) || existing.avatarUrl || '';
-      existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || existing.characterStyle || 0)));
+      if (Number.isFinite(number(data.characterStyle))) {
+        existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle))));
+      }
       existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       existing.lastSeen = now;
