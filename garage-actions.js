@@ -3,17 +3,18 @@ let editingVehicleId = null;
 
 function refreshVehicleForm() {
   const brand=$('#newCarBrand').value.trim(), model=$('#newCarModel').value.trim();
-  const select=$('#newCarGeneration');
+  const series=$('#newCarSeries'), year=$('#newCarYear').value.trim();
   const signature=brand.toLowerCase()+'|'+model.toLowerCase();
-  if(select.dataset.model!==signature) {
-    $('#newCarSeries').value='';
-    select.dataset.model=signature;
-    select.replaceChildren(new Option('Baureihe selbst angeben / unbekannt',''));
-    for(const item of vehicleCatalog.ranges(brand,model))select.add(new Option(item.label,item.label));
+  const known=vehicleCatalog.ranges(brand,model);
+  const matching=year && !vehicleCatalog.yearError(year)
+    ? known.filter(item=>Number(year)>=item.from&&(!item.to||Number(year)<=item.to)) : [];
+  if(series.dataset.manual!=='true'){
+    series.value=matching.length===1?matching[0].label:'';
   }
-  $('#generationHint').textContent=select.options.length>1
-    ? 'Bauzeiten für Europa; Karosserievarianten können abweichen. Alternativ eigene Baureihe eintragen.'
-    : 'Für dieses Modell bitte Baujahr und bei Bedarf die Baureihe selbst angeben.';
+  series.dataset.model=signature;
+  const selected=known.find(item=>item.label===series.value||item.name===series.value);
+  $('#generationHint').textContent=selected?'Baureihe: '+selected.name:
+    series.value?'Baureihe: '+series.value:brand&&model?'Baureihe kannst du bei Bedarf ergänzen.':'';
   if(!pendingCarPhoto){
     const existing=localGarage.find(car=>car.id===editingVehicleId);
     $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,body:$('#newCarBody').value,photo:existing?.photo});
@@ -27,11 +28,18 @@ function editVehicle(id) {
   $('#newCarBrand').value=car.brand;$('#newCarModel').value=car.model;
   $('#newCarYear').value=car.year||'';$('#newCarBody').value=car.body||'';
   $('#newCarColor').value=car.color||'';$('#newCarSeries').value=car.series||'';
+  $('#newCarSearch').value=car.brand+' '+car.model;
+  $('#carSearchResults').classList.add('hidden');
+  $('#newCarSearch').setAttribute('aria-expanded','false');
+  $('#newCarColor').dispatchEvent(new Event('input'));
   $('#saveCar').textContent='Änderungen speichern';
   $('#carModal h2').textContent='FAHRZEUG BEARBEITEN';
+  const known=vehicleCatalog.ranges(car.brand,car.model);
+  const matching=car.year?known.filter(item=>Number(car.year)>=item.from&&(!item.to||Number(car.year)<=item.to)):[];
+  const inferred=matching.length===1?matching[0]:null;
+  // Preserve an explicit saved series when the year alone cannot identify it.
+  $('#newCarSeries').dataset.manual=String(!!car.series&&(!inferred||![inferred.label,inferred.name].includes(car.series)));
   refreshVehicleForm();
-  $('#newCarSeries').value=car.series||'';
-  if([...$('#newCarGeneration').options].some(option=>option.value===car.series))$('#newCarGeneration').value=car.series;
   $('#newCarPhotoPreview').innerHTML=carPhotoMarkup(car);
 }
 
@@ -88,6 +96,8 @@ $('#garageCars').addEventListener('click',event=>{
   if(edit)editVehicle(edit.dataset.editCar);
 });
 $('#newCarBody').addEventListener('input',refreshVehicleForm);
-$('#newCarGeneration').addEventListener('change',()=>{
-  $('#newCarSeries').value=$('#newCarGeneration').value;
+$('#newCarYear').addEventListener('input',refreshVehicleForm);
+$('#newCarSeries').addEventListener('input',()=>{
+  $('#newCarSeries').dataset.manual='true';
+  refreshVehicleForm();
 });

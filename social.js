@@ -1,69 +1,81 @@
 'use strict';
-/* Zusätzliche Oberfläche. Die vorhandene Spiel- und Auth-Logik in app.js bleibt bestehen. */
-const brands = `Abarth|Acura|Alfa Romeo|Aston Martin|Audi|Bentley|BMW|Buick|BYD|Cadillac|Chevrolet|Chrysler|Citroën|Cupra|Dacia|Daewoo|Daihatsu|Dodge|DS|Ferrari|Fiat|Ford|Genesis|GMC|Honda|Hyundai|Infiniti|Isuzu|Jaguar|Jeep|Kia|Lada|Lamborghini|Lancia|Land Rover|Lexus|Lincoln|Lotus|Maserati|Mazda|McLaren|Mercedes-Benz|MG|Mini|Mitsubishi|Nissan|Opel|Peugeot|Polestar|Porsche|Ram|Renault|Rolls-Royce|Saab|Seat|Škoda|Smart|Subaru|Suzuki|Tesla|Toyota|Volkswagen|Volvo`.split('|');
-const models = {
-  'Audi':['A1','A3','A4','A5','A6','A7','A8','Q2','Q3','Q5','Q7','Q8','TT','e-tron'],
-  'BMW':['1er','2er','3er','4er','5er','6er','7er','8er','E30','E36','E46','E90','F30','G20','G31','M2','M3','M4','M5','X1','X3','X5','X6','X7','Z3','Z4'],
-  'Mercedes-Benz':['A-Klasse','B-Klasse','C-Klasse','E-Klasse','S-Klasse','CLA','CLS','GLA','GLB','GLC','GLE','GLS','G-Klasse','V-Klasse','AMG GT'],
-  'Volkswagen':['up!','Polo','Golf','Passat','Arteon','T-Cross','T-Roc','Tiguan','Touareg','Touran','Caddy','Transporter','ID.3','ID.4','ID.5','ID.7'],
-  'Porsche':['911','718 Cayman','718 Boxster','Panamera','Macan','Cayenne','Taycan'],
-  'Opel':['Corsa','Astra','Insignia','Mokka','Crossland','Grandland','Zafira'],
-  'Ford':['Fiesta','Focus','Mondeo','Kuga','Puma','Mustang','Ranger','Transit'],
-  'Toyota':['Aygo','Yaris','Corolla','Prius','Camry','RAV4','C-HR','Supra','Land Cruiser'],
-  'Škoda':['Fabia','Scala','Octavia','Superb','Kamiq','Karoq','Kodiaq','Enyaq'],
-  'Seat':['Ibiza','Leon','Arona','Ateca','Tarraco'],
-  'Cupra':['Born','Formentor','Leon','Ateca','Tavascan'],
-  'Hyundai':['i10','i20','i30','Kona','Tucson','Santa Fe','Ioniq 5','Ioniq 6'],
-  'Kia':['Picanto','Rio','Ceed','XCeed','Sportage','Sorento','EV3','EV6','EV9'],
-  'Renault':['Clio','Megane','Captur','Austral','Scenic','Twingo','R5'],
-  'Peugeot':['208','308','408','508','2008','3008','5008'],
-  'Fiat':['500','Panda','Tipo','Punto','Ducato'],
-  'Honda':['Civic','Jazz','Accord','HR-V','CR-V','e'],
-  'Mazda':['2','3','6','CX-3','CX-5','CX-30','MX-5'],
-  'Nissan':['Micra','Juke','Qashqai','X-Trail','Leaf','GT-R'],
-  'Volvo':['V40','V60','V90','S60','S90','XC40','XC60','XC90'],
-  'Tesla':['Model 3','Model Y','Model S','Model X'],
-  'Dacia':['Sandero','Duster','Jogger','Spring'],
-  'Citroën':['C1','C3','C4','C5','Berlingo'],
-  'Mini':['Cooper','Clubman','Countryman'],
-  'Land Rover':['Defender','Discovery','Range Rover','Range Rover Sport','Evoque']
-};
-const norm = s => String(s || '').toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-function suggestions(input, box, entries, kind) {
-  const q = norm(input.value.trim());
-  const matches = entries.filter(item => !q || norm(item).includes(q)).slice(0, 9);
-  box.innerHTML = matches.map(item => `<button type="button" data-${kind}="${esc(item)}">${esc(item)}</button>`).join('');
-  box.classList.toggle('hidden', !matches.length);
+/* Social RPCs are unchanged. Vehicle selection uses one searchable field. */
+let chooseSearchedVehicle=()=>{};
+function commitVehicleSearch(){
+  if($('#newCarBrand').value&&$('#newCarModel').value)return true;
+  const choice=vehicleSearch.search($('#newCarSearch').value).find(item=>item.exact);
+  if(!choice)return false;
+  chooseSearchedVehicle(choice);return true;
 }
-function setupVehicleSearch() {
-  const brand = $('#newCarBrand'), model = $('#newCarModel');
-  const brandBox = $('#brandSuggestions'), modelBox = $('#modelSuggestions');
-  if (!brand || !model) return;
-  const showBrands = () => suggestions(brand, brandBox, brands, 'brand');
-  const showModels = () => {
-    const canonical = brands.find(x => norm(x) === norm(brand.value.trim()));
-    suggestions(model, modelBox, models[canonical] || [], 'model');
+function setupVehicleSearch(){
+  const input=$('#newCarSearch'),box=$('#carSearchResults');
+  if(!input||!box)return;
+  let choices=[],highlighted=-1;
+  const close=()=>{box.classList.add('hidden');input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');highlighted=-1;};
+  const paintHighlight=()=>{
+    box.querySelectorAll('[role="option"]').forEach((button,index)=>{
+      button.classList.toggle('selected',index===highlighted);
+      button.setAttribute('aria-selected',String(index===highlighted));
+    });
+    const active=box.children[highlighted];
+    if(active){input.setAttribute('aria-activedescendant',active.id);active.scrollIntoView({block:'nearest'});}
   };
-  brand.addEventListener('focus', showBrands);
-  brand.addEventListener('input', () => { showBrands(); model.value = ''; modelBox.innerHTML = ''; refreshVehicleForm(); });
-  model.addEventListener('focus', showModels);
-  model.addEventListener('input', () => { showModels(); refreshVehicleForm(); });
-  brandBox.addEventListener('click', event => {
-    event.stopPropagation();
-    const button = event.target.closest('[data-brand]'); if (!button) return;
-    brand.value = button.dataset.brand; model.value=''; brandBox.classList.add('hidden'); refreshVehicleForm();
-    model.focus(); showModels();
+  const show=()=>{
+    choices=vehicleSearch.search(input.value);highlighted=-1;
+    box.innerHTML=choices.map((choice,index)=>`<button id="carSearchOption${index}" type="button" role="option" aria-selected="false" data-car-choice="${index}"><span>${esc(choice.label)}</span><small>${choice.year?'Baujahr '+esc(choice.year):choice.manual?'Eigene Angabe übernehmen':'Auswählen'}</small></button>`).join('');
+    box.classList.toggle('hidden',!choices.length);
+    input.setAttribute('aria-expanded',String(!!choices.length));
+  };
+  chooseSearchedVehicle=choice=>{
+    const changed=$('#newCarBrand').value!==choice.brand||$('#newCarModel').value!==choice.model;
+    $('#newCarBrand').value=choice.brand;$('#newCarModel').value=choice.model;
+    input.value=choice.brand+' '+choice.model;
+    if(choice.year)$('#newCarYear').value=choice.year;
+    const series=$('#newCarSeries');
+    series.value=choice.series||'';series.dataset.manual=String(!!choice.series);
+    if(changed||!$('#newCarBody').value){
+      const bodies={hatch:'Compact',sedan:'Limousine',wagon:'Touring',suv:'SUV',coupe:'Coupé',van:'Van'};
+      $('#newCarBody').value=bodies[vehicleCatalog.shape({brand:choice.brand,model:choice.model})]||'';
+    }
+    refreshVehicleForm();close();
+  };
+  input.addEventListener('focus',show);
+  input.addEventListener('input',()=>{
+    $('#newCarBrand').value='';$('#newCarModel').value='';
+    $('#newCarSeries').value='';$('#newCarSeries').dataset.manual='false';
+    refreshVehicleForm();show();
   });
-  modelBox.addEventListener('click', event => {
-    event.stopPropagation();
-    const button = event.target.closest('[data-model]'); if (!button) return;
-    model.value = button.dataset.model; modelBox.classList.add('hidden'); refreshVehicleForm();
-    $('#newCarYear')?.focus();
+  input.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){close();return;}
+    if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+      event.preventDefault();if(box.classList.contains('hidden'))show();
+      if(!choices.length)return;
+      highlighted=highlighted<0?(event.key==='ArrowDown'?0:choices.length-1):
+        (highlighted+(event.key==='ArrowDown'?1:-1)+choices.length)%choices.length;
+      paintHighlight();
+    }
+    if(event.key==='Enter'&&!box.classList.contains('hidden')&&choices.length){
+      event.preventDefault();
+      chooseSearchedVehicle(choices[highlighted<0?0:highlighted]);
+      $('#newCarYear').focus();
+    }
   });
-  document.addEventListener('click', event => {
-    if (!event.target.closest('#newCarBrand,#brandSuggestions')) brandBox.classList.add('hidden');
-    if (!event.target.closest('#newCarModel,#modelSuggestions')) modelBox.classList.add('hidden');
+  box.addEventListener('click',event=>{
+    const button=event.target.closest('[data-car-choice]');if(!button)return;
+    chooseSearchedVehicle(choices[Number(button.dataset.carChoice)]);
+    $('#newCarYear').focus();
   });
+  const colorInput=$('#newCarColor');
+  const paintColor=()=>document.querySelectorAll('[data-car-color]').forEach(button=>{
+    const selected=button.dataset.carColor===colorInput.value;
+    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  });
+  $('#carModal .carColorChoices').addEventListener('click',event=>{
+    const button=event.target.closest('[data-car-color]');if(!button)return;
+    colorInput.value=button.dataset.carColor;paintColor();
+  });
+  colorInput.addEventListener('input',paintColor);
+  document.addEventListener('click',event=>{if(!event.target.closest('.carSearchField'))close();});
 }
 
 let socialRows = [];
@@ -443,4 +455,3 @@ document.addEventListener('click',event=>{
   const button=event.target.closest('[data-lobby-profile]');
   if(button)openLobbyFriend(button.dataset.lobbyProfile);
 });
-

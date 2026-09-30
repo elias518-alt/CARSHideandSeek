@@ -17,14 +17,15 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260929-15">
+    href="style.css?v=20260930-16">
 
   <link
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
 
   <title>CAR HIDE & SEEK</title>
-<link rel="stylesheet" href="premium.css?v=20260929-15">
+<link rel="stylesheet" href="premium.css?v=20260930-16">
+<link rel="stylesheet" href="crew-lobby.css?v=20260930-16">
 </head>
 
 
@@ -2355,51 +2356,14 @@
 
 
 
-      <!-- MARKE -->
-
-      <label>
-
-        MARKE
-
-        <input
-          id="newCarBrand"
-          autocomplete="off"
-          placeholder="z. B. BMW">
-
-      </label>
-
-
-      <div
-        id="brandSuggestions"
-        class="vehicleSuggestions">
+      <input id="newCarBrand" type="hidden">
+      <input id="newCarModel" type="hidden">
+      <div class="carSearchField">
+        <label for="newCarSearch">DEIN FAHRZEUG</label>
+        <input id="newCarSearch" autocomplete="off" placeholder="z. B. BMW 3er 2015 oder Ford Focus"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="carSearchResults">
+        <div id="carSearchResults" class="carSearchResults hidden" role="listbox" aria-label="Fahrzeugvorschläge"></div>
       </div>
-
-
-
-      <!-- MODELL -->
-
-      <label>
-
-        MODELL / BAUREIHE
-
-        <input
-          id="newCarModel"
-          autocomplete="off"
-          placeholder="z. B. 3er / E36">
-
-      </label>
-
-
-      <div
-        id="modelSuggestions"
-        class="vehicleSuggestions">
-      </div>
-
-
-
-      <label>MODELLGENERATION<select id="newCarGeneration"><option value="">Baureihe selbst angeben / unbekannt</option></select></label>
-      <small id="generationHint" class="fieldHint"></small>
-      <label>BAUREIHE / BAUZEIT (OPTIONAL)<input id="newCarSeries" maxlength="100" placeholder="z. B. III · 2011–2018"></label>
       <!-- BAUJAHR / KAROSSERIE -->
 
       <div class="inputGrid">
@@ -2412,7 +2376,7 @@
             id="newCarYear"
             inputmode="numeric"
             maxlength="4"
-            placeholder="1996">
+            placeholder="z. B. 2015">
 
         </label>
 
@@ -2468,6 +2432,13 @@
         </label>
 
       </div>
+
+      <small id="generationHint" class="fieldHint" aria-live="polite"></small>
+      <details id="carSeriesDetails" class="carOptionalDetails">
+        <summary>Baureihe ergänzen <span>optional</span></summary>
+        <label for="newCarSeries">BAUREIHE</label>
+        <input id="newCarSeries" maxlength="100" placeholder="z. B. E36">
+      </details>
 
 
 
@@ -2722,16 +2693,17 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="vehicle-catalog.js?v=20260929-15"></script>
-<script src="app.js?v=20260929-15"></script>
+<script src="vehicle-catalog.js?v=20260930-16"></script>
+<script src="vehicle-search.js?v=20260930-16"></script>
+<script src="app.js?v=20260930-16"></script>
 
-<script src="garage-actions.js?v=20260929-15"></script>
-<script src="social.js?v=20260929-15"></script>
-<script src="ui-icons.js?v=20260929-15"></script>
+<script src="garage-actions.js?v=20260930-16"></script>
+<script src="social.js?v=20260930-16"></script>
+<script src="ui-icons.js?v=20260930-16"></script>
 
 <script
   type="module"
-  src="map.js?v=20260929-15">
+  src="map.js?v=20260930-16">
 </script>
 
 
