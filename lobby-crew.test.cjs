@@ -30,6 +30,8 @@ test('the waiting crew has one character per car and the host in the center grou
   const f=lobbyFixture('LOBBY',20);f.render();const markup=f.node('players').innerHTML;
   assert.equal((markup.match(/<article/g)||[]).length,20);
   assert.equal((markup.match(/aria-hidden="true"/g)||[]).length,20);
+  assert.equal((markup.match(/lobbyCrewPose--side/g)||[]).length,20);
+  assert.doesNotMatch(markup,/lobbyCrewPose--[012]/);
   const center=markup.split('<div class="freshCrewLead">')[1].split('<div class="freshCrewWing freshCrewWing--right">')[0];
   assert.match(center,/<h3>Player 0/);
   assert.equal((center.match(/<article/g)||[]).length,1);
@@ -65,4 +67,11 @@ test('legacy uploaded vehicle photos stay visible instead of falling back to the
   const markup=f.node('players').innerHTML;
   assert.match(markup,/class="lobbyModelCar lobbyModelCar--raw"/);
   assert.match(markup,/https:\/\/example\.com\/user-car\.jpg/);
+});
+
+
+test('waiting lobby uses the violet reference scene instead of the old blue background',()=>{
+  const css=fs.readFileSync(__dirname+'/crew-lobby.css','utf8');
+  assert.match(css,/assets\/lobby-reference\.svg/);
+  assert.doesNotMatch(css,/lobby-bg\.png|night-hunt\.webp/);
 });
