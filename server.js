@@ -125,6 +125,7 @@ function newPlayer(data, authId) {
     bodyType: clean(data.bodyType,30),
     photoUrl: safePhotoUrl(data.photoUrl),
     avatarUrl: safePhotoUrl(data.avatarUrl),
+    characterStyle: Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || 0))),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: Math.max(1, Math.min(50, Math.trunc(number(data.level) || 1))),
     role: null, ready: false, found: false, roundFinds: 0, location: null,
@@ -134,9 +135,9 @@ function newPlayer(data, authId) {
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
     id: p.id, profileId: p.authId, name: p.name, vehicle: p.vehicle, color: p.color, bodyType: p.bodyType || '',
-    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', mode: p.mode,
+    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found,
-    connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge)
+    connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge), hasStoredLocation: !!p.location
   };
 }
 function updateGame(lobby, now = Date.now()) {
@@ -185,10 +186,14 @@ function resultState(lobby, me) {
     map: {
       center: lobby.origin ? { lat: lobby.origin.lat, lng: lobby.origin.lng } : null,
       radius: lobby.radius,
-      positions: lobby.players.filter(p => fresh(p, now, locationMaxAge)).map(p => ({
+      // Last known positions deliberately stay on the map while a player is offline.
+      // Freshness is still enforced separately for proximity/found validation.
+      positions: lobby.players.filter(p => p.location).map(p => ({
         id: p.id, name: p.name, role: p.role, found: p.found,
         lat: p.location.lat, lng: p.location.lng,
-        accuracy: p.location.accuracy, updatedAt: p.location.at
+        accuracy: p.location.accuracy, updatedAt: p.location.at,
+        connected: now - p.lastSeen < 30000,
+        stale: !fresh(p, now, locationMaxAge)
       }))
     },
     cooldownUntil: me.cooldownUntil, escapeUntil: 0,
@@ -283,7 +288,7 @@ async function route(action, data, authId) {
     const lobby = {
       code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
       hostId: player.id, players: [player], state: 'LOBBY', result: null,
-      radius: Math.min(10000, Math.max(200, number(data.radius) || 3000)),
+      radius: Math.min(10000, Math.max(50, number(data.radius) || 3000)),
       duration: Math.min(3600, Math.max(300, number(data.duration) || 900)),
       headstart: Math.min(300, Math.max(30, number(data.headstart) || 180)),
       escape: Math.min(30, Math.max(10, number(data.escape) || 15)),
@@ -296,21 +301,27 @@ async function route(action, data, authId) {
   if (action === 'join') {
     const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
     if (!lobby) fail(404, 'Lobby nicht gefunden.');
-    if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
-    if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
+
+    // A known authenticated participant may rejoin every running phase.
+    // New players are still restricted to the waiting lobby.
     const existing = lobby.players.find(p => p.authId === authId);
     if (existing) {
       existing.name = clean(data.name, 24) || existing.name;
       existing.vehicle = clean(data.vehicle, 70) || existing.vehicle;
       existing.color = clean(data.color, 30) || existing.color;
+      existing.bodyType = clean(data.bodyType, 30) || existing.bodyType || '';
       existing.photoUrl = safePhotoUrl(data.photoUrl) || existing.photoUrl || '';
-      existing.avatarUrl = safePhotoUrl(data.avatarUrl);
+      existing.avatarUrl = safePhotoUrl(data.avatarUrl) || existing.avatarUrl || '';
+      existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || existing.characterStyle || 0)));
       existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       existing.lastSeen = now;
       clearLobbyInvitesFor(authId, lobby.code);
       return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
     }
+
+    if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
+    if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
     const player = newPlayer(data, authId);
     if (lobby.visibility === 'PUBLIC') {
       const location = parsePosition(data, LOBBY_MAX_ACCURACY_M);
@@ -331,7 +342,7 @@ async function route(action, data, authId) {
     const name = clean(data.lobbyName, 40);
     if (!name) fail(400, 'Bitte einen Lobby-Namen eingeben.');
     if (!['PUBLIC', 'PRIVATE'].includes(data.visibility)) fail(400, 'Ungültige Sichtbarkeit.');
-    const bounds = { radius: [200, 10000], duration: [300, 3600], headstart: [30, 300], escape: [10, 30] };
+    const bounds = { radius: [50, 10000], duration: [300, 3600], headstart: [30, 300], escape: [10, 30] };
     const values = {};
     for (const [key, [min, max]] of Object.entries(bounds)) {
       if (typeof data[key] !== 'number' || !Number.isInteger(data[key]) || data[key] < min || data[key] > max)
