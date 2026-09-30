@@ -56,3 +56,13 @@ test('polling unchanged players preserves the existing crew nodes and invite act
   assert.equal(f.node('players').writes,2);
   assert.match(f.node('players').innerHTML,/WARTET/);
 });
+
+
+test('legacy uploaded vehicle photos stay visible instead of falling back to the blue generic car',()=>{
+  const f=lobbyFixture('LOBBY',2);
+  f.state.lobby.players[0].photoUrl='https://example.com/user-car.jpg';
+  f.render();
+  const markup=f.node('players').innerHTML;
+  assert.match(markup,/class="lobbyModelCar lobbyModelCar--raw"/);
+  assert.match(markup,/https:\/\/example\.com\/user-car\.jpg/);
+});

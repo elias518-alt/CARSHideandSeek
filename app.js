@@ -46,6 +46,7 @@ let gpsHeartbeat = null;
 let publicSearchBusy = false;
 let publicSearchLastAt = 0;
 let garageSyncBusy = false;
+const legacyCutoutAttempts = new Set();
 let connectionLost = false;
 let rejoinBusy = false;
 let gpsPhase = '';
@@ -153,6 +154,58 @@ function cloudVehicleToLocal(row) {
     photoPath: row.photo_path || '',
     photo: row.photo_path ? vehiclePhotoUrl(row.photo_path) : ''
   };
+}
+
+async function migrateLegacyVehicleCutout(car) {
+  if (!authSession?.user?.id || !car?.id) return false;
+
+  const source = vehiclePhotoSource(car.photo);
+  if (!source || isLobbyCutout(source) || legacyCutoutAttempts.has(car.id)) return false;
+
+  legacyCutoutAttempts.add(car.id);
+
+  try {
+    const response = await fetch(source, { cache: 'no-store' });
+    if (!response.ok) throw new Error('Gespeichertes Fahrzeugfoto konnte nicht geladen werden.');
+
+    const blob = await response.blob();
+    const prepared = await prepareVehiclePhoto(blob);
+    const result = await api('remove-background', { image: prepared });
+
+    if (!result?.image || !/^data:image\/png;base64,/.test(result.image)) {
+      throw new Error('Das vorhandene Fahrzeugfoto konnte nicht freigestellt werden.');
+    }
+
+    const transparentBlob = await (await fetch(result.image)).blob();
+    const image = await loadImageFromBlob(transparentBlob);
+    const cutoutDataUrl = cropTransparentVehicle(image);
+    const previousPhotoPath = car.photoPath || '';
+    const photoPath = await uploadVehiclePhoto(car.id, cutoutDataUrl, true);
+
+    const { error } = await supabaseClient
+      .from('vehicles')
+      .update({ photo_path: photoPath })
+      .eq('id', car.id)
+      .eq('user_id', authSession.user.id);
+
+    if (error) throw error;
+
+    car.photoPath = photoPath;
+    car.photo = vehiclePhotoUrl(photoPath);
+    saveGarage();
+    syncVehicleUI();
+
+    if (previousPhotoPath && previousPhotoPath !== photoPath) {
+      try {
+        await supabaseClient.storage.from('vehicle-images').remove([previousPhotoPath]);
+      } catch {}
+    }
+
+    return true;
+  } catch (error) {
+    console.warn('Legacy-Fahrzeugfoto bleibt vorerst als Originalbild sichtbar:', error);
+    return false;
+  }
 }
 
 async function uploadVehiclePhoto(vehicleId, dataUrl, cutout = false) {
@@ -306,6 +359,7 @@ async function loadCloudGarage({ migrateLocal = true } = {}) {
 
     saveGarage();
     syncVehicleUI();
+    void migrateLegacyVehicleCutout(activeCar());
   } catch (error) {
     console.error('Cloud-Garage konnte nicht geladen werden:', error);
     toast('Garage konnte nicht synchronisiert werden. Lokale Daten bleiben erhalten.');
@@ -3511,12 +3565,14 @@ function isLobbyCutout(source) {
 
 function lobbyCarMarkup(player,mine=false){
   const ownPhoto = mine ? vehiclePhotoSource(activeCar()?.photo) : '';
-  const source = vehiclePhotoSource(player?.photoUrl) || ownPhoto;
+  const source = ownPhoto || vehiclePhotoSource(player?.photoUrl);
 
-  // Lobby compositions only accept transparent cut-outs. Old full-frame photos
-  // fall back to the generated, logo-free vehicle illustration.
-  if (isLobbyCutout(source)) {
-    return `<img class="lobbyModelCar" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
+  // Always prefer the player's real vehicle photo. New uploads are transparent
+  // cut-outs; older photos remain visible immediately and are migrated in the
+  // background instead of being replaced by a generic coloured car.
+  if (source) {
+    const rawClass = isLobbyCutout(source) ? '' : ' lobbyModelCar--raw';
+    return `<img class="lobbyModelCar${rawClass}" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
 
   return vehicleIllustration({vehicle:player.vehicle,body:player.bodyType,color:player.color});

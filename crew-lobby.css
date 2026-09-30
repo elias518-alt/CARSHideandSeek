@@ -33,6 +33,10 @@
   max-height:none; object-fit:contain; transform:translateX(-42%); z-index:1; margin:0; filter:drop-shadow(0 9px 8px #0007);
 }
 #game.freshWaiting .freshPlayerCard.isHost .lobbyModelCar { width:125%; max-width:415px; height:235px; bottom:43px; }
+#game.freshWaiting .lobbyModelCar--raw {
+  object-fit:cover; object-position:center 65%; border-radius:20px;
+  clip-path:inset(4% 3% 5% 3% round 20px); opacity:.98;
+}
 #game.freshWaiting .freshAvatarStage .vehicleIllustration {
   position:absolute; width:120%; max-width:270px; left:50%; bottom:5px; transform:translateX(-42%); z-index:1;
   mix-blend-mode:lighten; mask-image:linear-gradient(transparent,black 22%,black 75%,transparent);
