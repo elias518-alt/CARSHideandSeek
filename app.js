@@ -950,6 +950,12 @@ function openCarModal() {
   editingVehicleId = null;
   pendingCarPhoto = '';
   for (const id of ['newCarBrand','newCarModel','newCarYear','newCarBody','newCarColor','newCarSeries']) $('#'+id).value='';
+  $('#newCarSearch').value='';
+  $('#newCarSeries').dataset.manual='false';
+  $('#carSeriesDetails').open=false;
+  $('#carSearchResults').classList.add('hidden');
+  $('#newCarSearch').setAttribute('aria-expanded','false');
+  $('#newCarColor').dispatchEvent(new Event('input'));
   $('#saveCar').textContent='Fahrzeug speichern';
   $('#carModal h2').textContent='FAHRZEUG HINZUFÜGEN';
   setupCarPhotoInput();
@@ -957,6 +963,7 @@ function openCarModal() {
   refreshVehicleForm();
   $('#carModal')
     ?.classList.remove('hidden');
+  $('#newCarSearch').focus();
 }
 
 
@@ -972,19 +979,20 @@ async function saveCar() {
     return;
   }
 
+  commitVehicleSearch();
   const brand = $('#newCarBrand')?.value.trim();
   const model = $('#newCarModel')?.value.trim();
   const year = $('#newCarYear')?.value.trim();
   const color = $('#newCarColor')?.value.trim();
   const series = $('#newCarSeries').value.trim();
   const body = $('#newCarBody').value;
-  const generation = vehicleCatalog.ranges(brand,model).find(item=>item.label===series);
+  const generation = vehicleCatalog.ranges(brand,model).find(item=>item.label===series||item.name===series);
   const yearProblem = vehicleCatalog.yearError(year,generation);
   if(yearProblem){toast(yearProblem);return;}
   if(gameSession){toast('Verlasse zuerst die Lobby, um deine Garage zu bearbeiten.');return;}
 
   if (!brand || !model || !color) {
-    toast('Bitte Marke, Modell und Farbe angeben.');
+    toast('Bitte dein Fahrzeug auswählen und eine Farbe angeben.');
     return;
   }
 
@@ -3205,6 +3213,11 @@ function lobbyProfileMarkup(player) {
 
   return `<div class="freshLobbyProfile"><img src="${esc(source)}" alt="Profilbild von ${esc(player?.name || 'Spieler')}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>`;
 }
+function lobbyCharacterMarkup(player) {
+  let hash=0;for(const ch of String(player.profileId||player.id))hash=(hash*31+ch.charCodeAt(0))>>>0;
+  const skin=hash%3;
+  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin}" aria-hidden="true"></span>`;
+}
 function renderFreshLobby() {
   if(!state?.lobby)return;
   ensureFreshLobby();
@@ -3242,25 +3255,26 @@ function renderFreshLobby() {
   const half=Math.ceil(others.length/2);
   const displayPlayers=hostPlayer?[...others.slice(0,half),hostPlayer,...others.slice(half)]:[...lobby.players];
   const crew=document.getElementById('players');
-  const crewMarkup=displayPlayers.map(player=>{
+  const renderPlayer=player=>{
     const mine=player.id===lobby.me.id,owner=player.id===lobby.hostId;
     const status=player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
     return `<article class="freshPlayerCard ${mine?'isYou':''} ${owner?'isHost':''} ${player.ready?'isReady':''} ${player.found?'isFound':''}" style="--crew-color:${freshPlayerColor(player.id)};--car-color:${lobbyCarColor(player.color)}">
       <div class="freshPlayerTop"><span>${owner?'♛ HOST':mine?'DU':'CREW'}</span><span class="freshConnection ${player.connected?'online':''}"></span></div>
-      <h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>
-      ${lobbyProfileMarkup(player)}
-      <div class="freshAvatarStage">${lobbyCarMarkup(player,mine)}<span class="freshPlatform"></span></div>
+      <div class="freshPlayerIdentity"><h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>${lobbyProfileMarkup(player)}</div>
+      <div class="freshAvatarStage">${lobbyCarMarkup(player,mine)}${waiting?lobbyCharacterMarkup(player):''}<span class="freshPlatform"></span></div>
       <p class="freshVehicleName">${esc(player.vehicle||'Kein Fahrzeug')}</p>
       <p class="freshVehicleColor">${esc(player.color||'Keine Farbe')} · Level ${Number(player.level)||1}</p>
       <div class="freshPlayerStatus">${player.ready||player.found?'✓ ':''}${status}</div>
       <small class="freshGpsState">${player.hasLocation?'● GPS bereit':'○ Warte auf GPS'}</small>
       ${!mine && player.profileId ? `<button type="button" class="lobbyFriendButton" data-lobby-profile="${esc(player.id)}">Freundschaft</button>` : ''}
     </article>`;
-  }).join('');
+  };
+  const emptySeat=`<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>`;
+  const crewMarkup=waiting&&hostPlayer
+    ? `<div class="freshCrewWing freshCrewWing--left">${others.slice(0,half).map(renderPlayer).join('')}</div><div class="freshCrewLead">${renderPlayer(hostPlayer)}</div><div class="freshCrewWing freshCrewWing--right">${others.slice(half).map(renderPlayer).join('')}${lobby.players.length<2?emptySeat:''}</div>`
+    : displayPlayers.map(renderPlayer).join('');
   if(crew.dataset.markup!==crewMarkup){crew.innerHTML=crewMarkup;crew.dataset.markup=crewMarkup;}
-  if(waiting&&lobby.players.length<2&&!crew.querySelector('.freshEmptySeat'))crew.insertAdjacentHTML('beforeend','<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>');
   if(typeof renderLobbyChat==='function')renderLobbyChat();
   if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
 }
-

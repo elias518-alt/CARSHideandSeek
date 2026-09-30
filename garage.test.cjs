@@ -29,3 +29,31 @@ test('lobby profile identifier comes from authenticated participant, without loc
     assert.equal(result.lobby.players[0].location,undefined);
   }finally{lobbies.delete('GARA1');}
 });
+
+const vehicleSearch=require('./vehicle-search.js');
+test('one search parses make, model and year without duplicating a generation choice',()=>{
+  const car=vehicleSearch.search('BMW3er2015').find(item=>item.exact);
+  assert.deepEqual([car.brand,car.model,car.year],['BMW','3er','2015']);
+  assert.equal(car.series,'');
+});
+test('model-only search and manufacturer aliases resolve usable vehicles',()=>{
+  const focus=vehicleSearch.search('Focus 2015').find(item=>item.exact);
+  const golf=vehicleSearch.search('VW Golf 2011').find(item=>item.exact);
+  assert.deepEqual([focus.brand,focus.model,focus.year],['Ford','Focus','2015']);
+  assert.deepEqual([golf.brand,golf.model,golf.year],['Volkswagen','Golf','2011']);
+});
+test('explicit BMW chassis keeps the series while using a single model field',()=>{
+  const car=vehicleSearch.search('BMW E36 1996').find(item=>item.exact);
+  assert.deepEqual([car.brand,car.model,car.year,car.series],['BMW','3er','1996','E36']);
+});
+test('unlisted vehicles remain available as explicit user entries',()=>{
+  const car=vehicleSearch.search('AC Cobra 1990').find(item=>item.exact);
+  assert.deepEqual([car.brand,car.model,car.year,car.manual],['AC','Cobra','1990',true]);
+  assert.equal(vehicleSearch.search('BMW 320i 2015')[0].model,'320i');
+});
+test('entering only a manufacturer does not silently select its first model',()=>{
+  const cars=vehicleSearch.search('BMW');
+  assert.ok(cars.length>1);
+  assert.equal(cars.some(item=>item.exact),false);
+});
+

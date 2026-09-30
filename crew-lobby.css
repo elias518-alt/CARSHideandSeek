@@ -1,0 +1,117 @@
+/* Waiting-room crew scene. Active-round layout and game controls retain their existing styles. */
+#game.freshLobby.active.freshWaiting {
+  background:linear-gradient(#08132175,#081321c7),url('assets/night-hunt.webp') center/cover;
+}
+#game.freshWaiting #players {
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,340px) minmax(0,1fr);
+  align-items:start; gap:12px; min-height:440px; padding:14px 0 20px; position:relative;
+}
+#game.freshWaiting .freshCrewWing { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:26px 4px; min-width:0; padding-top:6px; }
+#game.freshWaiting .freshCrewLead { min-width:0; padding-top:66px; position:relative; z-index:3; }
+#game.freshWaiting .freshPlayerCard,#game.freshWaiting .freshPlayerCard.isHost {
+  display:flex; flex-direction:column;
+  position:relative; width:100%; height:auto; padding:0 4px; margin:0; min-width:0;
+  background:transparent; border:0; border-radius:0; box-shadow:none; transform:none;
+  align-items:center; text-align:center; overflow:visible;
+}
+#game.freshWaiting .freshPlayerTop { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; font-size:9px; padding:0; }
+#game.freshWaiting .freshPlayerIdentity { min-height:61px; display:flex; flex-direction:column; align-items:center; padding:8px 0 0; }
+#game.freshWaiting .freshPlayerCard h3,#game.freshWaiting .freshPlayerCard.isHost h3 {
+  font-size:15px; line-height:1.25; margin:0 0 5px; min-height:19px; text-align:center;
+}
+#game.freshWaiting .freshPlayerCard.isHost h3 { font-size:22px; min-height:28px; }
+#game.freshWaiting .freshLobbyProfile,#game.freshWaiting .freshPlayerCard.isHost .freshLobbyProfile {
+  position:static; width:28px; height:28px; margin:0; border:2px solid var(--car-color);
+  box-shadow:0 0 0 1px #ffffff45; transform:none; font-size:9px; flex-shrink:0;
+}
+#game.freshWaiting .freshAvatarStage,#game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage {
+  position:relative; display:block; width:100%; height:235px; margin:0; transform:none; isolation:isolate;
+}
+#game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage { height:340px; }
+#game.freshWaiting .lobbyModelCar,#game.freshWaiting .freshPlayerCard.isHost .lobbyModelCar {
+  position:absolute; left:50%; bottom:33px; width:115%; max-width:265px; height:170px;
+  max-height:none; object-fit:contain; transform:translateX(-42%); z-index:1; margin:0; filter:drop-shadow(0 9px 8px #0007);
+}
+#game.freshWaiting .freshPlayerCard.isHost .lobbyModelCar { width:125%; max-width:415px; height:235px; bottom:43px; }
+#game.freshWaiting .freshAvatarStage .vehicleIllustration {
+  position:absolute; width:120%; max-width:270px; left:50%; bottom:5px; transform:translateX(-42%); z-index:1;
+  mix-blend-mode:lighten; mask-image:linear-gradient(transparent,black 22%,black 75%,transparent);
+}
+#game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage .vehicleIllustration { max-width:420px; width:130%; bottom:15px; }
+#game.freshWaiting .freshAvatarStage .vehicleRender { border-radius:0; }
+#game.freshWaiting .freshAvatarStage figcaption { display:none; }
+.lobbyCrewCharacter {
+  position:absolute; z-index:4; left:42%; bottom:0; height:218px; width:145.33px; transform:translateX(-50%);
+  background-image:url('assets/crew-characters.png'); background-size:300% 100%; background-repeat:no-repeat;
+  filter:drop-shadow(0 9px 8px #0008); pointer-events:none;
+}
+.lobbyCrewCharacter--0 { background-position:0 50%; }
+.lobbyCrewCharacter--1 { background-position:50% 50%; }
+.lobbyCrewCharacter--2 { background-position:100% 50%; }
+#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter { height:318px; width:212px; }
+#game.freshWaiting .freshPlatform {
+  display:block; position:absolute; z-index:0; width:96%; height:24px; left:50%; bottom:-5px;
+  transform:translateX(-50%); border:0; box-shadow:none; background:radial-gradient(ellipse,#8eadd527,transparent 68%);
+}
+#game.freshWaiting .freshVehicleName { margin:14px 0 3px; font-size:13px; width:100%; overflow-wrap:anywhere; text-align:center; }
+#game.freshWaiting .freshPlayerCard.isHost .freshVehicleName { font-size:18px; }
+#game.freshWaiting .freshVehicleColor { margin:0 0 8px; font-size:10px; text-align:center; }
+#game.freshWaiting .freshPlayerStatus { align-self:center; font-size:9px; padding:5px 9px; }
+#game.freshWaiting .freshGpsState { margin-top:6px; font-size:10px; text-align:center; }
+#game.freshWaiting .lobbyFriendButton { margin-top:8px; min-height:40px; font-size:11px; width:min(100%,160px); }
+#game.freshWaiting .freshEmptySeat { min-height:225px; margin-top:80px; padding:18px 12px; width:100%; text-align:center; }
+#game.freshWaiting .freshCrewBoard { overflow:hidden; }
+#game.liveRound .freshPlayerIdentity { display:contents; }
+
+/* A single vehicle search plus one year field; optional series stays out of the main path. */
+#carModal .modalSheet { width:min(100%,560px); padding:26px; }
+#carModal .modalHeading { margin-bottom:22px; }
+#carModal .modalHeading h2 { font-size:23px; }
+#carModal .carSearchField { position:relative; margin-bottom:18px; }
+#carModal .carSearchField>label { display:block; margin-bottom:8px; }
+#carModal #newCarSearch { width:100%; padding:14px; font-size:16px; }
+#carModal .carSearchResults {
+  position:absolute; top:100%; left:0; right:0; z-index:20; margin-top:6px; max-height:260px; overflow:auto;
+  background:#182330; border:1px solid #4d6277; border-radius:12px; box-shadow:0 16px 40px #0009;
+}
+#carModal .carSearchResults.hidden { display:none; }
+#carModal .carSearchResults button {
+  display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:13px 14px;
+  border:0; border-bottom:1px solid #ffffff0b; border-radius:0; text-align:left; min-height:52px; background:transparent; color:#e9f0f7;
+}
+#carModal .carSearchResults button:hover,#carModal .carSearchResults button.selected { background:#2b4055; }
+#carModal .carSearchResults button span { font-size:14px; font-weight:600; }
+#carModal .carSearchResults button small { font-size:11px; color:#a8bacd; text-align:right; }
+#carModal .inputGrid { gap:14px; margin-bottom:0; }
+#carModal .inputGrid label { min-width:0; }
+#carModal #generationHint { margin:8px 0 12px; font-size:12px; min-height:18px; }
+#carModal .carOptionalDetails { margin:0 0 18px; border-bottom:1px solid #2a3848; padding-bottom:12px; }
+#carModal .carOptionalDetails summary { cursor:pointer; color:#bac8d6; font-size:12px; min-height:32px; padding:6px 0; }
+#carModal .carOptionalDetails summary span { color:#7f91a3; margin-left:6px; }
+#carModal .carOptionalDetails label { display:block; margin:8px 0; }
+#carModal #newCarSeries { width:100%; }
+#carModal .carColorChoices { margin:10px 0 18px; }
+#carModal .carColorChoices button.selected { outline:2px solid #e5edf5; outline-offset:3px; }
+#carModal .carPhotoSection { margin:18px 0; padding:16px; border:1px solid #2a3848; border-radius:12px; }
+#carModal .newCarPhotoPreview { max-width:145px; margin:8px auto; }
+#carModal #saveCar { margin-top:18px; }
+@media(max-width:900px) {
+  #game.freshWaiting #players { grid-template-columns:minmax(0,1fr) minmax(220px,270px) minmax(0,1fr); gap:4px; }
+  #game.freshWaiting .freshCrewWing { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:600px) {
+  #game.freshWaiting { padding:16px 12px 120px; }
+  #game.freshWaiting #players { grid-template-columns:1fr 1fr; gap:12px; padding-top:0; }
+  #game.freshWaiting .freshCrewLead { grid-column:1/-1; grid-row:2; padding-top:0; width:min(100%,310px); justify-self:center; }
+  #game.freshWaiting .freshCrewWing { grid-row:1; padding:0; gap:20px; }
+  #game.freshWaiting .freshCrewWing--left { grid-column:1; }
+  #game.freshWaiting .freshCrewWing--right { grid-column:2; }
+  #game.freshWaiting .freshPlayerCard h3 { font-size:14px; }
+  #game.freshWaiting .freshAvatarStage { height:200px; }
+  #game.freshWaiting .lobbyCrewCharacter { height:187px; width:124.67px; }
+  #game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage { height:310px; }
+  #game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter { height:290px; width:193.33px; }
+  #game.freshWaiting .freshEmptySeat { min-height:210px; margin-top:35px; font-size:12px; }
+  #carModal .modalSheet { padding:22px 18px; }
+}
+@media(prefers-reduced-motion:reduce) { .lobbyCrewCharacter { animation:none; } }
