@@ -2,6 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
+const lobbyScene=require('./lobby-scene');
 
 function lobbyFixture(phase='LOBBY',count=4){
   const nodes=new Map();
@@ -10,12 +11,12 @@ function lobbyFixture(phase='LOBBY',count=4){
     set innerHTML(value){this.html=value;this.writes++;},get innerHTML(){return this.html||'';}});return nodes.get(id);};
   const players=Array.from({length:count},(_,index)=>({id:'p'+index,profileId:'account'+index,name:'Player '+index,
     connected:true,ready:true,hasLocation:true,vehicle:'Ford Focus',color:'Blau',role:index===0?'SEEKER':'HIDER'}));
-  const state={lobby:{code:'TEST1',state:phase,hostId:'p0',me:players[0],players}};
+  const state={lobby:{settings:{radius:1000},code:'TEST1',state:phase,hostId:'p0',me:players[0],players}};
   node('roomHeader').nextElementSibling=node('result');
   node('targets').nextElementSibling=node('freshMapFold');
   node('crewBoard').nextElementSibling=node('freshMapFold');
   node('freshMapFold').nextElementSibling=node(phase==='LOBBY'?'targets':'crewBoard');
-  const context=vm.createContext({state,freshLobbyPhase:'',ensureFreshLobby(){},updateFreshChat(){},
+  const context=vm.createContext({lobbySettingsSaving:false,lobbyScene,state,freshLobbyPhase:'',ensureFreshLobby(){},updateFreshChat(){},
     document:{getElementById:id=>id==='lobbySettingsPanel'?null:node(id),querySelector:selector=>node(selector==='.freshRoomHeader'?'roomHeader':'crewBoard')},
     esc:value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),
     vehiclePhotoSource:value=>value||'',profileImageSource:value=>value||'',activeCar:()=>null,
@@ -23,7 +24,7 @@ function lobbyFixture(phase='LOBBY',count=4){
   });
   const source=fs.readFileSync(__dirname+'/app.js','utf8');
   vm.runInContext(source.slice(source.indexOf('function freshPlayerColor(id)')),context);
-  return {state,node,render:()=>vm.runInContext('renderFreshLobby()',context)};
+  return {state,node,context,render:()=>vm.runInContext('renderFreshLobby()',context)};
 }
 
 test('all twenty players have a car and character, with a single foreground host',()=>{
@@ -75,7 +76,7 @@ test('parking sections contain unique rear slots and preserve readable size for 
   for(const count of [1,5,10,20]){
     const f=lobbyFixture('LOBBY',count);
     const source=fs.readFileSync(__dirname+'/app.js','utf8');
-    const layout=vm.runInNewContext(source.slice(source.indexOf('function parkingLayout'),source.indexOf('function parkingAvatarMarkup'))+'; parkingLayout(players)',{players:f.state.lobby.players.slice(1)});
+    const layout=vm.runInNewContext(source.slice(source.indexOf('function parkingLayout'),source.indexOf('function parkingAvatarMarkup'))+'; parkingLayout(players)',{lobbyScene,players:f.state.lobby.players.slice(1)});
     assert.equal(layout.pages,Math.max(1,Math.ceil((count-1)/4)));
     assert.equal(new Set(layout.slots.map(slot=>slot.page+':'+slot.x+':'+slot.ground)).size,count-1);
     for(const slot of layout.slots){
@@ -98,4 +99,32 @@ test('peer photos and authenticated player profiles survive the new scene render
   assert.match(markup,/avatar\.jpg/);
   assert.doesNotMatch(markup,/<script>/);
   assert.match(markup,/&lt;script&gt;/);
+});
+
+test('solo is centered, a pair shares its row, and larger crews keep the host in front',()=>{
+  for(let count=1;count<=20;count++){
+    const f=lobbyFixture('LOBBY',count);f.render();
+    assert.equal((f.node('players').innerHTML.match(/<article/g)||[]).length,count);
+    assert.equal(f.node('players').dataset.formation,count===1?'solo':count===2?'pair':'crew');
+    if(count===2){
+      assert.doesNotMatch(f.node('players').innerHTML,/freshCrewLead/);
+      assert.equal((f.node('players').innerHTML.match(/--parking-ground:25%/g)||[]).length,2);
+      assert.match(f.node('players').innerHTML,/--parking-x:26%/);
+      assert.match(f.node('players').innerHTML,/--parking-x:74%/);
+    }else assert.match(f.node('players').innerHTML,/freshCrewLead/);
+  }
+});
+test('waiting guests see the map immediately, hosts can keep the scene open',()=>{
+  const f=lobbyFixture('LOBBY',3);f.render();assert.equal(f.node('freshMapFold').open,false);
+  f.state.lobby.me=f.state.lobby.players[1];f.render();assert.equal(f.node('freshMapFold').open,true);
+});
+test('background changes update every client without replacing unchanged player cards',()=>{
+  const f=lobbyFixture();f.render();f.state.lobby.background='garage';f.render();
+  assert.equal(f.node('players').dataset.background,'garage');assert.equal(f.node('players').writes,1);
+});
+
+test('polling cannot re-enable host settings while a save is pending',()=>{
+  const f=lobbyFixture();f.context.lobbySettingsSaving=true;f.render();
+  assert.equal(f.node('freshSettingsButton').disabled,true);
+  f.context.lobbySettingsSaving=false;f.render();assert.equal(f.node('freshSettingsButton').disabled,false);
 });

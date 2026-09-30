@@ -182,3 +182,22 @@
 #carModal #saveCar { margin-top:18px; }
 
 @media(max-width:600px){#carModal .modalSheet{padding:22px 18px;}}
+
+/* Count-dependent staging and existing background variants. */
+#players[data-background="wet"] .parkingScene::before{filter:saturate(.95) brightness(1.06);}
+#players[data-background="wet"] .parkingScene::after{background:linear-gradient(180deg,#17284722,transparent 56%,#08101633);}
+#players[data-background="garage"] .parkingScene::before{background-image:url('lobby-bg.png');filter:none;}
+#game.freshWaiting #players[data-formation="solo"] .freshCrewLead{top:140px;}
+#players[data-formation="pair"] .parkingPlayer{height:200px;}
+#players[data-formation="pair"] .parkingPlayer .lobbyCrewCharacter{height:154px;width:102.67px;left:72%;}
+#players[data-formation="pair"] .parkingPlayer .parkingNameplate{top:0;font-size:12px;}
+.lobbyBackgroundChoice{display:grid;gap:8px;margin-bottom:20px;}
+.lobbyBackgroundChoice select{width:100%;}
+@media(min-width:760px){#game.freshWaiting #players[data-formation="solo"] .freshCrewLead{top:170px;}#players[data-formation="pair"] .parkingPlayer{height:230px;}#players[data-formation="pair"] .parkingPlayer .lobbyCrewCharacter{height:184px;width:122.67px;}}
+
+.friendRequestNotice{position:fixed;z-index:140;left:50%;bottom:90px;transform:translateX(-50%);width:min(92vw,420px);max-height:30vh;overflow:auto;padding:12px;border:1px solid #b5ff3266;border-radius:14px;background:#101925f5;box-shadow:0 8px 30px #0009;color:white;font-size:13px;}
+.friendRequestNotice>div+div{border-top:1px solid #ffffff22;margin-top:12px;padding-top:12px;}
+.friendRequestNotice button{margin:8px 8px 0 0;padding:8px 12px;border-radius:8px;background:#b5ff32;color:#121b0b;}
+.friendRequestNotice button[data-decline]{background:#293649;color:white;}
+.mapMeetup{background:#b5ff32;color:#132007;border:3px solid white;border-radius:50%;font-size:22px;line-height:32px;width:38px;height:38px;text-align:center;box-shadow:0 3px 12px #0008;}
+.mapMeetup.isStale{opacity:.55;}

@@ -19,14 +19,11 @@
     rel="stylesheet"
     href="style.css?v=20260930-22">
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
 
   <title>CAR HIDE & SEEK</title>
 <link rel="stylesheet" href="premium.css?v=20260930-22">
-<link rel="stylesheet" href="design-reference.css?v=20260930-parking">
-<link rel="stylesheet" href="crew-lobby.css?v=20260930-parking">
+<link rel="stylesheet" href="design-reference.css?v=20260930-adaptive">
+<link rel="stylesheet" href="crew-lobby.css?v=20260930-adaptive">
 </head>
 
 
@@ -683,7 +680,7 @@
       </h2>
 
       <p class="muted">
-        Offene öffentliche Lobbys in deiner Nähe werden automatisch geladen.
+        Offene öffentliche Lobbys im Umkreis von 1 km werden automatisch geladen.
         Dein genauer Standort wird anderen Spielern nicht angezeigt.
       </p>
 
@@ -757,7 +754,7 @@
           </option>
 
           <option value="PUBLIC">
-            Öffentlich – Spieler in der Nähe können beitreten
+            Öffentlich – sichtbar im Umkreis von 1 km
           </option>
 
         </select>
@@ -1903,6 +1900,8 @@
         </p>
 
 
+<label class="lobbyBackgroundChoice">HINTERGRUND<select id="lobbyBackground"></select><small class="fieldHint">Für die gesamte Crew. Bereit-Meldungen bleiben erhalten.</small></label>
+
         <div class="settingsGrid">
 
           <label>
@@ -1918,7 +1917,7 @@
               value="3000"
               inputmode="numeric"
               aria-describedby="lobbyRadiusHint">
-            <small id="lobbyRadiusHint" class="fieldHint">50–10.000 m · frei wählbar</small>
+            <small id="lobbyRadiusHint" class="fieldHint">Spielgebiet: 50–10.000 m · Sichtbarkeit öffentlicher Lobbys: 1 km</small>
 
           </label>
 
@@ -2653,17 +2652,18 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="vehicle-catalog.js?v=20260930-parking"></script>
+<script src="vehicle-catalog.js?v=20260930-adaptive"></script>
 <script src="vehicle-search.js?v=20260930-22"></script>
-<script src="app.js?v=20260930-parking"></script>
+<script src="lobby-scene.js?v=20260930-adaptive"></script>
+<script src="app.js?v=20260930-adaptive"></script>
 
 <script src="garage-actions.js?v=20260930-22"></script>
-<script src="social.js?v=20260930-22"></script>
+<script src="social.js?v=20260930-adaptive"></script>
 <script src="ui-icons.js?v=20260930-22"></script>
 
 <script
   type="module"
-  src="map.js?v=20260930-22">
+  src="map.js?v=20260930-adaptive">
 </script>
 
 

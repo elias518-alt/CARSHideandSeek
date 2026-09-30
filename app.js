@@ -1381,6 +1381,7 @@ function playerData() {
     vehicle:
       `${car.brand} ${car.model}${car.year ? ' · Bj. '+car.year : ''}`.trim(),
     bodyType: car.body || '',
+    background: getLobbyBackground(),
 
     color:
       car.color ||
@@ -1473,7 +1474,7 @@ async function findPublic(options = {}) {
             <small>${lobby.players}/${lobby.maxPlayers} Spieler · ca. ${lobby.distanceKm} km entfernt</small>
             <b>BEITRETEN ›</b>
           </button>`).join('')
-      : '<div class="publicLobbyEmpty"><strong>Keine offene Lobby in deiner Nähe</strong><span>Du kannst unten selbst eine Lobby erstellen oder per Code beitreten.</span></div>';
+      : '<div class="publicLobbyEmpty"><strong>Keine offene Lobby im Umkreis von 1 km</strong><span>Du kannst unten selbst eine Lobby erstellen oder per Code beitreten.</span></div>';
   } catch (error) {
     list.innerHTML = `<div class="publicLobbyEmpty"><strong>Öffentliche Lobbys konnten nicht geladen werden</strong><span>${esc(error.message)}</span></div>`;
   } finally {
@@ -2681,20 +2682,13 @@ function renderLobbySettings() {
 
   const panel = document.getElementById('lobbySettingsPanel');
   const dialog = document.getElementById('freshSettingsDialog');
-  const button = document.getElementById('freshSettingsButton');
   if (!panel || !dialog) return;
 
-  const host = lobby.hostId === lobby.me.id;
-  const waiting = lobby.state === 'LOBBY';
   const settings = lobby.settings;
 
-  if (button) {
-    button.hidden = !host;
-    button.disabled = !waiting || !settings || lobbySettingsSaving;
-    button.title = !host ? 'Nur der Host kann die Lobby anpassen.' : waiting ? 'Lobby anpassen' : 'Während der Runde gesperrt';
-  }
-
-  if ((!host || !waiting) && dialog.open) dialog.close();
+  updateLobbySettingsAccess(lobby);
+  const backgroundField=document.getElementById('lobbyBackground');
+  if(backgroundField&&!backgroundField.options.length)backgroundField.innerHTML=lobbyBackgroundOptions();
 
   if (settings) fillLobbySettings();
 
@@ -2707,6 +2701,7 @@ function renderLobbySettings() {
 
   if (!lobbySettingsBound) {
     lobbySettingsBound = true;
+    document.getElementById('lobbyBackground')?.addEventListener('change', changeLobbyBackground);
     ['lobbyRadius', 'lobbyDuration', 'lobbyHeadstart', 'lobbyEscape'].forEach(id => {
       document.getElementById(id)?.addEventListener('change', saveFreshLobbySettings);
     });
@@ -2718,6 +2713,8 @@ function fillLobbySettings() {
   const settings = lobby?.settings;
   if (!settings) return;
 
+  const backgroundField=document.getElementById('lobbyBackground');
+  if(backgroundField&&!backgroundField.disabled)backgroundField.value=lobbyScene.background(lobby.background);
   const values = {
     lobbyRadius: settings.radius,
     lobbyDuration: settings.duration,
@@ -3167,6 +3164,9 @@ function openProfileEditor() {
         </select>
       </label>
       <p class="muted">Der Charakter wird in der Lobby direkt mit deinem Fahrzeug inszeniert. Die Auswahl beeinflusst keine Spielwerte.</p>
+      <label>DEIN LOBBY-HINTERGRUND
+        <select name="lobbyBackground">${lobbyBackgroundOptions()}</select>
+      </label><p class="muted">Voreinstellung für Lobbys, die du erstellst. In der Lobby kannst du den Hintergrund für alle ändern.</p>
       <label>PROFILBILD<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
       <div data-avatar-preview style="width:96px;height:96px;border-radius:50%;overflow:hidden;margin:12px auto;background:#344553;display:grid;place-items:center"></div>
       <button type="button" data-remove-avatar class="textButton">BILD ENTFERNEN</button>
@@ -3224,17 +3224,23 @@ function openProfileEditor() {
           updated_at: data.updated_at || dbProfile.updated_at
         };
         const characterStyle=setCharacterStyle(form.elements.characterStyle.value);
+        const background=lobbyScene.background(form.elements.lobbyBackground.value);
+        localStorage.setItem(lobbyBackgroundKey(),background);
+        let preferenceSyncFailed=false;
         try {
           const { data: authUpdate, error: authUpdateError } = await supabaseClient.auth.updateUser({
-            data: { character_style: characterStyle }
+            data: { character_style: characterStyle, lobby_background: background }
           });
           if (authUpdateError) throw authUpdateError;
+          if (authSession?.user?.id !== userId) return;
           if (authUpdate?.user && authSession) authSession = { ...authSession, user: authUpdate.user };
         } catch (metadataError) {
+          preferenceSyncFailed=true;
           // The local preference remains usable; cloud sync can retry next save.
           console.error('Charakterauswahl konnte nicht ins Konto synchronisiert werden:', metadataError);
         }
 
+        if (authSession?.user?.id !== userId) return;
         // Keep an already running lobby profile in sync without leaving the game.
         if (gameSession) {
           try { await api('join', { ...playerData(), code: gameSession.code }); }
@@ -3243,7 +3249,7 @@ function openProfileEditor() {
 
         renderProfile();
         dialog.close();
-        toast(data.avatar_url ? 'Profil gespeichert ✓' : 'Profil ohne Bild gespeichert ✓');
+        toast(preferenceSyncFailed?'Profil gespeichert · Design nur auf diesem Gerät gespeichert.':'Profil und Design gespeichert ✓');
       } catch(error) { errorNode.textContent = error.message; }
       finally { dialog._busy = false; setProfileFormBusy(form, false); }
     });
@@ -3254,6 +3260,7 @@ function openProfileEditor() {
   dialog._userId = authSession.user.id; dialog._photo = '__KEEP__';
   form.elements.username.value = dbProfile.username || '';
   form.elements.characterStyle.value = String(getCharacterStyle());
+  form.elements.lobbyBackground.value = getLobbyBackground();
   form.elements.photo.value = '';
   form.querySelector('[data-profile-error]').textContent = '';
   renderProfilePreview(dialog, dbProfile.avatar_url);
@@ -3313,9 +3320,7 @@ function setupProfileActions() {
 }
 setupProfileActions();
 
-const freshLobbyStyle = document.createElement("style");
-freshLobbyStyle.textContent = ``;
-document.head.append(freshLobbyStyle);
+
 
 /* Lobby-Warteraum mit eigenem Chat-Fenster und Host-Einstellungen. */
 const freshChatState = { code: null, seen: new Set(), unread: new Set() };
@@ -3666,13 +3671,14 @@ if (typeof window !== 'undefined') {
 
 // Four readable rear slots per parking section. The host stays in a separate
 // foreground layer, so paging a large crew never shrinks or removes the host.
+function updateLobbySettingsAccess(lobby) {
+  const host=lobby.hostId===lobby.me.id,waiting=lobby.state==='LOBBY';
+  const button=document.getElementById('freshSettingsButton'),dialog=document.getElementById('freshSettingsDialog');
+  if(button){button.hidden=!host;button.disabled=!waiting||!lobby.settings||lobbySettingsSaving;button.title=waiting?'Lobby anpassen':'Während der Runde gesperrt';}
+  if((!host||!waiting)&&dialog?.open)dialog.close();
+}
 function parkingLayout(players) {
-  const pages=Math.max(1,Math.ceil(players.length/4));
-  return {pages,slots:players.map((player,index)=>{
-    const page=Math.floor(index/4),position=index%4,row=Math.floor(position/2);
-    const localX=position%2 ? 74 : 26;
-    return {player,page,row,x:(page*100+localX)/pages,width:(row ? 46 : 40)/pages,ground:row ? 34 : 54};
-  })};
+  return lobbyScene.layout(players);
 }
 function parkingAvatarMarkup(player) {
   const source=profileImageSource(player?.avatarUrl);
@@ -3690,13 +3696,15 @@ function parkingPlayerMarkup(player,lobby,slot) {
     +'<div class="parkingVehicleStage"><span class="parkingContactShadow" aria-hidden="true"></span>'+lobbyCarMarkup(player,mine)+lobbyCharacterMarkup(player)+'</div></article>';
 }
 function parkingLobbyMarkup(lobby,hostPlayer,others) {
-  const layout=parkingLayout(others);
+  const paired=lobby.players.length===2;
+  const layout=parkingLayout(paired?[hostPlayer,...others].filter(Boolean):others);
+  if(paired)layout.slots.forEach(slot=>{slot.ground=25;slot.width=49;slot.row=1;});
   const ordered=hostPlayer?[hostPlayer,...others]:lobby.players;
   const waiting=ordered.filter(player=>!player.ready||!player.connected);
   const readiness=(ordered.length-waiting.length)+'/'+ordered.length+' bereit · '+(waiting.length===1?'Warte auf '+esc(waiting[0].name):waiting.length?'Warte auf '+waiting.length+' Spieler':'Crew bereit');
   return '<div class="parkingViewport" tabindex="0" role="region" aria-label="Parkplatz deiner Crew. Weitere Parkplätze seitlich ansehen." style="--parking-pages:'+layout.pages+'"><div class="parkingScene">'
     +layout.slots.map(slot=>parkingPlayerMarkup(slot.player,lobby,slot)).join('')+'</div></div>'
-    +(hostPlayer?'<div class="freshCrewLead">'+parkingPlayerMarkup(hostPlayer,lobby)+'</div>':'')
+    +(hostPlayer&&!paired?'<div class="freshCrewLead">'+parkingPlayerMarkup(hostPlayer,lobby)+'</div>':'')
     +'<div class="parkingNavigation" '+(layout.pages===1?'hidden':'')+'><button type="button" data-parking-step="-1" aria-label="Vorherige Parkreihe">‹</button><span data-parking-progress>Parkreihe 1 / '+layout.pages+'</span><button type="button" data-parking-step="1" aria-label="Nächste Parkreihe">›</button></div>'
     +'<div class="parkingCrewStrip" role="group" aria-label="Alle '+ordered.length+' Spieler in der Lobby">'+ordered.map(player=>{
       const owner=player.id===lobby.hostId;
@@ -3726,12 +3734,14 @@ function renderFreshLobby() {
   const settings=document.getElementById('lobbySettingsPanel');
   const settingsDialog=document.getElementById('freshSettingsDialog');
   if(settings&&settings.parentNode!==settingsDialog)settingsDialog.append(settings);
-  const hostButton=document.getElementById('freshSettingsButton');hostButton.hidden=!host;hostButton.disabled=!waiting;hostButton.title=waiting?'Lobby anpassen':'Während der Runde gesperrt';
-  if((!host||!waiting)&&settingsDialog.open)settingsDialog.close();
-  const phase=lobby.code + ':' + waiting;
+  updateLobbySettingsAccess(lobby);
+  const phase=lobby.code + ':' + waiting + ':' + host;
   const mapFold=document.getElementById('freshMapFold');
   if(freshLobbyPhase!==phase){
-    if(mapFold)mapFold.open=!waiting;
+    if(mapFold)mapFold.open=!waiting||!host;
+    if(waiting&&!host&&mapFold&&typeof requestAnimationFrame==='function'){
+      requestAnimationFrame(()=>mapFold.scrollIntoView({block:'start',behavior:'smooth'}));
+    }
     const feedback=document.getElementById('findFeedback');
     feedback.textContent='Fahrzeug entdeckt? Tippe auf „Fund melden“. GPS und Entfernung werden geprüft.';
     delete feedback.dataset.status;
@@ -3754,6 +3764,8 @@ function renderFreshLobby() {
   const half=Math.ceil(others.length/2);
   const displayPlayers=hostPlayer?[...others.slice(0,half),hostPlayer,...others.slice(half)]:[...lobby.players];
   const crew=document.getElementById('players');
+  crew.dataset.formation=lobby.players.length===1?'solo':lobby.players.length===2?'pair':'crew';
+  crew.dataset.background=lobbyScene.background(lobby.background);
   const sameLobby=crew.dataset.lobbyCode===lobby.code;
   if(!sameLobby){crew.dataset.lobbyCode=lobby.code;delete crew.dataset.selectedPlayer;}
   const renderPlayer=player=>{
@@ -3795,4 +3807,24 @@ function renderFreshLobby() {
   if(typeof renderLobbyChat==='function')renderLobbyChat();
   if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
+}
+
+function lobbyBackgroundKey() { return 'chsLobbyBackground:'+ (authSession?.user?.id || 'guest'); }
+function getLobbyBackground() {
+  const local=localStorage.getItem(lobbyBackgroundKey());
+  return lobbyScene.background(lobbyScene.validBackground(local)?local:authSession?.user?.user_metadata?.lobby_background);
+}
+function lobbyBackgroundOptions() {
+  return lobbyScene.backgrounds.map(background=>'<option value="'+background.id+'">'+background.name+'</option>').join('');
+}
+async function changeLobbyBackground(event) {
+  const field=event.currentTarget;
+  if(state?.lobby?.hostId!==state?.lobby?.me?.id||state?.lobby?.state!=='LOBBY')return;
+  field.disabled=true;
+  try {
+    await api('background',gameCredentials({background:field.value}));
+    await poll();
+    toast('Hintergrund für die Crew geändert.');
+  } catch(error) { toast(error.message); }
+  finally { field.disabled=false;fillLobbySettings(); }
 }

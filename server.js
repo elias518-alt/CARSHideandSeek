@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const https = require('node:https');
+const lobbyScene = require('./lobby-scene');
+const { roadRoute } = require('./meetup-route');
 const { assignRoundRoles, roundRewardFor } = require('./game-rules');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -15,7 +17,7 @@ const lobbies = new Map();
 const lobbyInvites = new Map();
 const authCache = new Map();
 const MAX_PLAYERS = 20;
-const PUBLIC_RANGE_M = 20000;
+const PUBLIC_RANGE_M = 1000;
 const FIND_RANGE_M = 35;
 const ACTIVE_LOCATION_MAX_AGE_MS = 15000;
 const LOBBY_LOCATION_MAX_AGE_MS = 45000;
@@ -186,6 +188,10 @@ function resultState(lobby, me) {
     map: {
       center: lobby.origin ? { lat: lobby.origin.lat, lng: lobby.origin.lng } : null,
       radius: lobby.radius,
+      meetup: lobby.state === 'LOBBY' ? (() => {
+        const host=lobby.players.find(p=>p.id===lobby.hostId);
+        return host?.location ? {lat:host.location.lat,lng:host.location.lng,name:host.name,stale:!fresh(host,now,LOBBY_LOCATION_MAX_AGE_MS)} : null;
+      })() : null,
       // Last known positions deliberately stay on the map while a player is offline.
       // Freshness is still enforced separately for proximity/found validation.
       positions: lobby.players.filter(p => p.location).map(p => ({
@@ -198,7 +204,7 @@ function resultState(lobby, me) {
     },
     cooldownUntil: me.cooldownUntil, escapeUntil: 0,
     lobby: {
-      code: lobby.code, name: lobby.name, visibility: lobby.visibility,
+      code: lobby.code, name: lobby.name, visibility: lobby.visibility, background: lobbyScene.background(lobby.background),
       settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, escape: lobby.escape, revision: lobby.settingsRevision || 0 },
       state: lobby.state, hostId: lobby.hostId,
       players: lobby.players.map(p => publicPlayer(p, now, locationMaxAge)),
@@ -230,8 +236,8 @@ async function route(action, data, authId) {
     const position = parsePosition(data, LOBBY_MAX_ACCURACY_M);
     return { lobbies: [...lobbies.values()]
       .filter(l => l.visibility === 'PUBLIC' && l.state === 'LOBBY' && l.players.length < MAX_PLAYERS && l.origin)
-      .map(l => ({ lobby: l, meters: distance(position, l.origin) }))
-      .filter(x => x.meters <= Math.min(PUBLIC_RANGE_M, x.lobby.radius))
+      .map(l => ({ lobby: l, meters: distance(position, l.players.find(p => p.id === l.hostId)?.location || l.origin) }))
+      .filter(x => x.meters <= PUBLIC_RANGE_M)
       .sort((a, b) => a.meters - b.meters)
       .map(({ lobby, meters }) => ({ code: lobby.code, name: lobby.name, players: lobby.players.length, maxPlayers: MAX_PLAYERS, distanceKm: Math.max(0.1, Math.round(meters / 100) / 10) })) };
   }
@@ -287,6 +293,7 @@ async function route(action, data, authId) {
     if (origin) player.location = { ...origin, at: now };
     const lobby = {
       code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
+      background: lobbyScene.background(data.background),
       hostId: player.id, players: [player], state: 'LOBBY', result: null,
       radius: Math.min(10000, Math.max(50, number(data.radius) || 3000)),
       duration: Math.min(3600, Math.max(300, number(data.duration) || 900)),
@@ -327,7 +334,7 @@ async function route(action, data, authId) {
     const player = newPlayer(data, authId);
     if (lobby.visibility === 'PUBLIC') {
       const location = parsePosition(data, LOBBY_MAX_ACCURACY_M);
-      if (distance(location, lobby.origin) > Math.min(PUBLIC_RANGE_M, lobby.radius)) fail(403, 'Diese öffentliche Runde ist zu weit entfernt.');
+      if (distance(location, lobby.players.find(p => p.id === lobby.hostId)?.location || lobby.origin) > PUBLIC_RANGE_M) fail(403, 'Diese öffentliche Runde ist zu weit entfernt.');
       player.location = { ...location, at: now };
     }
     lobby.players.push(player);
@@ -337,6 +344,28 @@ async function route(action, data, authId) {
   const { lobby, me } = getSession(data, authId);
   updateGame(lobby, now);
   if (action === 'state') return resultState(lobby, me);
+  if (action === 'meetup-route') {
+    if (lobby.state !== 'LOBBY') fail(409, 'Der Treffpunkt ist nur im Warteraum verfügbar.');
+    const host=lobby.players.find(p=>p.id===lobby.hostId);
+    if (host?.id===me.id) return {route:null,message:'Du bist der Treffpunkt deiner Crew.'};
+    if (!fresh(host,now,LOBBY_LOCATION_MAX_AGE_MS)||!fresh(me,now,LOBBY_LOCATION_MAX_AGE_MS)) {
+      return {route:null,message:'Für die Route brauchen du und der Host aktuelle GPS-Positionen.'};
+    }
+    const cached=me.meetupRoute;
+    if (cached&&cached.hostId===host.id&&now-cached.at<15000) return cached.pending;
+    const pending=roadRoute(me.location,host.location)
+      .then(route=>({route,hostId:host.id,target:{lat:host.location.lat,lng:host.location.lng}}))
+      .catch(()=>({route:null,message:'Straßenroute gerade nicht verfügbar. Der Treffpunkt bleibt sichtbar.'}));
+    me.meetupRoute={hostId:host.id,at:now,pending};
+    return pending;
+  }
+  if (action === 'background') {
+    if (me.id !== lobby.hostId) fail(403, 'Nur der Host darf den Hintergrund ändern.');
+    if (lobby.state !== 'LOBBY') fail(409, 'Hintergründe sind nur im Warteraum änderbar.');
+    if (!lobbyScene.validBackground(data.background)) fail(400, 'Unbekannter Hintergrund.');
+    lobby.background = data.background;
+    return resultState(lobby, me);
+  }
   if (action === 'settings') {
     if (me.id !== lobby.hostId) fail(403, 'Nur der Host darf die Lobby ändern.');
     if (lobby.state !== 'LOBBY') fail(409, 'Einstellungen sind nur vor dem Rundenstart änderbar.');
@@ -530,8 +559,8 @@ async function handler(req, res) {
         return;
       }
 
-      if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings'].includes(action)) fail(404, 'Unbekannte Funktion.');
-      if (req.method !== (['public','state','lobby-info','invites'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
+      if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (req.method !== (['public','state','lobby-info','invites','meetup-route'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
       send(res, 200, await route(action, data, authId));
@@ -541,6 +570,8 @@ async function handler(req, res) {
     const requestPath = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
+    const extension=path.extname(file);
+    if (!types[extension] || ['server.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || requestPath.startsWith('/supabase/')) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
