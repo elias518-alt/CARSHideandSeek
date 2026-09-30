@@ -278,13 +278,7 @@ input:focus,select:focus,textarea:focus{
 
 /* WAITING LOBBY — keep host/crew functionality while matching the violet
    rooftop/parking-deck scene from the approved visual reference. */
-#game.freshLobby.active.freshWaiting{
-  max-width:1180px;
-  background:
-    linear-gradient(180deg,rgba(8,7,13,.02),rgba(8,7,13,.07) 58%,rgba(7,10,15,.34) 100%),
-    linear-gradient(90deg,rgba(72,35,83,.04),transparent 70%),
-    url('assets/lobby-rooftop-violet-hd.svg') center 52%/cover no-repeat!important;
-}
+#game.freshLobby.active.freshWaiting{max-width:1180px;}
 #game.freshWaiting .freshLobbyTools{
   border-bottom:1px solid rgba(255,255,255,.07);
   padding-bottom:12px;
@@ -488,7 +482,7 @@ input:focus,select:focus,textarea:focus{
   }
   #game.freshWaiting .freshRoomHeader h2{font-size:20px!important;margin:3px 0 12px!important;}
   #game.freshWaiting #players{gap:8px!important;}
-  #game.freshWaiting .freshCrewLead{width:min(100%,330px)!important;}
+
   #game.freshWaiting .freshPlayerCard.isHost .freshVehicleName{font-size:17px!important;}
   #game.freshWaiting #ready,#game.freshWaiting #start{min-height:56px!important;}
 

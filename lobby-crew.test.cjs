@@ -26,16 +26,17 @@ function lobbyFixture(phase='LOBBY',count=4){
   return {state,node,render:()=>vm.runInContext('renderFreshLobby()',context)};
 }
 
-test('the waiting crew has one character per car and the host in the center group',()=>{
+test('all twenty players have a car and character, with a single foreground host',()=>{
   const f=lobbyFixture('LOBBY',20);f.render();const markup=f.node('players').innerHTML;
   assert.equal((markup.match(/<article/g)||[]).length,20);
-  assert.equal((markup.match(/aria-hidden="true"/g)||[]).length,20);
   assert.equal((markup.match(/lobbyCrewPose--side/g)||[]).length,20);
   assert.doesNotMatch(markup,/lobbyCrewPose--[012]/);
-  const center=markup.split('<div class="freshCrewLead">')[1].split('<div class="freshCrewWing freshCrewWing--right">')[0];
-  assert.match(center,/<h3>Player 0/);
+  const center=markup.split('<div class="freshCrewLead">')[1].split('<div class="parkingNavigation"')[0];
+  assert.match(center,/<strong>Player 0/);
   assert.equal((center.match(/<article/g)||[]).length,1);
-  assert.equal((markup.match(/data-lobby-profile=/g)||[]).length,19);
+  assert.equal((markup.match(/data-parking-player=/g)||[]).length,20);
+  assert.match(markup,/--parking-pages:5/);
+  assert.equal((markup.match(/data-lobby-card=/g)||[]).length,20);
   assert.equal(f.node('freshSettingsButton').hidden,false);
   assert.equal(f.node('freshSettingsButton').disabled,false);
 });
@@ -56,7 +57,7 @@ test('polling unchanged players preserves the existing crew nodes and invite act
   assert.match(f.node('players').innerHTML,/data-open-lobby-invite/);
   f.state.lobby.players[0].ready=false;f.render();
   assert.equal(f.node('players').writes,2);
-  assert.match(f.node('players').innerHTML,/WARTET/);
+  assert.match(f.node('players').innerHTML,/Wartet/);
 });
 
 
@@ -70,23 +71,31 @@ test('legacy uploaded vehicle photos stay visible instead of falling back to the
 });
 
 
-test('waiting lobby uses the sharp violet rooftop scene instead of the old blue background',()=>{
-  const css=fs.readFileSync(__dirname+'/crew-lobby.css','utf8');
-  assert.match(css,/assets\/lobby-rooftop-violet-hd\.svg/);
-  assert.doesNotMatch(css,/lobby-bg\.png|night-hunt\.webp/);
+test('parking sections contain unique rear slots and preserve readable size for 1–20 players',()=>{
+  for(const count of [1,5,10,20]){
+    const f=lobbyFixture('LOBBY',count);
+    const source=fs.readFileSync(__dirname+'/app.js','utf8');
+    const layout=vm.runInNewContext(source.slice(source.indexOf('function parkingLayout'),source.indexOf('function parkingAvatarMarkup'))+'; parkingLayout(players)',{players:f.state.lobby.players.slice(1)});
+    assert.equal(layout.pages,Math.max(1,Math.ceil((count-1)/4)));
+    assert.equal(new Set(layout.slots.map(slot=>slot.page+':'+slot.x+':'+slot.ground)).size,count-1);
+    for(const slot of layout.slots){
+      assert.ok(slot.x>=0&&slot.x<=100);
+      assert.ok(slot.width*layout.pages>=40);
+      assert.ok(slot.ground>0&&slot.ground<100);
+    }
+    f.render();
+    assert.equal((f.node('players').innerHTML.match(/<article/g)||[]).length,count);
+  }
 });
 
-test('violet rooftop background is a scalable 1600x900 SVG asset',()=>{
-  const svg=fs.readFileSync(__dirname+'/assets/lobby-rooftop-violet-hd.svg','utf8');
-  assert.match(svg,/<svg[^>]+viewBox="0 0 1600 900"/);
-  assert.match(svg,/id="deck"/);
-  assert.match(svg,/id="wet"/);
-});
-
-test('waiting lobby grounds cars without the old sideways offset or raw-photo crop',()=>{
-  const css=fs.readFileSync(__dirname+'/crew-lobby.css','utf8');
-  assert.match(css,/transform:translateX\(-50%\)/);
-  assert.doesNotMatch(css,/translateX\(-42%\)/);
-  assert.match(css,/\.lobbyModelCar--raw[\s\S]*?object-fit:contain/);
-  assert.match(css,/\.lobbyModelCar--raw[\s\S]*?clip-path:none/);
+test('peer photos and authenticated player profiles survive the new scene rendering',()=>{
+  const f=lobbyFixture('LOBBY',5);
+  f.state.lobby.players[1].photoUrl='https://example.com/peer.cutout.png';
+  f.state.lobby.players[2].avatarUrl='https://example.com/avatar.jpg';
+  f.state.lobby.players[3].name='<script>alert(1)</script>';
+  f.render();const markup=f.node('players').innerHTML;
+  assert.match(markup,/peer\.cutout\.png/);
+  assert.match(markup,/avatar\.jpg/);
+  assert.doesNotMatch(markup,/<script>/);
+  assert.match(markup,/&lt;script&gt;/);
 });

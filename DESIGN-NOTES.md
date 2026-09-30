@@ -1,6 +1,6 @@
 # Garage and interface refresh
 
-The local WebP images are generated illustrations. Vehicle examples represent six body shapes, not a specific manufacturer model or paint colour. Uploaded vehicle photos take priority.
+The local WebP images are generated illustrations. The current vehicle renderer reuses twelve existing neutral vehicle silhouettes, not a complete manufacturer/model library or an exact paint colour. Uploaded vehicle photos take priority.
 
 The small generation catalogue is deliberately limited to verified examples. Other vehicles support a manually entered generation and production year. Ranges cover European generations across body variants; individual engines, countries and derivatives can differ. “ab” indicates a known starting year, not a claim that production continues today.
 
@@ -34,3 +34,15 @@ The garage now has one make/model search, which also accepts a year (for example
 All 31 Node tests pass: existing find/GPS rules, vehicle search/catalogue, real garage handlers against isolated form/account adapters, and waiting/active lobby rendering. JavaScript syntax and whitespace checks also pass. The adapters never contact live accounts or Storage.
 
 Browser visual and mobile touch verification remain outstanding because the available browser blocks local preview pages. No production deploy, database migration, authentication change or game-server change is included. Preview fixtures are outside the repository and must not be deployed.
+
+## Shared parking scene (2026-09-30)
+
+The waiting room now uses `assets/lobby-meetup.webp`, an existing photographic parking scene, with a CSS violet colour grade. The existing transparent `assets/vehicle-lineup.webp` atlas supplies twelve vehicle templates, with measured ground baselines. The three existing crew characters are reused unchanged. No new images were generated for this change.
+
+The host occupies a separate foreground layer. Up to nineteen peers use four rear slots per horizontal parking section; navigation buttons, horizontal scrolling and the complete player strip reach every participant without shrinking the cars. Nameplates open the existing profile/friendship dialog. Polls preserve scroll position and selected players. New lobby codes reset the selection. Active-round controls and server rules remain unchanged.
+
+Vehicle templates distinguish city cars, small hatchbacks, compact hatchbacks, classic/modern saloons, sports cars, coupes, estates, SUVs, crossovers, vans and roadsters. They are approximations; the model search does not imply that every individual model has an exact illustration. Original and transparent uploaded photos remain preferred over templates. Character stance variety is limited by the three existing standing sprites.
+
+Validation: 44 Node tests, including 1/5/10/20-player layout, preserved photos/profiles, escaped names and existing garage/GPS/round rules. In this sandbox the runner uses `node --test --test-isolation=none *.test.cjs` because spawning isolated child processes is blocked. Local browser fixtures live outside the repository, with no live accounts or database writes.
+
+Browser validation covered 1/5/10/20 participants, 320/390-pixel mobile widths and a 1280-pixel desktop width. The final parking section, previous/next buttons, player selection, guest controls, profile/friendship dialog, vehicle photo precedence and transition to active-round cards/map were exercised. Real-device touch gestures and live multiplayer/account storage remain separate checks.

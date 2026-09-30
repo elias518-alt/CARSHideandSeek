@@ -1,93 +1,152 @@
-/* Waiting-room crew scene. Active-round layout and game controls retain their existing styles. */
-#game.freshLobby.active.freshWaiting {
-  background:
-    linear-gradient(180deg,rgba(8,7,13,.12) 0%,rgba(9,7,13,.16) 48%,rgba(5,7,10,.58) 100%),
-    url('assets/lobby-rooftop-violet-hd.svg') center 52%/cover no-repeat;
+/* A shared parking scene, built from existing artwork. No generated assets. */
+.vehicleRender--template{background:none;aspect-ratio:384/280;border-radius:0;}
+.vehicleRender--template svg{display:block;width:100%;height:100%;overflow:hidden;}
+#game.freshLobby.active.freshWaiting{
+  --chs-lime:#b5ff32;--chs-lime-2:#93e817;--orange:#b5ff32;--orange2:#93e817;
+  background:#0b1018; padding-bottom:110px;
 }
-#game.freshWaiting #players {
-  display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,340px) minmax(0,1fr);
-  align-items:start; gap:12px; min-height:440px; padding:14px 0 20px; position:relative;
+#game.freshWaiting .freshCrewBoard{margin:14px 0 22px;overflow:visible;}
+#game.freshWaiting .freshCrewBoard>.panelTitle{margin-bottom:10px;}
+#game.freshWaiting #players{
+  display:block;position:relative;min-height:0;padding:0;gap:0!important;
+  border:1px solid #ffffff1c;border-radius:18px;overflow:hidden;
+  background:#101822;isolation:isolate;pointer-events:auto!important;
 }
-#game.freshWaiting .freshCrewWing { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:26px 4px; min-width:0; padding-top:6px; }
-#game.freshWaiting .freshCrewLead { min-width:0; padding-top:66px; position:relative; z-index:3; }
-#game.freshWaiting .freshPlayerCard,#game.freshWaiting .freshPlayerCard.isHost {
-  display:flex; flex-direction:column;
-  position:relative; width:100%; height:auto; padding:0 4px; margin:0; min-width:0;
-  background:transparent; border:0; border-radius:0; box-shadow:none; transform:none;
-  align-items:center; text-align:center; overflow:visible;
+.parkingViewport{
+  position:relative;height:510px;overflow-x:auto;overflow-y:hidden;
+  overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#81935b #141c24;
+  touch-action:pan-x pan-y;scroll-behavior:smooth;
 }
-#game.freshWaiting .freshPlayerTop { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; font-size:9px; padding:0; }
-#game.freshWaiting .freshPlayerIdentity { min-height:61px; display:flex; flex-direction:column; align-items:center; padding:8px 0 0; }
-#game.freshWaiting .freshPlayerCard h3,#game.freshWaiting .freshPlayerCard.isHost h3 {
-  font-size:15px; line-height:1.25; margin:0 0 5px; min-height:19px; text-align:center;
+.parkingScene{
+  position:relative;width:calc(100% * var(--parking-pages));height:100%;
+  isolation:isolate;
 }
-#game.freshWaiting .freshPlayerCard.isHost h3 { font-size:22px; min-height:28px; }
-#game.freshWaiting .freshLobbyProfile,#game.freshWaiting .freshPlayerCard.isHost .freshLobbyProfile {
-  position:static; width:28px; height:28px; margin:0; border:2px solid var(--car-color);
-  box-shadow:0 0 0 1px #ffffff45; transform:none; font-size:9px; flex-shrink:0;
+.parkingScene::before{content:"";position:absolute;inset:0;z-index:-2;
+  background:url('assets/lobby-meetup.webp') center center / auto 100% repeat-x;
+  filter:hue-rotate(30deg) saturate(.9) brightness(1.06);}
+.parkingScene::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,#6d285035 0%,transparent 56%,#08101633 100%);}
+#game.freshWaiting #players .freshCrewLead{
+  position:absolute;z-index:20;left:50%;top:225px;transform:translateX(-50%);
+  width:min(78%,420px);height:270px;padding:0;pointer-events:none;
 }
-#game.freshWaiting .freshAvatarStage,#game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage {
-  position:relative; display:block; width:100%; height:235px; margin:0; transform:none; isolation:isolate;
+.parkingPlayer{
+  position:absolute;left:var(--parking-x);bottom:var(--parking-ground);
+  width:var(--parking-width);height:170px;transform:translateX(-50%);
+  z-index:2;text-align:center;
 }
-#game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage { height:340px; }
-#game.freshWaiting .lobbyModelCar,#game.freshWaiting .freshPlayerCard.isHost .lobbyModelCar {
-  position:absolute; left:50%; bottom:18px; width:108%; max-width:255px; height:158px;
-  max-height:none; object-fit:contain; object-position:center bottom;
-  transform:translateX(-50%); z-index:1; margin:0;
-  filter:drop-shadow(0 4px 4px rgba(0,0,0,.28));
+.parkingPlayer.isMiddle{height:188px;z-index:4;}
+.freshCrewLead .parkingPlayer{
+  position:relative;left:auto;bottom:auto;width:100%;height:100%;transform:none;
+  pointer-events:none;
 }
-#game.freshWaiting .freshPlayerCard.isHost .lobbyModelCar {
-  width:118%; max-width:392px; height:218px; bottom:24px;
+.parkingVehicleStage{position:absolute;inset:0;pointer-events:none;}
+.parkingNameplate{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  position:absolute;left:50%;top:0;transform:translateX(-50%);z-index:8;
+  max-width:98%;width:max-content;min-height:30px;padding:4px 7px;
+  border:1px solid #ffffff35;border-radius:11px;background:#0a111ce6;
+  color:#fff;box-shadow:0 3px 10px #0004;font-size:12px;pointer-events:auto;
 }
-#game.freshWaiting .lobbyModelCar--raw {
-  object-fit:contain; object-position:center bottom; border-radius:0;
-  clip-path:none; opacity:1;
+.parkingNameplate strong{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.parkingAvatar{display:grid;place-items:center;flex:none;width:22px;height:22px;overflow:hidden;
+  border-radius:50%;background:#30394b;font-size:9px;font-weight:700;border:1px solid #c6d0dc;}
+.parkingAvatar img,.parkingStripAvatar img{width:100%;height:100%;object-fit:cover;}
+.parkingHostBadge{font-size:10px;color:var(--chs-lime);white-space:nowrap;}
+.parkingYouBadge{font-size:8px;color:#bac5d6;}
+.parkingReadyDot{display:block;flex:none;width:7px;height:7px;border-radius:50%;background:#a4adba;}
+.isReady .parkingReadyDot{background:var(--chs-lime);box-shadow:0 0 7px #b5ff3233;}
+.parkingPlayer.isHost .parkingNameplate{top:12px;min-height:35px;border-color:#b5ff3280;font-size:14px;}
+.parkingPlayer.isSelected .parkingNameplate{outline:2px solid var(--chs-lime);outline-offset:3px;}
+.parkingVehicleStage .vehicleIllustration{
+  position:absolute;left:50%;bottom:0;width:100%;margin:0;
+  transform:translateX(-50%);filter:drop-shadow(0 3px 3px #0005);z-index:2;
 }
-#game.freshWaiting .freshAvatarStage .vehicleIllustration {
-  position:absolute; width:112%; max-width:260px; left:50%; bottom:18px;
-  transform:translateX(-50%); z-index:1;
-  mix-blend-mode:normal; mask-image:none;
+.parkingVehicleStage .vehicleRender{border-radius:0;}
+.parkingVehicleStage figcaption{display:none;}
+.parkingVehicleStage .lobbyModelCar{
+  position:absolute;left:50%;bottom:2px;width:100%;height:70%;object-fit:contain;
+  object-position:center bottom;transform:translateX(-50%);z-index:2;
+  filter:drop-shadow(0 3px 3px #0005);margin:0;
 }
-#game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage .vehicleIllustration {
-  max-width:395px; width:120%; bottom:24px;
+.parkingVehicleStage .lobbyModelCar--raw{
+  object-fit:contain;clip-path:none;border-radius:8px;
 }
-#game.freshWaiting .freshAvatarStage .vehicleRender { border-radius:0; }
-#game.freshWaiting .freshAvatarStage figcaption { display:none; }
-.lobbyCrewCharacter {
-  position:absolute; z-index:4; left:70%; bottom:20px; height:194px; width:129.33px;
-  transform:translateX(-50%);
-  transform-origin:50% 100%;
-  background-image:url('assets/crew-characters.png'); background-size:300% 100%; background-repeat:no-repeat;
-  filter:drop-shadow(0 9px 8px #0008); pointer-events:none;
+.parkingContactShadow{
+  position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);
+  width:92%;height:14px;background:radial-gradient(ellipse,#02040ab0 0%,#02040a55 42%,transparent 72%);z-index:1;
 }
-.lobbyCrewCharacter--0 { background-position:0 50%; }
-.lobbyCrewCharacter--1 { background-position:50% 50%; }
-.lobbyCrewCharacter--2 { background-position:100% 50%; }
-
-/* One consistent lobby stance: every character stands beside the same side of
-   the vehicle, matching the reference composition instead of random offsets. */
-.lobbyCrewPose--side{left:70%;bottom:20px;transform:translateX(-50%);}
-#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter {
-  height:270px; width:180px; left:71%; bottom:27px;
-  transform:translateX(-50%);
+.lobbyCrewCharacter{
+  position:absolute;z-index:3;left:72%;bottom:0;height:125px;width:83.33px;
+  transform:translateX(-50%);transform-origin:50% 100%;pointer-events:none;
+  background-image:url('assets/crew-characters.png');background-size:300% 100%;background-repeat:no-repeat;
+  filter:brightness(.91) drop-shadow(2px 4px 3px #0005);
 }
-#game.freshWaiting .freshPlayerCard.isHost .lobbyCrewPose--side{
-  left:71%;bottom:27px;transform:translateX(-50%);
+.lobbyCrewCharacter--0{background-position:0 50%;}
+.lobbyCrewCharacter--1{background-position:50% 50%;}
+.lobbyCrewCharacter--2{background-position:100% 50%;}
+.parkingPlayer.isMiddle .lobbyCrewCharacter{height:144px;width:96px;}
+.parkingPlayer.isHost .lobbyCrewCharacter{height:214px;width:142.67px;left:69%;}
+.parkingNavigation{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:8px 12px;background:#0c131c;font-size:11px;color:#bfccd8;
 }
-#game.freshWaiting .freshPlatform {
-  display:block; position:absolute; z-index:0; width:84%; height:14px; left:50%; bottom:8px;
-  transform:translateX(-50%); border:0; box-shadow:none;
-  background:radial-gradient(ellipse,rgba(65,45,86,.28),transparent 72%);
+.parkingNavigation[hidden]{display:none;}
+.parkingNavigation button{min-width:42px;min-height:36px;border:1px solid #ffffff25;
+  background:#1b2633;border-radius:10px;color:#fff;font-size:23px;line-height:1;}
+.parkingNavigation button:disabled{opacity:.3;}
+.parkingCrewStrip{
+  display:flex;justify-content:safe center;gap:7px;padding:10px;overflow-x:auto;overscroll-behavior-x:contain;
+  background:linear-gradient(180deg,#0b121eee,#0c141fff);border-top:1px solid #ffffff12;
 }
-#game.freshWaiting .freshVehicleName { margin:14px 0 3px; font-size:13px; width:100%; overflow-wrap:anywhere; text-align:center; }
-#game.freshWaiting .freshPlayerCard.isHost .freshVehicleName { font-size:18px; }
-#game.freshWaiting .freshVehicleColor { margin:0 0 8px; font-size:10px; text-align:center; }
-#game.freshWaiting .freshPlayerStatus { align-self:center; font-size:9px; padding:5px 9px; }
-#game.freshWaiting .freshGpsState { margin-top:6px; font-size:10px; text-align:center; }
-#game.freshWaiting .lobbyFriendButton { margin-top:8px; min-height:40px; font-size:11px; width:min(100%,160px); }
-#game.freshWaiting .freshEmptySeat { min-height:225px; margin-top:80px; padding:18px 12px; width:100%; text-align:center; }
-#game.freshWaiting .freshCrewBoard { overflow:hidden; }
-#game.liveRound .freshPlayerIdentity { display:contents; }
+.parkingCrewMember{
+  display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 62px;
+  min-width:0;min-height:93px;padding:7px 3px;border:1px solid #ffffff20;
+  border-radius:10px;background:#141c28;color:#fff;font-size:10px;
+}
+.parkingCrewMember.isHost{border-color:#b5ff3270;}
+.parkingCrewMember[aria-pressed="true"]{background:#263425;border-color:var(--chs-lime);}
+.parkingCrewMember strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.parkingCrewMember small{font-size:9px;color:#acb7c7;}
+.parkingCrewMember.isReady small{color:var(--chs-lime);}
+.parkingReadiness{padding:8px 12px 12px;margin:0;background:#0c141f;color:#c9d2df;text-align:center;font-size:12px;}
+.parkingStripAvatar{display:grid;place-items:center;width:38px;height:38px;
+  border:1px solid #c1cbdc;border-radius:50%;overflow:hidden;background:#283347;font-size:12px;}
+.parkingInvite{width:calc(100% - 20px);margin:0 10px 12px;min-height:42px;background:#1a2632;
+  color:var(--chs-lime);border:1px dashed #b5ff3270;border-radius:10px;font-size:12px;}
+#game.freshWaiting #start{border-color:#b5ff3266!important;}
+#game.freshWaiting #ready{border-color:#b5ff3266!important;box-shadow:none!important;}
+#game.freshWaiting .freshPlayerCard.isReady .freshPlayerStatus{border-color:#b5ff3270!important;background:#b5ff3214!important;}
+#game.freshWaiting .freshRoomHeader{margin:10px 0;background:#101822!important;}
+#game.freshWaiting .freshRoomHeader .sectionEyebrow,
+#game.freshWaiting .freshRoomHeader .gameStats{display:none;}
+#game.freshWaiting .freshRoomHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px!important;}
+#game.freshWaiting .freshRoomHeader h2{font-size:19px!important;margin:0!important;min-width:0;overflow-wrap:anywhere;}
+#game.freshWaiting .codeBox{padding:5px 7px;margin:0;gap:7px;border-radius:8px;flex:none;}
+#game.freshWaiting .codeBox>div>span{font-size:7px;letter-spacing:.03em;}
+#game.freshWaiting .codeBox strong{font-size:12px;letter-spacing:.14em;}
+#game.freshWaiting .freshCopyButton{font-size:8px;min-height:32px;padding:6px;background:#26332a!important;color:var(--chs-lime);}
+#game.freshWaiting .freshRoomLabel i,#game.freshWaiting .freshLiveDot{box-shadow:0 0 12px #b5ff3244!important;}
+@media(min-width:760px){
+  #game.freshWaiting .freshCrewBoard{max-width:760px;margin:18px auto 24px;}
+  .parkingViewport{height:570px;}
+  #game.freshWaiting #players .freshCrewLead{top:268px;width:390px;height:285px;}
+  .parkingPlayer{height:220px;}
+  .parkingPlayer.isMiddle{height:240px;}
+  .parkingPlayer .lobbyCrewCharacter{height:164px;width:109.33px;}
+  .parkingPlayer.isMiddle .lobbyCrewCharacter{height:182px;width:121.33px;}
+  .parkingPlayer.isHost .lobbyCrewCharacter{height:235px;width:156.67px;}
+}
+@media(max-width:380px){
+  .parkingViewport{height:460px;}
+  #game.freshWaiting #players .freshCrewLead{top:198px;height:247px;}
+  .parkingPlayer{height:158px;}
+  .parkingPlayer.isMiddle{height:172px;}
+  .parkingPlayer.isHost .lobbyCrewCharacter{height:192px;width:128px;}
+  .parkingNameplate{font-size:10px;gap:3px;padding:3px 5px;}
+  .parkingAvatar{width:18px;height:18px;}
+}
+@media(prefers-reduced-motion:reduce){.parkingViewport{scroll-behavior:auto;}}
 
 /* A single vehicle search plus one year field; optional series stays out of the main path. */
 #carModal .modalSheet { width:min(100%,560px); padding:26px; }
@@ -121,23 +180,5 @@
 #carModal .carPhotoSection { margin:18px 0; padding:16px; border:1px solid #2a3848; border-radius:12px; }
 #carModal .newCarPhotoPreview { max-width:145px; margin:8px auto; }
 #carModal #saveCar { margin-top:18px; }
-@media(max-width:900px) {
-  #game.freshWaiting #players { grid-template-columns:minmax(0,1fr) minmax(220px,270px) minmax(0,1fr); gap:4px; }
-  #game.freshWaiting .freshCrewWing { grid-template-columns:minmax(0,1fr); }
-}
-@media(max-width:600px) {
-  #game.freshWaiting { padding:16px 12px 120px; }
-  #game.freshWaiting #players { grid-template-columns:1fr 1fr; gap:12px; padding-top:0; }
-  #game.freshWaiting .freshCrewLead { grid-column:1/-1; grid-row:2; padding-top:0; width:min(100%,310px); justify-self:center; }
-  #game.freshWaiting .freshCrewWing { grid-row:1; padding:0; gap:20px; }
-  #game.freshWaiting .freshCrewWing--left { grid-column:1; }
-  #game.freshWaiting .freshCrewWing--right { grid-column:2; }
-  #game.freshWaiting .freshPlayerCard h3 { font-size:14px; }
-  #game.freshWaiting .freshAvatarStage { height:200px; }
-  #game.freshWaiting .lobbyCrewCharacter { height:164px; width:109.33px; left:70%; bottom:18px; }
-  #game.freshWaiting .freshPlayerCard.isHost .freshAvatarStage { height:310px; }
-  #game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter { height:246px; width:164px; left:71%; bottom:25px; }
-  #game.freshWaiting .freshEmptySeat { min-height:210px; margin-top:35px; font-size:12px; }
-  #carModal .modalSheet { padding:22px 18px; }
-}
-@media(prefers-reduced-motion:reduce) { .lobbyCrewCharacter { animation:none; } }
+
+@media(max-width:600px){#carModal .modalSheet{padding:22px 18px;}}

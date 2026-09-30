@@ -2825,9 +2825,9 @@ function vehiclePaintFilter(color) {
 }
 
 function vehicleIllustration(car) {
-  const shape=vehicleCatalog.shape(car || {});
+  const template=vehicleCatalog.illustration(car || {});
   const filter=vehiclePaintFilter(car?.color);
-  return '<figure class="vehicleIllustration" style="--vehicle-filter:'+filter+'"><div class="vehicleRender vehicleRender--'+shape+'" role="img" aria-label="Markenneutrale Fahrzeugansicht"></div><figcaption>Markenneutrale Modellansicht · Farbe angenähert</figcaption></figure>';
+  return '<figure class="vehicleIllustration" style="--vehicle-filter:'+filter+'"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="0 0 384 280" aria-hidden="true" focusable="false"><image href="assets/vehicle-lineup.webp" x="'+(-template.x)+'" y="'+(-template.y)+'" width="1536" height="1024" /></svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Farbe angenähert</figcaption></figure>';
 }
 async function loadImageFromBlob(blob) {
   const url = URL.createObjectURL(blob);
@@ -3336,6 +3336,23 @@ function ensureFreshLobby() {
   game.dataset.freshBound = '1';
   game.classList.add('freshLobby');
 
+  document.getElementById('players')?.addEventListener('click',event=>{
+    const control=event.target.closest('[data-parking-step],[data-parking-page]');
+    if(!control)return;
+    const crew=document.getElementById('players'),viewport=crew.querySelector('.parkingViewport');
+    if(!viewport)return;
+    const page=control.hasAttribute('data-parking-page') ? Number(control.dataset.parkingPage) : Math.round(viewport.scrollLeft/viewport.clientWidth)+Number(control.dataset.parkingStep);
+    crew.dataset.targetPage=String(page);
+    viewport.scrollTo({left:page*viewport.clientWidth,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    const selected=control.dataset.parkingPlayer;
+    if(selected){
+      crew.dataset.selectedPlayer=selected;
+      crew.querySelectorAll('.parkingPlayer').forEach(player=>player.classList.toggle('isSelected',player.dataset.parkingId===selected));
+      crew.querySelectorAll('.parkingCrewMember').forEach(member=>member.setAttribute('aria-pressed',String(member.dataset.parkingPlayer===selected)));
+    }
+  });
+
+
   const chatDrawer = document.getElementById('freshChatDrawer');
   const chatButton = document.getElementById('freshChatButton');
   const chatClose = document.getElementById('freshChatClose');
@@ -3646,6 +3663,60 @@ if (typeof window !== 'undefined') {
   });
 }
 
+
+// Four readable rear slots per parking section. The host stays in a separate
+// foreground layer, so paging a large crew never shrinks or removes the host.
+function parkingLayout(players) {
+  const pages=Math.max(1,Math.ceil(players.length/4));
+  return {pages,slots:players.map((player,index)=>{
+    const page=Math.floor(index/4),position=index%4,row=Math.floor(position/2);
+    const localX=position%2 ? 74 : 26;
+    return {player,page,row,x:(page*100+localX)/pages,width:(row ? 46 : 40)/pages,ground:row ? 34 : 54};
+  })};
+}
+function parkingAvatarMarkup(player) {
+  const source=profileImageSource(player?.avatarUrl);
+  return source ? '<img src="'+esc(source)+'" alt="" loading="lazy" decoding="async">' : esc(initials(player?.name || 'Spieler'));
+}
+function parkingStatus(player) {
+  return !player.connected?'Verbindung…':player.ready?'Bereit':'Wartet';
+}
+function parkingPlayerMarkup(player,lobby,slot) {
+  const owner=player.id===lobby.hostId,mine=player.id===lobby.me.id;
+  const position=slot ? '--parking-x:'+slot.x+'%;--parking-width:'+slot.width+'%;--parking-ground:'+slot.ground+'%;' : '';
+  return '<article class="parkingPlayer '+(owner?'isHost':slot?.row?'isMiddle':'isRear')+' '+(player.ready?'isReady':'')+'" style="'+position+'--car-color:'+lobbyCarColor(player.color)+'" data-parking-id="'+esc(player.id)+'">'
+    +'<button class="parkingNameplate" type="button" data-lobby-card="'+esc(player.id)+'" aria-label="Profil von '+esc(player.name)+' ansehen"><span class="parkingAvatar">'+parkingAvatarMarkup(player)+'</span><strong>'+esc(player.name)+'</strong>'
+    +(owner?'<span class="parkingHostBadge">♛ HOST</span>':mine?'<span class="parkingYouBadge">DU</span>':'')+'<i class="parkingReadyDot" aria-label="'+parkingStatus(player)+'"></i></button>'
+    +'<div class="parkingVehicleStage"><span class="parkingContactShadow" aria-hidden="true"></span>'+lobbyCarMarkup(player,mine)+lobbyCharacterMarkup(player)+'</div></article>';
+}
+function parkingLobbyMarkup(lobby,hostPlayer,others) {
+  const layout=parkingLayout(others);
+  const ordered=hostPlayer?[hostPlayer,...others]:lobby.players;
+  const waiting=ordered.filter(player=>!player.ready||!player.connected);
+  const readiness=(ordered.length-waiting.length)+'/'+ordered.length+' bereit · '+(waiting.length===1?'Warte auf '+esc(waiting[0].name):waiting.length?'Warte auf '+waiting.length+' Spieler':'Crew bereit');
+  return '<div class="parkingViewport" tabindex="0" role="region" aria-label="Parkplatz deiner Crew. Weitere Parkplätze seitlich ansehen." style="--parking-pages:'+layout.pages+'"><div class="parkingScene">'
+    +layout.slots.map(slot=>parkingPlayerMarkup(slot.player,lobby,slot)).join('')+'</div></div>'
+    +(hostPlayer?'<div class="freshCrewLead">'+parkingPlayerMarkup(hostPlayer,lobby)+'</div>':'')
+    +'<div class="parkingNavigation" '+(layout.pages===1?'hidden':'')+'><button type="button" data-parking-step="-1" aria-label="Vorherige Parkreihe">‹</button><span data-parking-progress>Parkreihe 1 / '+layout.pages+'</span><button type="button" data-parking-step="1" aria-label="Nächste Parkreihe">›</button></div>'
+    +'<div class="parkingCrewStrip" role="group" aria-label="Alle '+ordered.length+' Spieler in der Lobby">'+ordered.map(player=>{
+      const owner=player.id===lobby.hostId;
+      const page=owner?0:(layout.slots.find(slot=>slot.player.id===player.id)?.page || 0);
+      return '<button class="parkingCrewMember '+(owner?'isHost':'')+' '+(player.ready?'isReady':'')+'" type="button" data-parking-page="'+page+'" data-parking-player="'+esc(player.id)+'" aria-label="'+esc(player.name)+', '+(owner?'Host, ':'')+parkingStatus(player)+', '+(player.hasLocation?'GPS bereit':'GPS fehlt')+'"><span class="parkingStripAvatar">'+parkingAvatarMarkup(player)+'</span><strong>'+(owner?'♛ ':'')+esc(player.name)+'</strong><small>'+parkingStatus(player)+'</small></button>';
+    }).join('')+'</div><p class="parkingReadiness" aria-live="polite">'+readiness+'</p>'
+    +(lobby.players.length<2?'<button class="parkingInvite" type="button" data-open-lobby-invite>＋ Freunde auf den Parkplatz einladen</button>':'');
+}
+function syncParkingNavigation(crew) {
+  const viewport=crew.querySelector('.parkingViewport');
+  if(!viewport)return;
+  const pages=Math.max(1,Math.round(viewport.scrollWidth/viewport.clientWidth));
+  const page=Math.min(pages-1,Math.round(viewport.scrollLeft/viewport.clientWidth));
+  const label=crew.querySelector('[data-parking-progress]');
+  if(label)label.textContent='Parkreihe '+(page+1)+' / '+pages;
+  const back=crew.querySelector('[data-parking-step="-1"]'),next=crew.querySelector('[data-parking-step="1"]');
+  if(back)back.disabled=page===0;
+  if(next)next.disabled=page>=pages-1;
+}
+
 function renderFreshLobby() {
   if(!state?.lobby)return;
   ensureFreshLobby();
@@ -3683,6 +3754,8 @@ function renderFreshLobby() {
   const half=Math.ceil(others.length/2);
   const displayPlayers=hostPlayer?[...others.slice(0,half),hostPlayer,...others.slice(half)]:[...lobby.players];
   const crew=document.getElementById('players');
+  const sameLobby=crew.dataset.lobbyCode===lobby.code;
+  if(!sameLobby){crew.dataset.lobbyCode=lobby.code;delete crew.dataset.selectedPlayer;}
   const renderPlayer=player=>{
     const mine=player.id===lobby.me.id,owner=player.id===lobby.hostId;
     const status=player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
@@ -3697,11 +3770,28 @@ function renderFreshLobby() {
       ${!mine && player.profileId ? `<button type="button" class="lobbyFriendButton" data-lobby-profile="${esc(player.id)}">Freundschaft</button>` : ''}
     </article>`;
   };
-  const emptySeat=`<button class="freshEmptySeat" type="button" data-open-lobby-invite aria-label="Freunde in die Lobby einladen"><span>＋</span><strong>SPIELER EINLADEN</strong><p>Freund auswählen oder Lobby-Code teilen.<br>Ab 2 Spielern geht’s los.</p></button>`;
-  const crewMarkup=waiting&&hostPlayer
-    ? `<div class="freshCrewWing freshCrewWing--left">${others.slice(0,half).map(renderPlayer).join('')}</div><div class="freshCrewLead">${renderPlayer(hostPlayer)}</div><div class="freshCrewWing freshCrewWing--right">${others.slice(half).map(renderPlayer).join('')}${lobby.players.length<2?emptySeat:''}</div>`
+  const crewMarkup=waiting
+    ? parkingLobbyMarkup(lobby, hostPlayer, others)
     : displayPlayers.map(renderPlayer).join('');
-  if(crew.dataset.markup!==crewMarkup){crew.innerHTML=crewMarkup;crew.dataset.markup=crewMarkup;}
+  if(crew.dataset.markup!==crewMarkup){
+    const previousScroll=sameLobby ? crew.querySelector?.('.parkingViewport')?.scrollLeft || 0 : 0;
+    crew.innerHTML=crewMarkup;crew.dataset.markup=crewMarkup;
+    const viewport=crew.querySelector?.('.parkingViewport');
+    if(viewport){
+      const offset=sameLobby&&crew.dataset.targetPage!==undefined ? Number(crew.dataset.targetPage)*viewport.clientWidth : previousScroll;
+      viewport.scrollTo({left:offset,behavior:'instant'});
+      delete crew.dataset.targetPage;
+      viewport.addEventListener('scroll',()=>syncParkingNavigation(crew),{passive:true});
+      viewport.addEventListener('scrollend',()=>{delete crew.dataset.targetPage;},{passive:true});
+      viewport.addEventListener('pointerdown',()=>{delete crew.dataset.targetPage;},{passive:true});
+      viewport.addEventListener('wheel',()=>{delete crew.dataset.targetPage;},{passive:true});
+      syncParkingNavigation(crew);
+      if(crew.dataset.selectedPlayer){
+        crew.querySelectorAll('.parkingPlayer').forEach(player=>player.classList.toggle('isSelected',player.dataset.parkingId===crew.dataset.selectedPlayer));
+        crew.querySelectorAll('.parkingCrewMember').forEach(member=>member.setAttribute('aria-pressed',String(member.dataset.parkingPlayer===crew.dataset.selectedPlayer)));
+      }
+    }
+  }
   if(typeof renderLobbyChat==='function')renderLobbyChat();
   if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
