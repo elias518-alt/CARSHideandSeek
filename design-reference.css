@@ -684,3 +684,31 @@ input:focus,select:focus,textarea:focus{
   .rejoinBanner{align-items:stretch;flex-direction:column;}
   .rejoinBanner button{width:100%;}
 }
+
+.mapPlayer{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:2px solid #ff5a12;
+  border-radius:50%;
+  background:rgba(10,14,19,.94);
+  color:#fff;
+  box-shadow:0 5px 18px rgba(0,0,0,.55),0 0 0 3px rgba(255,90,18,.12);
+  font-size:16px;
+  line-height:1;
+}
+.mapPlayer.isMe{
+  background:#ff5a12;
+  color:#130a05;
+  border-color:#ff9a55;
+  box-shadow:0 5px 20px rgba(0,0,0,.55),0 0 0 5px rgba(255,90,18,.15);
+}
+#game.liveRound .mapFollow{
+  color:#ff7a21!important;
+  border:1px solid rgba(255,90,18,.55)!important;
+}
+#radius,#lobbyRadius{
+  width:100%;
+  min-height:44px;
+}
