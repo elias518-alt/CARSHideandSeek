@@ -1080,9 +1080,10 @@ function openCarModal() {
   setupCarPhotoInput();
   resetCarPhotoInput();
   refreshVehicleForm();
+  if (typeof syncVehiclePickers === 'function') syncVehiclePickers({});
   $('#carModal')
     ?.classList.remove('hidden');
-  $('#newCarSearch').focus();
+  ($('#newCarBrandPicker') || $('#newCarSearch'))?.focus();
 }
 
 
