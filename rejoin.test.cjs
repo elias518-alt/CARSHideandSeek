@@ -32,21 +32,24 @@ test('authenticated player can rejoin an already active round without changing l
   }finally{lobbies.delete(lobby.code);}
 });
 
-test('state keeps a disconnected players last coordinate on the map but not as fresh gameplay GPS',async()=>{
+test('state keeps a disconnected players last coordinate visible to another player',async()=>{
   const now=Date.now();
-  const me=player('session-2','auth-2',now-60000);
-  me.location.at=now-60000;
-  const lobby={code:'REJ02',name:'LAST GPS',visibility:'PRIVATE',origin:{lat:50.8,lng:7.6},hostId:me.id,players:[me],
+  const me=player('session-2','auth-2',now);
+  const offline=player('session-offline','auth-offline',now-60000);
+  offline.location.at=now-60000;
+  const lobby={code:'REJ02',name:'LAST GPS',visibility:'PRIVATE',origin:{lat:50.8,lng:7.6},hostId:me.id,players:[me,offline],
     state:'ACTIVE',result:null,radius:250,duration:900,headstart:180,escape:15,createdAt:now,
     countdownEndsAt:null,headstartEndsAt:null,endsAt:now+60000,messages:[]};
   lobbies.set(lobby.code,lobby);
   try{
     const result=await route('state',{code:lobby.code,userId:me.id},me.authId);
-    assert.equal(result.map.positions.length,1);
-    assert.equal(result.map.positions[0].stale,true);
-    assert.equal(result.map.positions[0].connected,false);
-    assert.equal(result.lobby.me.hasLocation,false);
-    assert.equal(result.lobby.me.hasStoredLocation,true);
+    const point=result.map.positions.find(item=>item.id===offline.id);
+    const publicOffline=result.lobby.players.find(item=>item.id===offline.id);
+    assert.ok(point);
+    assert.equal(point.stale,true);
+    assert.equal(point.connected,false);
+    assert.equal(publicOffline.hasLocation,false);
+    assert.equal(publicOffline.hasStoredLocation,true);
   }finally{lobbies.delete(lobby.code);}
 });
 
