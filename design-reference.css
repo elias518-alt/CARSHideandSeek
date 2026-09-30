@@ -517,3 +517,54 @@ input:focus,select:focus,textarea:focus{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;}
 }
+
+
+/* Progression / achievements */
+.achievementGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.achievementBadge{
+  min-height:118px;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr);
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border:1px solid #303a45;
+  border-radius:14px;
+  background:linear-gradient(180deg,#151c24,#0d1218);
+}
+.achievementBadge.isUnlocked{
+  border-color:rgba(183,255,43,.36);
+  background:
+    radial-gradient(circle at 12% 20%,rgba(183,255,43,.10),transparent 52%),
+    linear-gradient(180deg,#151c24,#0d1218);
+}
+.achievementBadge.isLocked{opacity:.62;}
+.achievementIcon{
+  width:46px;height:46px;display:grid;place-items:center;
+  border:1px solid #3a4552;border-radius:13px;
+  background:#0b1016;color:#aab4c0;font-size:22px;
+}
+.achievementBadge.isUnlocked .achievementIcon{
+  color:var(--chs-lime);
+  border-color:rgba(183,255,43,.45);
+  box-shadow:0 0 22px rgba(183,255,43,.08);
+}
+.achievementBadge strong{display:block;font-size:13px;line-height:1.25;}
+.achievementBadge p{margin:4px 0 8px;color:#98a3b0;font-size:11px;line-height:1.35;}
+.achievementBadge small{color:var(--chs-lime);font-size:9px;font-weight:800;letter-spacing:.07em;}
+.resultCard{
+  border-color:#343f4a!important;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(183,255,43,.08),transparent 45%),
+    linear-gradient(180deg,#141b23,#0b1016)!important;
+}
+.xpReward{color:var(--chs-lime)!important;}
+
+@media(max-width:700px){
+  .achievementGrid{grid-template-columns:1fr;}
+  .achievementBadge{min-height:94px;}
+}
