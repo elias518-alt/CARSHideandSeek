@@ -3187,7 +3187,7 @@ function openProfileEditor() {
   form.elements.username.focus();
 }
 function setProfileFormBusy(form, busy) {
-  for (const control of form.querySelectorAll('input,button')) control.disabled = busy;
+  for (const control of form.querySelectorAll('input,select,button')) control.disabled = busy;
 }
 function renderProfilePreview(dialog, source) {
   const preview = dialog.querySelector('[data-avatar-preview]'); preview.replaceChildren();
