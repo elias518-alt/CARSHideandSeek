@@ -46,6 +46,8 @@ let gpsHeartbeat = null;
 let publicSearchBusy = false;
 let publicSearchLastAt = 0;
 let garageSyncBusy = false;
+let connectionLost = false;
+let rejoinBusy = false;
 let gpsPhase = '';
 let lastGpsRequestAt = 0;
 let achievementCatalog = [];
@@ -1330,6 +1332,9 @@ function playerData() {
     avatarUrl:
       profileImageSource(dbProfile.avatar_url),
 
+    characterStyle:
+      getCharacterStyle(),
+
     level:
       Math.max(1, Math.min(50, Number(dbProfile.level) || 1)),
 
@@ -1337,6 +1342,21 @@ function playerData() {
       $('#mode')?.value ||
       'PASSENGER'
   };
+}
+
+function characterStyleKey() {
+  return `chsCharacterStyle:${authSession?.user?.id || 'guest'}`;
+}
+
+function getCharacterStyle() {
+  const saved = Number(localStorage.getItem(characterStyleKey()));
+  return Number.isInteger(saved) && saved >= 0 && saved <= 2 ? saved : 0;
+}
+
+function setCharacterStyle(value) {
+  const style = Math.max(0, Math.min(2, Math.trunc(Number(value) || 0)));
+  localStorage.setItem(characterStyleKey(), String(style));
+  return style;
 }
 
 function currentPosition() {
@@ -1512,8 +1532,92 @@ function saveGameSession(result) {
    GAME
 ========================================================= */
 
+function ensureRejoinBanner() {
+  let banner = document.getElementById('rejoinBanner');
+  if (banner) return banner;
+
+  banner = document.createElement('section');
+  banner.id = 'rejoinBanner';
+  banner.className = 'rejoinBanner';
+  banner.hidden = true;
+  banner.innerHTML = `
+    <div>
+      <strong>VERBINDUNG UNTERBROCHEN</strong>
+      <span data-rejoin-message>Dein Platz und deine letzte GPS-Position bleiben erhalten.</span>
+    </div>
+    <button type="button" class="primaryButton" data-rejoin>REJOIN</button>
+  `;
+  document.body.append(banner);
+  banner.querySelector('[data-rejoin]')?.addEventListener('click', rejoinGame);
+  return banner;
+}
+
+function showRejoin(message = 'Dein Platz und deine letzte GPS-Position bleiben erhalten.') {
+  if (!gameSession) return;
+  connectionLost = true;
+  const banner = ensureRejoinBanner();
+  const copy = banner.querySelector('[data-rejoin-message]');
+  if (copy) copy.textContent = message;
+  banner.hidden = false;
+}
+
+function hideRejoin() {
+  connectionLost = false;
+  const banner = document.getElementById('rejoinBanner');
+  if (banner) banner.hidden = true;
+}
+
+async function rejoinGame() {
+  if (rejoinBusy || !gameSession || !authSession?.user) return;
+  rejoinBusy = true;
+  const banner = ensureRejoinBanner();
+  const button = banner.querySelector('[data-rejoin]');
+  if (button) { button.disabled = true; button.textContent = 'VERBINDET…'; }
+
+  try {
+    try {
+      state = await api('state', gameCredentials(), 'GET');
+      hideRejoin();
+      openPage('game');
+      renderGame();
+      poll();
+      if (!gpsStarting) gps();
+      toast('Wieder verbunden ✓');
+      return;
+    } catch (stateError) {
+      // A server-side player session can be recreated by authenticated identity.
+      let payload = { ...playerData(), code: gameSession.code };
+      try {
+        const result = await api('join', payload);
+        saveGameSession(result);
+      } catch (joinError) {
+        if (/GPS|Position|Standort/i.test(joinError.message || '')) {
+          payload = { ...payload, ...(await currentPosition()) };
+          const result = await api('join', payload);
+          saveGameSession(result);
+        } else {
+          throw joinError;
+        }
+      }
+
+      hideRejoin();
+      showGame();
+      toast('Wieder in der Runde ✓');
+    }
+  } catch (error) {
+    showRejoin(error.status === 404
+      ? 'Die Runde ist auf dem Server nicht mehr vorhanden. Du kannst es erneut versuchen oder die Lobby bewusst verlassen.'
+      : 'Rejoin fehlgeschlagen. Deine lokale Session bleibt gespeichert.');
+    toast(error.message || 'Rejoin fehlgeschlagen.');
+  } finally {
+    rejoinBusy = false;
+    if (button) { button.disabled = false; button.textContent = 'REJOIN'; }
+  }
+}
+
 function showGame() {
   openPage('game');
+  hideRejoin();
 
   poll();
 
@@ -1544,6 +1648,7 @@ async function poll() {
       );
 
     lobbyMissingPolls = 0;
+    hideRejoin();
     renderGame();
   }
 
@@ -1559,14 +1664,14 @@ async function poll() {
 
     if (lobbyGone) {
       lobbyMissingPolls += 1;
-      if (lobbyMissingPolls >= 4) {
-        toast('Die Lobby ist serverseitig nicht mehr verfügbar.');
-        setTimeout(resetGame, 1200);
-        return;
-      }
+      showRejoin(
+        lobbyMissingPolls >= 4
+          ? 'Die Spielsession antwortet nicht mehr. Nutze REJOIN – dein Platz wird nicht lokal gelöscht.'
+          : 'Verbindung zur Runde unterbrochen. Deine letzte GPS-Position bleibt stehen.'
+      );
     } else {
       lobbyMissingPolls = 0;
-      // Bei kurzen Render-/Netzwerk-Aussetzern bleibt die Lobby geöffnet.
+      showRejoin('Netzwerkverbindung unterbrochen. Deine letzte GPS-Position bleibt stehen.');
       if (error.status && error.status < 500) toast(error.message);
     }
   }
@@ -2325,6 +2430,7 @@ function resetGame() {
   localStorage.removeItem(
     'chs'
   );
+  hideRejoin();
 
 
   openPage(
@@ -2337,12 +2443,17 @@ function resetGame() {
    NAVIGATION
 ========================================================= */
 
-$$('[data-page]')
+$('[data-page]')
   .forEach(button => {
 
     button.addEventListener(
       'click',
-      () => {
+      event => {
+        if (gameSession && document.getElementById('game')?.classList.contains('active')) {
+          event.preventDefault();
+          if (button.classList.contains('profileMini')) openLobbyPlayerCard(state?.lobby?.me?.id);
+          return;
+        }
         openPage(
           button.dataset.page
         );
@@ -2550,7 +2661,10 @@ function fillLobbySettings() {
 
   for (const [id, value] of Object.entries(values)) {
     const field = document.getElementById(id);
-    if (field && value != null && [...field.options].some(option => String(option.value) === String(value))) {
+    if (!field || value == null) continue;
+    if (field.tagName === 'SELECT') {
+      if ([...field.options].some(option => String(option.value) === String(value))) field.value = String(value);
+    } else {
       field.value = String(value);
     }
   }
@@ -2589,18 +2703,26 @@ async function saveFreshLobbySettings() {
 
 // Kleine Spielradien auch im bestehenden Formular zur Lobby-Erstellung anbieten.
 function addSmallLobbyRadii() {
-  const select = document.getElementById('radius');
-  if (!select) return;
-  const selected = select.value;
-  for (const meters of [200, 300, 500]) {
-    if ([...select.options].some(option => Number(option.value) === meters)) continue;
-    const option = document.createElement('option');
-    option.value = String(meters);
-    option.textContent = `${meters} m`;
-    const next = [...select.options].find(item => Number(item.value) > meters);
-    select.insertBefore(option, next || null);
+  for (const id of ['radius','lobbyRadius']) {
+    const field = document.getElementById(id);
+    if (!field) continue;
+    if (field.tagName === 'SELECT') {
+      const selected = field.value;
+      for (const meters of [50,100,200,300,500,750]) {
+        if ([...field.options].some(option => Number(option.value) === meters)) continue;
+        const option = document.createElement('option');
+        option.value = String(meters);
+        option.textContent = `${meters} m`;
+        const next = [...field.options].find(item => Number(item.value) > meters);
+        field.insertBefore(option, next || null);
+      }
+      field.value = selected;
+    } else {
+      field.min = '50';
+      field.max = '10000';
+      field.step = '10';
+    }
   }
-  select.value = selected;
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', addSmallLobbyRadii, { once: true });
@@ -2619,9 +2741,27 @@ function carPhotoMarkup(car) {
     ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
     : vehicleIllustration(car);
 }
+
+function vehiclePaintFilter(color) {
+  const value=String(color||'').toLowerCase();
+  if (/schwarz|black/.test(value)) return 'brightness(.24) contrast(1.22)';
+  if (/weiß|weiss|white/.test(value)) return 'brightness(1.55) saturate(.16)';
+  if (/grau|gray|grey/.test(value)) return 'brightness(.72) saturate(.22)';
+  if (/blau|blue/.test(value)) return 'sepia(.35) saturate(4.2) hue-rotate(170deg) brightness(.72)';
+  if (/rot|red/.test(value)) return 'sepia(.45) saturate(5) hue-rotate(320deg) brightness(.76)';
+  if (/grün|gruen|green/.test(value)) return 'sepia(.45) saturate(4) hue-rotate(82deg) brightness(.68)';
+  if (/orange/.test(value)) return 'sepia(.5) saturate(5) hue-rotate(342deg) brightness(.95)';
+  if (/gelb|yellow/.test(value)) return 'sepia(.65) saturate(4.5) hue-rotate(5deg) brightness(1.05)';
+  if (/braun|brown/.test(value)) return 'sepia(.6) saturate(2) hue-rotate(340deg) brightness(.55)';
+  if (/beige/.test(value)) return 'sepia(.45) saturate(.8) brightness(1.12)';
+  if (/lila|purple/.test(value)) return 'sepia(.45) saturate(4) hue-rotate(225deg) brightness(.72)';
+  return 'none';
+}
+
 function vehicleIllustration(car) {
   const shape=vehicleCatalog.shape(car || {});
-  return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--'+shape+'" role="img" aria-label="Beispielansicht der Karosserie"></div><figcaption>Beispielansicht · Modell und Farbe können abweichen</figcaption></figure>';
+  const filter=vehiclePaintFilter(car?.color);
+  return '<figure class="vehicleIllustration" style="--vehicle-filter:'+filter+'"><div class="vehicleRender vehicleRender--'+shape+'" role="img" aria-label="Markenneutrale Fahrzeugansicht"></div><figcaption>Markenneutrale Modellansicht · Farbe angenähert</figcaption></figure>';
 }
 async function loadImageFromBlob(blob) {
   const url = URL.createObjectURL(blob);
@@ -2953,6 +3093,14 @@ function openProfileEditor() {
   if (!dialog.querySelector('form')) {
     const form = document.createElement('form');
     form.innerHTML = `<label>SPIELERNAME<input name="username" minlength="2" maxlength="24" required autocomplete="nickname"></label>
+      <label>CHARAKTER
+        <select name="characterStyle">
+          <option value="0">Mann · dunkle Jacke</option>
+          <option value="1">Frau · helle Jacke</option>
+          <option value="2">Mann · orange Jacke</option>
+        </select>
+      </label>
+      <p class="muted">Der Charakter wird in der Lobby direkt mit deinem Fahrzeug inszeniert. Die Auswahl beeinflusst keine Spielwerte.</p>
       <label>PROFILBILD<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
       <div data-avatar-preview style="width:96px;height:96px;border-radius:50%;overflow:hidden;margin:12px auto;background:#344553;display:grid;place-items:center"></div>
       <button type="button" data-remove-avatar class="textButton">BILD ENTFERNEN</button>
@@ -3009,6 +3157,13 @@ function openProfileEditor() {
           avatar_url: data.avatar_url,
           updated_at: data.updated_at || dbProfile.updated_at
         };
+        setCharacterStyle(form.elements.characterStyle.value);
+
+        // Keep an already running lobby profile in sync without leaving the game.
+        if (gameSession) {
+          try { await api('join', { ...playerData(), code: gameSession.code }); }
+          catch (syncError) { console.error('Lobby-Profil konnte nicht sofort aktualisiert werden:', syncError); }
+        }
 
         renderProfile();
         dialog.close();
@@ -3022,6 +3177,7 @@ function openProfileEditor() {
   const form = dialog.querySelector('form');
   dialog._userId = authSession.user.id; dialog._photo = '__KEEP__';
   form.elements.username.value = dbProfile.username || '';
+  form.elements.characterStyle.value = String(getCharacterStyle());
   form.elements.photo.value = '';
   form.querySelector('[data-profile-error]').textContent = '';
   renderProfilePreview(dialog, dbProfile.avatar_url);
@@ -3058,7 +3214,15 @@ function openProfileStatistics() {
 }
 function setupProfileActions() {
   document.querySelector('#profile .settingsButton')?.addEventListener('click', openProfileEditor);
-  document.querySelector('.profileMini')?.addEventListener('click', openProfileEditor);
+  document.querySelector('.profileMini')?.addEventListener('click', event => {
+    if (gameSession && document.getElementById('game')?.classList.contains('active')) {
+      event.preventDefault();
+      event.stopPropagation();
+      openLobbyPlayerCard(state?.lobby?.me?.id);
+      return;
+    }
+    openProfileEditor();
+  });
   for (const row of document.querySelectorAll('#profile .menuRow')) {
     const title = row.querySelector('strong')?.textContent.trim();
     if (title === 'ACCOUNT') row.addEventListener('click', openProfileEditor);
@@ -3313,30 +3477,91 @@ function lobbyCarColor(color) {
   for(const [name,hex] of Object.entries(colors))if(value.includes(name))return hex;
   return '#737981';
 }
+function isLobbyCutout(source) {
+  if (!source) return false;
+  if (/^data:image\/png;base64,/i.test(source)) return true;
+  try { return new URL(source).pathname.toLowerCase().endsWith('.png'); }
+  catch { return false; }
+}
+
 function lobbyCarMarkup(player,mine=false){
   const ownPhoto = mine ? vehiclePhotoSource(activeCar()?.photo) : '';
   const source = vehiclePhotoSource(player?.photoUrl) || ownPhoto;
 
-  if (source) {
+  // Lobby compositions only accept transparent cut-outs. Old full-frame photos
+  // fall back to the generated, logo-free vehicle illustration.
+  if (isLobbyCutout(source)) {
     return `<img class="lobbyModelCar" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
 
-  return vehicleIllustration({vehicle:player.vehicle,body:player.bodyType});
+  return vehicleIllustration({vehicle:player.vehicle,body:player.bodyType,color:player.color});
 }
+
 function lobbyProfileMarkup(player) {
   const source = profileImageSource(player?.avatarUrl);
+  const content = source
+    ? `<img src="${esc(source)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+    : esc(initials(player?.name || 'Spieler'));
 
-  if (!source) {
-    return `<div class="freshLobbyProfile isFallback" aria-label="Kein Profilbild">${esc(initials(player?.name || 'Spieler'))}</div>`;
-  }
-
-  return `<div class="freshLobbyProfile"><img src="${esc(source)}" alt="Profilbild von ${esc(player?.name || 'Spieler')}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>`;
+  return `<button type="button" class="freshLobbyProfile ${source?'':'isFallback'}" data-lobby-card="${esc(player?.id || '')}" aria-label="Profil von ${esc(player?.name || 'Spieler')} ansehen">${content}</button>`;
 }
+
 function lobbyCharacterMarkup(player) {
   let hash=0;for(const ch of String(player.profileId||player.id))hash=(hash*31+ch.charCodeAt(0))>>>0;
-  const skin=hash%3;
-  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin}" aria-hidden="true"></span>`;
+  const fallback=hash%3;
+  const skin=Number.isInteger(player?.characterStyle) ? Math.max(0,Math.min(2,player.characterStyle)) : fallback;
+  const pose=hash%3;
+  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin} lobbyCrewPose--${pose}" aria-hidden="true"></span>`;
 }
+
+function openLobbyPlayerCard(playerId) {
+  const player = state?.lobby?.players?.find(item => item.id === playerId);
+  if (!player) return;
+
+  let dialog = document.getElementById('lobbyPlayerCardDialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'lobbyPlayerCardDialog';
+    dialog.className = 'productDialog lobbyPlayerCardDialog';
+    dialog.innerHTML = '<button class="dialogClose" type="button" aria-label="Schließen">×</button><div data-lobby-player-card></div>';
+    document.body.append(dialog);
+    dialog.querySelector('.dialogClose')?.addEventListener('click',()=>dialog.close());
+  }
+
+  const source = profileImageSource(player.avatarUrl);
+  const avatar = source
+    ? `<img src="${esc(source)}" alt="Profilbild von ${esc(player.name)}">`
+    : `<span>${esc(initials(player.name))}</span>`;
+  const mine = player.id === state?.lobby?.me?.id;
+  dialog.querySelector('[data-lobby-player-card]').innerHTML = `
+    <div class="lobbyPlayerCardAvatar">${avatar}</div>
+    <span class="sectionEyebrow">${mine?'DEIN PROFIL':'CREW-PROFIL'}</span>
+    <h2>${esc(player.name)}</h2>
+    <p>Level ${Number(player.level)||1} · ${esc(player.vehicle||'Kein Fahrzeug')}</p>
+    <div class="lobbyPlayerCardVehicle">${lobbyCarMarkup(player,mine)}</div>
+    ${mine
+      ? '<button type="button" class="primaryButton" data-edit-own-lobby-profile>PROFIL BEARBEITEN</button>'
+      : (player.profileId ? `<button type="button" data-lobby-profile="${esc(player.id)}">FREUNDSCHAFT</button>` : '')}
+  `;
+  dialog.querySelector('[data-edit-own-lobby-profile]')?.addEventListener('click',()=>{dialog.close();openProfileEditor();},{once:true});
+  if (!dialog.open) dialog.showModal();
+}
+document.addEventListener('click', event => {
+  const profile = event.target.closest('[data-lobby-card]');
+  if (profile) {
+    event.preventDefault();
+    event.stopPropagation();
+    openLobbyPlayerCard(profile.dataset.lobbyCard);
+  }
+});
+
+window.addEventListener('offline', () => {
+  if (gameSession) showRejoin('Keine Internetverbindung. Deine letzte GPS-Position bleibt für die Runde gespeichert.');
+});
+window.addEventListener('online', () => {
+  if (gameSession && connectionLost) rejoinGame();
+});
+
 function renderFreshLobby() {
   if(!state?.lobby)return;
   ensureFreshLobby();
