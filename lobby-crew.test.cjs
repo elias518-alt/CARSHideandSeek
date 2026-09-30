@@ -70,16 +70,23 @@ test('legacy uploaded vehicle photos stay visible instead of falling back to the
 });
 
 
-test('waiting lobby uses the violet rooftop image instead of the old blue background',()=>{
+test('waiting lobby uses the sharp violet rooftop scene instead of the old blue background',()=>{
   const css=fs.readFileSync(__dirname+'/crew-lobby.css','utf8');
-  assert.match(css,/assets\/lobby-rooftop-violet\.webp/);
+  assert.match(css,/assets\/lobby-rooftop-violet-hd\.svg/);
   assert.doesNotMatch(css,/lobby-bg\.png|night-hunt\.webp/);
 });
 
+test('violet rooftop background is a scalable 1600x900 SVG asset',()=>{
+  const svg=fs.readFileSync(__dirname+'/assets/lobby-rooftop-violet-hd.svg','utf8');
+  assert.match(svg,/<svg[^>]+viewBox="0 0 1600 900"/);
+  assert.match(svg,/id="deck"/);
+  assert.match(svg,/id="wet"/);
+});
 
-test('violet rooftop background is a complete WebP asset',()=>{
-  const image=fs.readFileSync(__dirname+'/assets/lobby-rooftop-violet.webp');
-  assert.ok(image.length>6000,'Lobby background must not be truncated');
-  assert.equal(image.subarray(0,4).toString('ascii'),'RIFF');
-  assert.equal(image.subarray(8,12).toString('ascii'),'WEBP');
+test('waiting lobby grounds cars without the old sideways offset or raw-photo crop',()=>{
+  const css=fs.readFileSync(__dirname+'/crew-lobby.css','utf8');
+  assert.match(css,/transform:translateX\(-50%\)/);
+  assert.doesNotMatch(css,/translateX\(-42%\)/);
+  assert.match(css,/\.lobbyModelCar--raw[\s\S]*?object-fit:contain/);
+  assert.match(css,/\.lobbyModelCar--raw[\s\S]*?clip-path:none/);
 });
