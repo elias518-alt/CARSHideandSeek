@@ -1,6 +1,58 @@
 'use strict';
 /* Social RPCs are unchanged. Vehicle selection uses one searchable field. */
 let chooseSearchedVehicle=()=>{};
+
+function renderVehicleModelPicker(brand, selected = {}) {
+  const picker=$('#newCarModelPicker');
+  const manualWrap=$('#newCarModelManualWrap');
+  const manualInput=$('#newCarModelManual');
+  if(!picker)return;
+
+  const choices=brand&&vehicleSearch.modelsForBrand ? vehicleSearch.modelsForBrand(brand) : [];
+  picker._vehicleChoices=choices;
+  picker.disabled=!brand;
+  picker.innerHTML=!brand
+    ? '<option value="">Zuerst Marke wählen</option>'
+    : '<option value="">Modell auswählen</option>' +
+      choices.map((choice,index)=>`<option value="${index+1}">${esc(choice.label)}</option>`).join('') +
+      '<option value="manual">Anderes Modell…</option>';
+
+  if(!brand){
+    manualWrap?.classList.add('hidden');
+    if(manualInput)manualInput.value='';
+    return;
+  }
+
+  const selectedIndex=choices.findIndex(choice=>
+    choice.model===selected.model && (!selected.series || choice.series===selected.series)
+  );
+  if(selectedIndex>=0){
+    picker.value=String(selectedIndex+1);
+    manualWrap?.classList.add('hidden');
+    if(manualInput)manualInput.value='';
+  }else if(selected.model){
+    picker.value='manual';
+    manualWrap?.classList.remove('hidden');
+    if(manualInput)manualInput.value=selected.model;
+  }else{
+    manualWrap?.classList.add('hidden');
+    if(manualInput)manualInput.value='';
+  }
+}
+
+function syncVehiclePickers(car = {}) {
+  const brandPicker=$('#newCarBrandPicker');
+  if(!brandPicker || !vehicleSearch.brands)return;
+  if(brandPicker.dataset.ready!=='1'){
+    brandPicker.dataset.ready='1';
+    brandPicker.innerHTML='<option value="">Marke auswählen</option>'+
+      vehicleSearch.brands().map(brand=>`<option value="${esc(brand)}">${esc(brand)}</option>`).join('');
+  }
+  const brand=vehicleSearch.canonicalBrand ? vehicleSearch.canonicalBrand(car.brand||'') : (car.brand||'');
+  brandPicker.value=brand;
+  renderVehicleModelPicker(brand,car);
+}
+
 function commitVehicleSearch(){
   if($('#newCarBrand').value&&$('#newCarModel').value)return true;
   const choice=vehicleSearch.search($('#newCarSearch').value).find(item=>item.exact);
@@ -35,8 +87,9 @@ function setupVehicleSearch(){
     series.value=choice.series||'';series.dataset.manual=String(!!choice.series);
     if(changed||!$('#newCarBody').value){
       const bodies={hatch:'Compact',sedan:'Limousine',wagon:'Touring',suv:'SUV',coupe:'Coupé',van:'Van'};
-      $('#newCarBody').value=bodies[vehicleCatalog.shape({brand:choice.brand,model:choice.model})]||'';
+      $('#newCarBody').value=choice.body||bodies[vehicleCatalog.shape({brand:choice.brand,model:choice.model})]||'';
     }
+    syncVehiclePickers(choice);
     refreshVehicleForm();close();
   };
   input.addEventListener('focus',show);
@@ -65,6 +118,55 @@ function setupVehicleSearch(){
     chooseSearchedVehicle(choices[Number(button.dataset.carChoice)]);
     $('#newCarYear').focus();
   });
+  const brandPicker=$('#newCarBrandPicker');
+  const modelPicker=$('#newCarModelPicker');
+  const manualInput=$('#newCarModelManual');
+
+  syncVehiclePickers({
+    brand:$('#newCarBrand').value,
+    model:$('#newCarModel').value,
+    series:$('#newCarSeries').value
+  });
+
+  brandPicker?.addEventListener('change',()=>{
+    const brand=brandPicker.value;
+    $('#newCarBrand').value=brand;
+    $('#newCarModel').value='';
+    $('#newCarSeries').value='';
+    $('#newCarSeries').dataset.manual='false';
+    $('#newCarBody').value='';
+    input.value=brand;
+    renderVehicleModelPicker(brand,{});
+    refreshVehicleForm();
+  });
+
+  modelPicker?.addEventListener('change',()=>{
+    const value=modelPicker.value;
+    if(value==='manual'){
+      $('#newCarModelManualWrap')?.classList.remove('hidden');
+      $('#newCarModel').value='';
+      $('#newCarBody').value='';
+      if(manualInput){manualInput.value='';manualInput.focus();}
+      refreshVehicleForm();
+      return;
+    }
+    $('#newCarModelManualWrap')?.classList.add('hidden');
+    const choice=modelPicker._vehicleChoices?.[Number(value)-1];
+    if(choice)chooseSearchedVehicle(choice);
+  });
+
+  manualInput?.addEventListener('input',()=>{
+    const model=manualInput.value.trim();
+    const brand=brandPicker?.value||'';
+    $('#newCarBrand').value=brand;
+    $('#newCarModel').value=model;
+    input.value=(brand+' '+model).trim();
+    $('#newCarSeries').value='';
+    $('#newCarSeries').dataset.manual='false';
+    $('#newCarBody').value=model ? ({hatch:'Compact',sedan:'Limousine',wagon:'Touring',suv:'SUV',coupe:'Coupé',van:'Van'}[vehicleCatalog.shape({brand,model})]||'') : '';
+    refreshVehicleForm();
+  });
+
   const colorInput=$('#newCarColor');
   const paintColor=()=>document.querySelectorAll('[data-car-color]').forEach(button=>{
     const selected=button.dataset.carColor===colorInput.value;
@@ -72,9 +174,9 @@ function setupVehicleSearch(){
   });
   $('#carModal .carColorChoices').addEventListener('click',event=>{
     const button=event.target.closest('[data-car-color]');if(!button)return;
-    colorInput.value=button.dataset.carColor;paintColor();
+    colorInput.value=button.dataset.carColor;paintColor();refreshVehicleForm();
   });
-  colorInput.addEventListener('input',paintColor);
+  colorInput.addEventListener('input',()=>{paintColor();refreshVehicleForm();});
   document.addEventListener('click',event=>{if(!event.target.closest('.carSearchField'))close();});
 }
 
