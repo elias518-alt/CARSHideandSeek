@@ -850,6 +850,12 @@ function syncVehicleUI() {
 
   const visual = document.querySelector('.activeCarCard .carVisual');
   if (visual) visual.innerHTML = carPhotoMarkup(car);
+
+  const profileVehicleStage = document.getElementById('profileVehicleStage');
+  if (profileVehicleStage) {
+    profileVehicleStage.innerHTML = car ? carPhotoMarkup(car) : '';
+  }
+
   renderGarage();
 }
 
