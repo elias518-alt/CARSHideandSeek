@@ -26,7 +26,7 @@ function formFixture(cars=[]){
   }
   const fields=new Map();
   const $=selector=>{if(!fields.has(selector))fields.set(selector,new Field());return fields.get(selector);};
-  const colors=['Schwarz','Weiß','Blau','Grün'].map(color=>{const button=new Field();button.dataset.carColor=color;return button;});
+  const colors=['Schwarz','Weiß','Blau','Grün','Orange'].map(color=>{const button=new Field();button.dataset.carColor=color;return button;});
   const writes=[],messages=[],uploads=[],activations=[];
   const context=vm.createContext({$,vehicleCatalog,vehicleSearch,Event,Date,
     document:{querySelectorAll:()=>colors,addEventListener(){}},
@@ -72,6 +72,22 @@ test('one query and a color create an owned vehicle with one year and inferred b
   assert.equal(values.series,'III · 2011–2018');
   assert.deepEqual(f.activations,['new-vehicle-id']);
   assert.equal(f.$('#carModal').classList.contains('hidden'),true);
+});
+
+test('structured make-model picker infers BMW 420i as a coupe and repaints the preview',async()=>{
+  const f=formFixture();f.run('openCarModal()');
+  const brand=f.$('#newCarBrandPicker');brand.value='BMW';brand.dispatchEvent({type:'change'});
+  const model=f.$('#newCarModelPicker');
+  const index=model._vehicleChoices.findIndex(item=>item.model==='420i');
+  assert.ok(index>=0);
+  model.value=String(index+1);model.dispatchEvent({type:'change'});
+  assert.equal(f.$('#newCarBrand').value,'BMW');
+  assert.equal(f.$('#newCarModel').value,'420i');
+  assert.equal(f.$('#newCarBody').value,'Coupé');
+  f.color('Blau');
+  assert.equal(JSON.parse(f.$('#newCarPhotoPreview').innerHTML).color,'Blau');
+  await f.run('saveCar()');
+  assert.equal(f.writes[0].values.body_type,'Coupé');
 });
 
 test('editing preserves an explicit series in overlapping years, body and existing photo',async()=>{

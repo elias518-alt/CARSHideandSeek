@@ -17,15 +17,16 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260930-16">
+    href="style.css?v=20260930-17">
 
   <link
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
 
   <title>CAR HIDE & SEEK</title>
-<link rel="stylesheet" href="premium.css?v=20260930-16">
-<link rel="stylesheet" href="crew-lobby.css?v=20260930-16">\n<link rel="stylesheet" href="design-reference.css?v=20260930-1">
+<link rel="stylesheet" href="premium.css?v=20260930-17">
+<link rel="stylesheet" href="crew-lobby.css?v=20260930-17">
+<link rel="stylesheet" href="design-reference.css?v=20260930-17">
 </head>
 
 
@@ -772,33 +773,16 @@
 
           RADIUS
 
-          <select id="radius">
-
-            <option value="1000">
-              1 km
-            </option>
-
-            <option value="2000">
-              2 km
-            </option>
-
-            <option
-              value="3000"
-              selected>
-
-              3 km
-
-            </option>
-
-            <option value="5000">
-              5 km
-            </option>
-
-            <option value="10000">
-              10 km
-            </option>
-
-          </select>
+          <input
+            id="radius"
+            type="number"
+            min="50"
+            max="10000"
+            step="10"
+            value="3000"
+            inputmode="numeric"
+            aria-describedby="radiusHint">
+          <small id="radiusHint" class="fieldHint">50–10.000 m · frei wählbar</small>
 
         </label>
 
@@ -1925,29 +1909,16 @@
 
             RADIUS
 
-            <select id="lobbyRadius">
-
-              <option value="1000">
-                1 km
-              </option>
-
-              <option value="2000">
-                2 km
-              </option>
-
-              <option value="3000">
-                3 km
-              </option>
-
-              <option value="5000">
-                5 km
-              </option>
-
-              <option value="10000">
-                10 km
-              </option>
-
-            </select>
+            <input
+              id="lobbyRadius"
+              type="number"
+              min="50"
+              max="10000"
+              step="10"
+              value="3000"
+              inputmode="numeric"
+              aria-describedby="lobbyRadiusHint">
+            <small id="lobbyRadiusHint" class="fieldHint">50–10.000 m · frei wählbar</small>
 
           </label>
 
@@ -2111,9 +2082,10 @@
             id="mapFollow"
             class="mapFollow"
             type="button"
-            aria-label="Meinen Standort zentrieren">
+            aria-label="Spielbereich wieder zentrieren"
+            title="Spielbereich wieder zentrieren">
 
-            ⌖
+            ◎
 
           </button>
 
@@ -2364,84 +2336,66 @@
 
       <input id="newCarBrand" type="hidden">
       <input id="newCarModel" type="hidden">
-      <div class="carSearchField">
-        <label for="newCarSearch">DEIN FAHRZEUG</label>
-        <input id="newCarSearch" autocomplete="off" placeholder="z. B. BMW 3er 2015 oder Ford Focus"
+
+      <div class="vehiclePickerGrid">
+        <label>
+          MARKE
+          <select id="newCarBrandPicker">
+            <option value="">Marke auswählen</option>
+          </select>
+        </label>
+
+        <label>
+          MODELL
+          <select id="newCarModelPicker" disabled>
+            <option value="">Zuerst Marke wählen</option>
+          </select>
+        </label>
+      </div>
+
+      <label id="newCarModelManualWrap" class="hidden">
+        MODELL MANUELL
+        <input id="newCarModelManual" maxlength="80" autocomplete="off" placeholder="z. B. Sondermodell">
+      </label>
+
+      <!-- Der alte Suchpfad bleibt intern für bestehende Daten/Tests erhalten. -->
+      <div class="carSearchField legacyVehicleSearch hidden" aria-hidden="true">
+        <label for="newCarSearch">FAHRZEUGSUCHE</label>
+        <input id="newCarSearch" autocomplete="off" tabindex="-1"
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="carSearchResults">
         <div id="carSearchResults" class="carSearchResults hidden" role="listbox" aria-label="Fahrzeugvorschläge"></div>
       </div>
-      <!-- BAUJAHR / KAROSSERIE -->
 
-      <div class="inputGrid">
-
-        <label>
-
-          BAUJAHR
-
-          <input
-            id="newCarYear"
-            inputmode="numeric"
-            maxlength="4"
-            placeholder="z. B. 2015">
-
-        </label>
-
-
-        <label>
-
-          KAROSSERIE
-
-          <select id="newCarBody">
-
-            <option value="">
-              Auswählen
-            </option>
-
-            <option value="Limousine">
-              Limousine
-            </option>
-
-            <option value="Coupé">
-              Coupé
-            </option>
-
-            <option value="Cabrio">
-              Cabrio
-            </option>
-
-            <option value="Touring">
-              Touring / Kombi
-            </option>
-
-            <option value="Compact">
-              Compact
-            </option>
-
-            <option value="SUV">
-              SUV
-            </option>
-
-            <option value="Roadster">
-              Roadster
-            </option>
-
-            <option value="Pickup">
-              Pickup
-            </option>
-
-            <option value="Van">
-              Van
-            </option>
-
-          </select>
-
-        </label>
-
-      </div>
+      <label>
+        BAUJAHR
+        <input
+          id="newCarYear"
+          inputmode="numeric"
+          maxlength="4"
+          placeholder="z. B. 2015">
+      </label>
 
       <small id="generationHint" class="fieldHint" aria-live="polite"></small>
+
       <details id="carSeriesDetails" class="carOptionalDetails">
-        <summary>Baureihe ergänzen <span>optional</span></summary>
+        <summary>Fahrzeugdetails prüfen <span>optional</span></summary>
+
+        <label>
+          KAROSSERIE
+          <select id="newCarBody">
+            <option value="">Automatisch</option>
+            <option value="Limousine">Limousine</option>
+            <option value="Coupé">Coupé</option>
+            <option value="Cabrio">Cabrio</option>
+            <option value="Touring">Touring / Kombi</option>
+            <option value="Compact">Compact</option>
+            <option value="SUV">SUV</option>
+            <option value="Roadster">Roadster</option>
+            <option value="Pickup">Pickup</option>
+            <option value="Van">Van</option>
+          </select>
+        </label>
+
         <label for="newCarSeries">BAUREIHE</label>
         <input id="newCarSeries" maxlength="100" placeholder="z. B. E36">
       </details>
@@ -2699,17 +2653,17 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
-<script src="vehicle-catalog.js?v=20260930-16"></script>
-<script src="vehicle-search.js?v=20260930-16"></script>
-<script src="app.js?v=20260930-16"></script>
+<script src="vehicle-catalog.js?v=20260930-17"></script>
+<script src="vehicle-search.js?v=20260930-17"></script>
+<script src="app.js?v=20260930-17"></script>
 
-<script src="garage-actions.js?v=20260930-16"></script>
-<script src="social.js?v=20260930-16"></script>
-<script src="ui-icons.js?v=20260930-16"></script>
+<script src="garage-actions.js?v=20260930-17"></script>
+<script src="social.js?v=20260930-17"></script>
+<script src="ui-icons.js?v=20260930-17"></script>
 
 <script
   type="module"
-  src="map.js?v=20260930-16">
+  src="map.js?v=20260930-17">
 </script>
 
 

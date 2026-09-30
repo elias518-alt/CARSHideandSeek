@@ -105,32 +105,41 @@ function initialize(data) {
     console.error('Kartenstart:', error);
   }
 }
+function fitGameArea(data, duration = 450) {
+  if (!map || !validPoint(data?.center)) return;
+  const radius = Math.max(50, Math.min(10000, Number(data.radius) || 3000));
+  const coordinates = circleGeoJSON(data.center, radius).geometry.coordinates[0];
+  const lngs = coordinates.map(p => p[0]), lats = coordinates.map(p => p[1]);
+  map.fitBounds(
+    [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+    { padding: 34, duration, maxZoom: radius <= 150 ? 18 : radius <= 500 ? 17 : 16 }
+  );
+}
+
 function updateCircle(data) {
   if (!validPoint(data.center)) return;
-  const radius = Math.max(100, Math.min(10000, Number(data.radius) || 3000));
+  const radius = Math.max(50, Math.min(10000, Number(data.radius) || 3000));
   const key = `${data.center.lat},${data.center.lng},${radius}`;
   if (key !== lastCircleKey) {
     map.getSource('game-radius')?.setData(circleGeoJSON(data.center, radius));
     lastCircleKey = key;
   }
   if (!fitted) {
-    const coordinates = circleGeoJSON(data.center, radius).geometry.coordinates[0];
-    const lngs = coordinates.map(p => p[0]), lats = coordinates.map(p => p[1]);
-    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 30, duration: 0, maxZoom: 16 });
+    fitGameArea(data, 0);
     fitted = true;
   }
   legend.textContent = `● Du    ● Mitspieler    ┄ Spielradius ${radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}`;
 }
 function makeMarker(player, mine) {
   const element = document.createElement('div');
-  element.className = `mapPlayer ${mine ? 'isMe' : 'isOther'}`;
+  element.className = `mapPlayer ${mine ? 'isMe' : 'isOther'} ${player.stale || player.connected === false ? 'isStale' : ''}`;
   element.textContent = mine ? '▲' : (player.role === 'SEEKER' ? '⌕' : '🚘');
   element.setAttribute('aria-label', mine ? 'Mein Standort' : `Standort von ${player.name}`);
   const popupContent = document.createElement('div');
   const title = document.createElement('strong');
   title.textContent = mine ? 'Du' : player.name;
   const detail = document.createElement('div');
-  detail.textContent = `${player.role === 'SEEKER' ? 'Sucher' : player.role === 'HIDER' ? 'Verstecker' : 'Spieler'} · GPS ±${Math.round(player.accuracy)} m`;
+  detail.textContent = `${player.role === 'SEEKER' ? 'Sucher' : player.role === 'HIDER' ? 'Verstecker' : 'Spieler'} · ${player.stale || player.connected === false ? 'letzte Position · offline' : 'GPS ±'+Math.round(player.accuracy)+' m'}`;
   popupContent.append(title, detail);
   const marker = new maplibregl.Marker({ element, anchor: 'center' })
     .setLngLat([player.lng, player.lat])
@@ -145,8 +154,10 @@ function updateMarkers(data, meId) {
     current.add(player.id);
     const mine = player.id === meId;
     const marker = markers.get(player.id);
-    if (marker) marker.setLngLat([player.lng, player.lat]);
-    else makeMarker(player, mine);
+    if (marker) {
+      marker.setLngLat([player.lng, player.lat]);
+      marker.getElement()?.classList.toggle('isStale', !!player.stale || player.connected === false);
+    } else makeMarker(player, mine);
   }
   for (const [id, marker] of markers) {
     if (!current.has(id)) { marker.remove(); markers.delete(id); }
@@ -168,9 +179,9 @@ function updateMap(gameState) {
 }
 document.getElementById('mapFollow')?.addEventListener('click', () => {
   if (!map || !latest?.map) return;
-  const me = latest.map.positions?.find(p => p.id === latest.lobby.me.id);
-  const point = me || latest.map.center;
-  if (validPoint(point)) map.easeTo({ center: [point.lng, point.lat], zoom: Math.max(map.getZoom(), 15), duration: 450 });
+  // One tap always restores the complete play area after manual pan/zoom.
+  fitGameArea(latest.map, 450);
+  fitted = true;
 });
 window.chsMapUpdate = updateMap;
 window.chsMapReset = () => {

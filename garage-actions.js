@@ -17,7 +17,7 @@ function refreshVehicleForm() {
     series.value?'Baureihe: '+series.value:brand&&model?'Baureihe kannst du bei Bedarf ergänzen.':'';
   if(!pendingCarPhoto){
     const existing=localGarage.find(car=>car.id===editingVehicleId);
-    $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,body:$('#newCarBody').value,photo:existing?.photo});
+    $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,body:$('#newCarBody').value,color:$('#newCarColor').value,photo:existing?.photo});
   }
 }
 
@@ -29,9 +29,9 @@ function editVehicle(id) {
   $('#newCarYear').value=car.year||'';$('#newCarBody').value=car.body||'';
   $('#newCarColor').value=car.color||'';$('#newCarSeries').value=car.series||'';
   $('#newCarSearch').value=car.brand+' '+car.model;
+  if(typeof syncVehiclePickers==='function')syncVehiclePickers(car);
   $('#carSearchResults').classList.add('hidden');
   $('#newCarSearch').setAttribute('aria-expanded','false');
-  $('#newCarColor').dispatchEvent(new Event('input'));
   $('#saveCar').textContent='Änderungen speichern';
   $('#carModal h2').textContent='FAHRZEUG BEARBEITEN';
   const known=vehicleCatalog.ranges(car.brand,car.model);
@@ -40,6 +40,7 @@ function editVehicle(id) {
   // Preserve an explicit saved series when the year alone cannot identify it.
   $('#newCarSeries').dataset.manual=String(!!car.series&&(!inferred||![inferred.label,inferred.name].includes(car.series)));
   refreshVehicleForm();
+  $('#newCarColor').dispatchEvent(new Event('input'));
   $('#newCarPhotoPreview').innerHTML=carPhotoMarkup(car);
 }
 

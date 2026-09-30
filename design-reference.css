@@ -1,6 +1,6 @@
 /* CAR HIDE & SEEK — Design reference pass (2026-09-30)
    Visual target: Premium-App mockup with dark graphite surfaces, purple night-city
-   imagery and electric-lime interaction states. This file intentionally contains
+   imagery and electric-orange interaction states. This file intentionally contains
    presentation overrides only; game/API/auth behaviour stays in the existing files. */
 
 :root {
@@ -13,8 +13,8 @@
   --chs-line-soft:#232b35;
   --chs-text:#f5f7fb;
   --chs-muted:#a6afbd;
-  --chs-lime:#b7ff2b;
-  --chs-lime-2:#96ea18;
+  --chs-lime:#ff5a12;
+  --chs-lime-2:#ff7a21;
   --chs-purple:#493256;
   --chs-red:#ff453a;
   --chs-shadow:0 24px 70px rgba(0,0,0,.42);
@@ -49,8 +49,8 @@ input,select,textarea{
   color:var(--chs-text);
 }
 input:focus,select:focus,textarea:focus{
-  border-color:rgba(183,255,43,.74);
-  box-shadow:0 0 0 3px rgba(183,255,43,.10);
+  border-color:rgba(255,90,18,.74);
+  box-shadow:0 0 0 3px rgba(255,90,18,.10);
   outline:none;
 }
 
@@ -63,9 +63,9 @@ input:focus,select:focus,textarea:focus{
 .brand,.stageLogo{font-style:italic;}
 .brandCar,.stageLogo em,.orangeText{color:var(--chs-lime)!important;}
 .miniLevel{
-  background:rgba(183,255,43,.12)!important;
+  background:rgba(255,90,18,.12)!important;
   color:var(--chs-lime)!important;
-  border:1px solid rgba(183,255,43,.46);
+  border:1px solid rgba(255,90,18,.46);
 }
 #headerAvatar{border-color:#4e5967;background:#141b24;}
 
@@ -75,9 +75,9 @@ input:focus,select:focus,textarea:focus{
 }
 .primaryButton,.activateVehicle,.homeActionPrimary,#saveCar,#ready{
   background:linear-gradient(180deg,var(--chs-lime),var(--chs-lime-2))!important;
-  border-color:#caff61!important;
+  border-color:#ff9a55!important;
   color:#10150d!important;
-  box-shadow:0 0 0 1px rgba(183,255,43,.12),0 10px 28px rgba(142,222,20,.13)!important;
+  box-shadow:0 0 0 1px rgba(255,90,18,.12),0 10px 28px rgba(255,122,33,.13)!important;
   text-shadow:none!important;
 }
 .primaryButton:hover,.activateVehicle:hover,.homeActionPrimary:hover,#saveCar:hover,#ready:hover{
@@ -86,11 +86,11 @@ input:focus,select:focus,textarea:focus{
 .primaryButton:active,.activateVehicle:active,#saveCar:active,#ready:active{transform:translateY(1px);}
 
 .progress{background:#252d36!important;}
-.progress>div{background:linear-gradient(90deg,var(--chs-lime),#a3f31c)!important;box-shadow:0 0 18px rgba(183,255,43,.18)!important;}
+.progress>div{background:linear-gradient(90deg,var(--chs-lime),#ff7a21)!important;box-shadow:0 0 18px rgba(255,90,18,.18)!important;}
 .carStatus,.activeTag{
-  background:rgba(183,255,43,.11)!important;
+  background:rgba(255,90,18,.11)!important;
   color:var(--chs-lime)!important;
-  border-color:rgba(183,255,43,.36)!important;
+  border-color:rgba(255,90,18,.36)!important;
 }
 
 /* HOME — same visual language as the reference screens. */
@@ -108,7 +108,7 @@ input:focus,select:focus,textarea:focus{
 .homeStage::before{
   content:"";
   position:absolute;inset:0;
-  background:radial-gradient(circle at 76% 36%,rgba(183,255,43,.07),transparent 18rem);
+  background:radial-gradient(circle at 76% 36%,rgba(255,90,18,.07),transparent 18rem);
   pointer-events:none;
 }
 .stageLogo,.stageTagline{position:relative;z-index:1;}
@@ -119,7 +119,7 @@ input:focus,select:focus,textarea:focus{
   background:linear-gradient(180deg,#131a22,#0e141b);
   border-color:#303a45;
 }
-.homeActionPrimary .actionCopy small{color:#26310f!important;}
+.homeActionPrimary .actionCopy small{color:#2a1207!important;}
 .actionSymbol,.actionChevron{color:inherit;}
 .quickStats>div,.profileStats>div{background:#11171f!important;}
 
@@ -135,8 +135,8 @@ input:focus,select:focus,textarea:focus{
     linear-gradient(180deg,#141a22,#0b1016);
 }
 .garageCar.activeVehicle{
-  border-color:rgba(183,255,43,.54);
-  box-shadow:0 0 0 1px rgba(183,255,43,.07),0 24px 60px rgba(0,0,0,.22);
+  border-color:rgba(255,90,18,.54);
+  box-shadow:0 0 0 1px rgba(255,90,18,.07),0 24px 60px rgba(0,0,0,.22);
 }
 .garageVehicleVisual{
   max-width:480px;
@@ -160,8 +160,8 @@ input:focus,select:focus,textarea:focus{
 .garageActions button:hover{border-color:#596675;}
 .garageActions .deleteVehicle{color:#ffaaa5;}
 #garageAddCar{
-  border-color:rgba(183,255,43,.42)!important;
-  background:rgba(183,255,43,.06)!important;
+  border-color:rgba(255,90,18,.42)!important;
+  background:rgba(255,90,18,.06)!important;
 }
 #garageAddCar>span{color:var(--chs-lime)!important;}
 #carModal .modalSheet{
@@ -172,7 +172,7 @@ input:focus,select:focus,textarea:focus{
 #carModal #newCarSearch{background:#0b1016;border-color:#3a4552;}
 #carModal .carSearchResults{background:#121922!important;border-color:#3c4856!important;}
 #carModal .carSearchResults button:hover,#carModal .carSearchResults button.selected{
-  background:rgba(183,255,43,.10)!important;
+  background:rgba(255,90,18,.10)!important;
 }
 #carModal .carSearchResults button.selected{box-shadow:inset 3px 0 0 var(--chs-lime);}
 #carModal .carPhotoSection{
@@ -184,7 +184,7 @@ input:focus,select:focus,textarea:focus{
 }
 #carModal .carColorChoices button.selected{
   outline-color:var(--chs-lime)!important;
-  box-shadow:0 0 0 4px rgba(183,255,43,.09);
+  box-shadow:0 0 0 4px rgba(255,90,18,.09);
 }
 
 /* PROFILE — avatar/name/level first, then the active car as in the reference. */
@@ -228,8 +228,8 @@ input:focus,select:focus,textarea:focus{
 .profileProgress>div:first-child{display:flex;justify-content:space-between;gap:16px;font-size:12px;}
 #profileLevelText{
   display:inline-flex;align-items:center;min-height:30px;padding:0 10px;
-  border:1px solid rgba(183,255,43,.48);border-radius:8px;
-  color:var(--chs-lime);background:rgba(183,255,43,.07);
+  border:1px solid rgba(255,90,18,.48);border-radius:8px;
+  color:var(--chs-lime);background:rgba(255,90,18,.07);
 }
 .profileVehicleStage{
   position:absolute;
@@ -258,7 +258,7 @@ input:focus,select:focus,textarea:focus{
 .profileStats>div span{color:#a9b3c0;}
 #profile .menuRow{border-color:#26303a;}
 #profile .menuRow>span{color:#dce2e9;}
-#profile .menuRow:hover{background:rgba(183,255,43,.035);}
+#profile .menuRow:hover{background:rgba(255,90,18,.035);}
 .achievementGrid>*{border-color:#303a45!important;}
 
 /* BOTTOM NAV — reference-like slim black bar with lime active state. */
@@ -272,24 +272,24 @@ input:focus,select:focus,textarea:focus{
 .navPlay{
   background:linear-gradient(180deg,var(--chs-lime),var(--chs-lime-2))!important;
   color:#10150d!important;
-  border-color:#caff60!important;
+  border-color:#ff9a55!important;
 }
 .uiIcon{stroke-width:1.8;}
 
 /* WAITING LOBBY — keep the functional host/crew formation, but use the exact
-   night-city + lime visual language of the reference. */
+   parkdeck + orange visual language of the reference. */
 #game.freshLobby.active.freshWaiting{
   max-width:1180px;
   background:
     linear-gradient(180deg,rgba(8,10,15,.12),rgba(8,10,15,.42) 55%,#070a0f 100%),
     linear-gradient(90deg,rgba(57,33,70,.22),transparent 70%),
-    url('assets/night-hunt.webp') center/cover no-repeat!important;
+    url('lobby-bg.png') center 58%/cover no-repeat!important;
 }
 #game.freshWaiting .freshLobbyTools{
   border-bottom:1px solid rgba(255,255,255,.07);
   padding-bottom:12px;
 }
-#game .freshRoomLabel i,.freshLiveDot{background:var(--chs-lime)!important;box-shadow:0 0 12px rgba(183,255,43,.55)!important;}
+#game .freshRoomLabel i,.freshLiveDot{background:var(--chs-lime)!important;box-shadow:0 0 12px rgba(255,90,18,.55)!important;}
 #game.freshWaiting .freshRoomHeader{
   background:rgba(9,13,18,.72)!important;
   border-color:rgba(255,255,255,.11)!important;
@@ -307,12 +307,12 @@ input:focus,select:focus,textarea:focus{
 }
 #game.freshWaiting .freshPlayerCard.isReady .freshPlayerStatus{
   color:var(--chs-lime)!important;
-  border-color:rgba(183,255,43,.42)!important;
-  background:rgba(183,255,43,.08)!important;
+  border-color:rgba(255,90,18,.42)!important;
+  background:rgba(255,90,18,.08)!important;
 }
 #game.freshWaiting .freshGpsState{color:#aab4c1!important;}
 #game.freshWaiting .freshEmptySeat{
-  border-color:rgba(183,255,43,.35)!important;
+  border-color:rgba(255,90,18,.35)!important;
   background:rgba(8,12,17,.45)!important;
 }
 #game.freshWaiting .freshEmptySeat>span{color:var(--chs-lime)!important;}
@@ -330,7 +330,7 @@ input:focus,select:focus,textarea:focus{
 #game.freshWaiting #start{
   background:linear-gradient(180deg,var(--chs-lime),var(--chs-lime-2))!important;
   color:#10150d!important;
-  border-color:#caff61!important;
+  border-color:#ff9a55!important;
 }
 #leave{
   background:rgba(9,13,18,.72)!important;
@@ -417,7 +417,7 @@ input:focus,select:focus,textarea:focus{
 #game.liveRound #targetButtons button.findReady{
   background:linear-gradient(180deg,var(--chs-lime),var(--chs-lime-2))!important;
   color:#10150d!important;
-  border-color:#caff61!important;
+  border-color:#ff9a55!important;
 }
 #game.liveRound #findFeedback[data-status="success"]{color:var(--chs-lime)!important;}
 #game.liveRound .proximity.hot{color:var(--chs-lime)!important;}
@@ -537,9 +537,9 @@ input:focus,select:focus,textarea:focus{
   background:linear-gradient(180deg,#151c24,#0d1218);
 }
 .achievementBadge.isUnlocked{
-  border-color:rgba(183,255,43,.36);
+  border-color:rgba(255,90,18,.36);
   background:
-    radial-gradient(circle at 12% 20%,rgba(183,255,43,.10),transparent 52%),
+    radial-gradient(circle at 12% 20%,rgba(255,90,18,.10),transparent 52%),
     linear-gradient(180deg,#151c24,#0d1218);
 }
 .achievementBadge.isLocked{opacity:.62;}
@@ -550,8 +550,8 @@ input:focus,select:focus,textarea:focus{
 }
 .achievementBadge.isUnlocked .achievementIcon{
   color:var(--chs-lime);
-  border-color:rgba(183,255,43,.45);
-  box-shadow:0 0 22px rgba(183,255,43,.08);
+  border-color:rgba(255,90,18,.45);
+  box-shadow:0 0 22px rgba(255,90,18,.08);
 }
 .achievementBadge strong{display:block;font-size:13px;line-height:1.25;}
 .achievementBadge p{margin:4px 0 8px;color:#98a3b0;font-size:11px;line-height:1.35;}
@@ -559,7 +559,7 @@ input:focus,select:focus,textarea:focus{
 .resultCard{
   border-color:#343f4a!important;
   background:
-    radial-gradient(circle at 50% 0%,rgba(183,255,43,.08),transparent 45%),
+    radial-gradient(circle at 50% 0%,rgba(255,90,18,.08),transparent 45%),
     linear-gradient(180deg,#141b23,#0b1016)!important;
 }
 .xpReward{color:var(--chs-lime)!important;}
@@ -567,4 +567,148 @@ input:focus,select:focus,textarea:focus{
 @media(max-width:700px){
   .achievementGrid{grid-template-columns:1fr;}
   .achievementBadge{min-height:94px;}
+}
+
+
+/* V11 — interaction, lobby composition and rejoin polish */
+.vehicleRender{
+  filter:var(--vehicle-filter,none);
+  transition:filter .18s ease,transform .18s ease;
+}
+.vehiclePickerGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:14px;
+}
+.vehiclePickerGrid label,#newCarModelManualWrap{display:grid;gap:7px;}
+.vehiclePickerGrid select{width:100%;}
+.legacyVehicleSearch.hidden{display:none!important;}
+
+#game.freshWaiting .freshLobbyProfile{
+  padding:0!important;
+  overflow:hidden;
+  cursor:pointer;
+  color:#fff;
+}
+#game.freshWaiting .freshLobbyProfile img,
+#game.liveRound .freshLobbyProfile img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+#game.liveRound .freshPlayerIdentity{
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+#game.liveRound .freshLobbyProfile{
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  padding:0;
+  overflow:hidden;
+  border:2px solid rgba(255,90,18,.7);
+  border-radius:50%;
+  background:#151c24;
+  color:#fff;
+}
+#game.liveRound .freshAvatarStage{
+  display:block!important;
+  position:relative;
+  min-height:92px;
+  margin:8px 0 4px;
+}
+#game.liveRound .lobbyModelCar,
+#game.liveRound .freshAvatarStage .vehicleIllustration{
+  display:block!important;
+  width:100%;
+  height:88px;
+  max-width:180px;
+  margin:0 auto;
+  object-fit:contain;
+}
+#game.liveRound .freshAvatarStage .vehicleRender{aspect-ratio:2.05/1;}
+#game.liveRound .freshAvatarStage figcaption{display:none;}
+
+.rejoinBanner{
+  position:fixed;
+  z-index:20000;
+  left:50%;
+  bottom:max(22px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  width:min(94vw,720px);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:14px 16px;
+  border:1px solid rgba(255,90,18,.62);
+  border-radius:16px;
+  background:rgba(10,13,18,.96);
+  box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 30px rgba(255,90,18,.10);
+  backdrop-filter:blur(16px);
+}
+.rejoinBanner[hidden]{display:none!important;}
+.rejoinBanner>div{display:grid;gap:4px;min-width:0;}
+.rejoinBanner strong{color:#ff7a21;font-size:12px;letter-spacing:.08em;}
+.rejoinBanner span{color:#d4dae2;font-size:12px;line-height:1.4;}
+.rejoinBanner button{flex:0 0 auto;min-width:112px;}
+
+.mapPlayer.isStale{
+  opacity:.52;
+  filter:grayscale(.85);
+}
+.lobbyPlayerCardDialog [data-lobby-player-card]{text-align:center;}
+.lobbyPlayerCardAvatar{
+  width:86px;
+  height:86px;
+  margin:0 auto 14px;
+  border-radius:50%;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  border:2px solid #ff5a12;
+  background:#18212b;
+  font-size:26px;
+}
+.lobbyPlayerCardAvatar img{width:100%;height:100%;object-fit:cover;}
+.lobbyPlayerCardVehicle{max-width:300px;margin:8px auto 18px;}
+.lobbyPlayerCardVehicle .vehicleRender{aspect-ratio:2/1;}
+.lobbyPlayerCardVehicle figcaption{display:none;}
+
+@media(max-width:600px){
+  .vehiclePickerGrid{grid-template-columns:1fr;}
+  .rejoinBanner{align-items:stretch;flex-direction:column;}
+  .rejoinBanner button{width:100%;}
+}
+
+.mapPlayer{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:2px solid #ff5a12;
+  border-radius:50%;
+  background:rgba(10,14,19,.94);
+  color:#fff;
+  box-shadow:0 5px 18px rgba(0,0,0,.55),0 0 0 3px rgba(255,90,18,.12);
+  font-size:16px;
+  line-height:1;
+}
+.mapPlayer.isMe{
+  background:#ff5a12;
+  color:#130a05;
+  border-color:#ff9a55;
+  box-shadow:0 5px 20px rgba(0,0,0,.55),0 0 0 5px rgba(255,90,18,.15);
+}
+#game.liveRound .mapFollow{
+  color:#ff7a21!important;
+  border:1px solid rgba(255,90,18,.55)!important;
+}
+#radius,#lobbyRadius{
+  width:100%;
+  min-height:44px;
 }
