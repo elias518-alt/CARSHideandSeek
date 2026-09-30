@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - chatgpt/design-reference-v9
+      - 'chatgpt/**'
 
 permissions:
   contents: read
