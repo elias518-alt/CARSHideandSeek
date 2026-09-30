@@ -45,3 +45,14 @@ test('a delayed routing reply cannot reappear after the game starts',async()=>{
   resolve({hostId:'host',route:{geometry:{type:'LineString',coordinates:[[13,52],[14,53]]},distance:400,duration:90}});
   await pending;assert.equal(f.sources.get('meetup-route').features.length,0);assert.equal(f.elements[0].removed,true);
 });
+
+test('selected-target trail tracks one lock and clears when it ends or the round changes',()=>{
+  const f=fixture(async()=>({route:null}));f.state.lobby.state='ACTIVE';f.state.locks=[{id:'lock1',seekerId:'guest',targetId:'hider'}];
+  f.state.map.positions=[{id:'hider',lat:52,lng:13,updatedAt:1}];
+  const update=()=>{f.context.fixtureState=f.state;vm.runInContext('updateFindTrail(fixtureState)',f.context);};
+  update();f.state.map.positions[0]={id:'hider',lat:52.0001,lng:13.0001,updatedAt:2};update();
+  assert.equal(f.sources.get('find-trail').geometry.coordinates.length,2);
+  f.state.locks=[{id:'lock2',seekerId:'guest',targetId:'other'}];f.state.map.positions=[{id:'other',lat:52,lng:13,updatedAt:3}];update();
+  assert.equal(f.sources.get('find-trail').features.length,0);
+  f.state.locks=[];update();assert.equal(f.sources.get('find-trail').features.length,0);
+});

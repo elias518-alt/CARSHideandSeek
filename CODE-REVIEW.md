@@ -45,3 +45,13 @@ Freundschaftshinweise erscheinen während geöffneter App auf allen Seiten und l
 Browserprüfung mit isolierten Testkonten: kleine/größere Lobbys, Profil-Voreinstellung, Hintergrundwechsel bei erhaltener Bereitschaft, globale Anfrage mit sichtbarem Namen/Annehmen, Gastkarte mit Treffpunkt/Straßenroute und Übergang zur aktiven Runde. Die Vorschau und Testkonten liegen außerhalb des Repositorys.
 
 Offen bleibt ein Test mit zwei echten Geräten für GPS, Supabase-Kontosynchronisierung und gegenseitige Benachrichtigungen. In dieser Änderung wurden keine Datenbankmigrationen ausgeführt und keine Produktionsdaten verändert.
+
+## Ergänzung: Gameplay-Regeln aus beiden Anhängen
+
+Die frühere sofortige Fundbestätigung ist durch den vorhandenen `found`-Endpunkt mit serverseitigem Lock ersetzt. Die alte zweite Fundprüflogik wurde entfernt. `round-engine.js` steuert die bereits vorhandenen Phasen; es gibt keine zweite Spielzustandsmaschine. `gameplay-ui.js` bündelt Anzeigen und gemeinsam verwendete Moderationsaktionen. Der vorhandene GPS-Zeitplan wurde angepasst; ungenutzter `watch`/`clearWatch`-Altcode und zusätzliche Start-/Rejoin-GPS-Abfragen wurden entfernt.
+
+Die offenen Punkte 2 und 3 oben sind damit behoben: Flucht wird tatsächlich angewendet und gegnerische GPS-Koordinaten werden serverseitig zurückgehalten. Punkt 4 hat eine getestete Speicher-/Wiederherstellungsimplementierung und eine bereits geschützte Supabase-Tabelle; der Render-Schlüssel und echte Neustarttest fehlen noch. Eine zweite Serverinstanz ist weiterhin nicht unterstützt. Punkt 1 (browserbasierte XP-Gutschrift) bleibt ausdrücklich offen und wurde nicht durch ein zweites Fortschrittssystem ersetzt.
+
+95 Tests bestehen, einschließlich der bisherigen Garage-/Social-/Lobby-Regressionen und neuer Mehrspieler-, GPS-, Lock-, Flucht-, Ausfall-, Persistenz- und Berechtigungstests. Die Datenbankrechte der neuen Tabelle sind live geprüft. Bestehende Supabase-Advisor-Warnungen außerhalb dieser Tabelle betreffen die Ausführbarkeit bestehender SECURITY-DEFINER-Funktionen und Passwortschutz; sie gehören in einen eigenen Datenbank-Audit: [Supabase-Linter](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+
+Browser-Vorschau geprüft: Host-Einstellungen/Presets, Zielsperre mit Dezimal-Countdown, Fahrtanzeige nur des ausgewählten Gegners, Flucht mit entfernten Markern, Ergebnis mit gelöschten Positionen und Statistik, Mobilbreite 390 px. Testkonten und Vorschau-Server liegen außerhalb des Repositorys. Echte Geräte, bewegte Fahrzeuge und Höhenwerte wurden nicht als Hardwaretest ausgegeben.

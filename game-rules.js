@@ -19,11 +19,13 @@ function shuffledCopy(items, random = Math.random) {
 
 function assignRoundRoles(players, random = Math.random) {
   const seekerCount = seekerCountFor(players.length);
-  const shuffled = shuffledCopy(players, random);
+  const shuffled = shuffledCopy(players, random).sort((a,b)=>(a.seekerRounds||0)-(b.seekerRounds||0) || (b.roundsSinceSeeker||0)-(a.roundsSinceSeeker||0));
   const seekerIds = new Set(shuffled.slice(0, seekerCount).map(player => player.id));
 
   for (const player of players) {
     player.role = seekerIds.has(player.id) ? 'SEEKER' : 'HIDER';
+    if(player.role==='SEEKER'){player.seekerRounds=(player.seekerRounds||0)+1;player.roundsSinceSeeker=0;}
+    else player.roundsSinceSeeker=(player.roundsSinceSeeker||0)+1;
     player.found = false;
     player.roundFinds = 0;
   }

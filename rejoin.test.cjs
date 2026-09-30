@@ -32,7 +32,7 @@ test('authenticated player can rejoin an already active round without changing l
   }finally{lobbies.delete(lobby.code);}
 });
 
-test('state keeps a disconnected players last coordinate visible to another player',async()=>{
+test('state preserves reconnect metadata while hiding stale active coordinates',async()=>{
   const now=Date.now();
   const me=player('session-2','auth-2',now);
   const offline=player('session-offline','auth-offline',now-60000);
@@ -45,9 +45,7 @@ test('state keeps a disconnected players last coordinate visible to another play
     const result=await route('state',{code:lobby.code,userId:me.id},me.authId);
     const point=result.map.positions.find(item=>item.id===offline.id);
     const publicOffline=result.lobby.players.find(item=>item.id===offline.id);
-    assert.ok(point);
-    assert.equal(point.stale,true);
-    assert.equal(point.connected,false);
+    assert.equal(point,undefined);
     assert.equal(publicOffline.hasLocation,false);
     assert.equal(publicOffline.hasStoredLocation,true);
   }finally{lobbies.delete(lobby.code);}

@@ -40,7 +40,6 @@ let carPhotoBusy = false;
 let state = null;
 let pollTimer = null;
 let lobbyMissingPolls = 0;
-let watch = null;
 let gpsStarting = false;
 let gpsHeartbeat = null;
 let publicSearchBusy = false;
@@ -454,14 +453,6 @@ async function logout() {
   clearInterval(gpsHeartbeat);
   gpsHeartbeat = null;
 
-  if (
-    watch !== null &&
-    navigator.geolocation
-  ) {
-    navigator.geolocation.clearWatch(watch);
-  }
-
-  watch = null;
   state = null;
   gameSession = null;
 
@@ -896,6 +887,11 @@ async function initializeAuth() {
     await loadCloudGarage();
 
 
+    if (!gameSession) {
+      try { const recovered=await api('rejoin-lookup',{},'GET');
+        if(recovered.code){gameSession={code:recovered.code,userId:recovered.userId};localStorage.setItem('chs',JSON.stringify(gameSession));}
+      }catch(error){console.error('Rundensuche:',error.message);}
+    }
     if (gameSession) {
       showGame();
     }
@@ -1647,7 +1643,6 @@ async function rejoinGame() {
       openPage('game');
       renderGame();
       poll();
-      if (!gpsStarting) gps();
       toast('Wieder verbunden ✓');
       return;
     } catch (stateError) {
@@ -1684,15 +1679,8 @@ async function rejoinGame() {
 function showGame() {
   openPage('game');
   hideRejoin();
-
   poll();
-
-
-  setTimeout(() => {
-    if (!gpsStarting) {
-      gps();
-    }
-  }, 400);
+  // renderGame starts the one GPS schedule after the server phase is known.
 }
 
 
@@ -2028,13 +2016,13 @@ function renderGame() {
     lobby.players.filter(
       player =>
         player.role === 'HIDER' &&
-        !player.found
+        !player.found && !player.eliminated && !player.left
     );
 
 
   const canFind =
     me.role === 'SEEKER' &&
-    lobby.state === 'ACTIVE';
+    lobby.state === 'ACTIVE' && !me.eliminated && !me.found;
 
 
   $('#targets')
@@ -2044,7 +2032,9 @@ function renderGame() {
     );
 
 
+  gameplayReceivedAt = Date.now();
   renderFindButtons(targets);
+  renderGameplayDetails();
 
   const cooldown =
     Math.ceil(
@@ -2076,7 +2066,7 @@ function renderGame() {
 
 
     $('#resultTitle').textContent =
-      seekerWin
+      lobby.result?.aborted ? 'RUNDE ABGEBROCHEN' : seekerWin
         ? 'SUCHER GEWINNEN'
         : 'VERSTECKER GEWINNEN';
 
@@ -2087,13 +2077,7 @@ function renderGame() {
       `Versteckern gefunden.`;
 
 
-    $('#xpGain').textContent =
-      String(Number(state.reward?.baseXp) ||
-        (me.role === 'SEEKER'
-          ? 100
-          : me.found
-            ? 140
-            : 280));
+    $('#xpGain').textContent = String(Number(state.reward?.baseXp) || 0);
 
     void claimGameProgress(state.reward);
 
@@ -2107,9 +2091,11 @@ function renderGame() {
 
   renderLobbySettings();
   renderFreshLobby();
+  positionGameplayDetails();
   syncGpsForLobbyState();
 
   const mapFold = document.getElementById('freshMapFold');
+  if(mapFold)mapFold.hidden=lobby.state==='RESULT'||me.eliminated||me.found;
   if (lobby.state !== 'LOBBY' || mapFold?.open) {
     window.chsMapUpdate?.(state);
   }
@@ -2122,56 +2108,17 @@ function renderGame() {
 
 function gpsConfigForState() {
   const phase = state?.lobby?.state || 'LOBBY';
-
-  if (phase === 'ACTIVE' || phase === 'HEADSTART') {
-    return {
-      phase: 'ACTIVE',
-      interval: 6000,
-      options: {
-        enableHighAccuracy: true,
-        maximumAge: 2500,
-        timeout: 10000
-      }
-    };
-  }
-
-  if (phase === 'COUNTDOWN') {
-    return {
-      phase: 'COUNTDOWN',
-      interval: 10000,
-      options: {
-        enableHighAccuracy: false,
-        maximumAge: 5000,
-        timeout: 10000
-      }
-    };
-  }
-
-  if (phase === 'RESULT') {
-    return {
-      phase: 'RESULT',
-      interval: 60000,
-      options: {
-        enableHighAccuracy: false,
-        maximumAge: 60000,
-        timeout: 10000
-      }
-    };
-  }
-
-  return {
-    phase: 'LOBBY',
-    interval: 30000,
-    options: {
-      enableHighAccuracy: false,
-      maximumAge: 30000,
-      timeout: 10000
-    }
-  };
+  const me = state?.lobby?.me;
+  if (phase === 'RESULT' || (phase !== 'LOBBY' && (me?.found || me?.eliminated || me?.left)))
+    return {phase:'STOPPED',interval:0,options:{}};
+  const close = state?.replacementNeedsStop || state?.locks?.length || state?.proximity?.level === 'VERY_CLOSE';
+  const near = state?.outsideDeadline || state?.gpsWarning || !me?.hasLocation || state?.proximity?.level === 'CLOSE';
+  const interval = phase === 'ACTIVE' ? close ? 2000 : near ? 5000 : 15000 : phase === 'LOBBY' ? 10000 : 5000;
+  return {phase:phase+':'+interval,interval,options:{enableHighAccuracy:phase!=='ACTIVE'||close||near,maximumAge:0,timeout:10000}};
 }
 
 async function sendGameLocation(position) {
-  if (!gameSession) return;
+  if (!gameSession || gpsConfigForState().phase === 'STOPPED') return;
 
   try {
     await api('location', gameCredentials({
@@ -2179,7 +2126,9 @@ async function sendGameLocation(position) {
       lng: position.coords.longitude,
       accuracy: position.coords.accuracy,
       altitude: position.coords.altitude,
-      speed: position.coords.speed
+      speed: position.coords.speed,
+      altitudeAccuracy: position.coords.altitudeAccuracy,
+      timestamp: position.timestamp
     }));
 
     const lobbyMode = state?.lobby?.state === 'LOBBY';
@@ -2195,8 +2144,9 @@ function requestGpsPosition({ force = false } = {}) {
 
   const config = gpsConfigForState();
   const now = Date.now();
+  if (config.phase === 'STOPPED') return;
 
-  if (!force && now - lastGpsRequestAt < Math.max(3000, config.interval - 1000)) {
+  if (!force && now - lastGpsRequestAt < Math.max(1000, config.interval - 1000)) {
     return;
   }
 
@@ -2238,6 +2188,8 @@ function startGpsSchedule({ force = false } = {}) {
   gpsHeartbeat = null;
   gpsPhase = config.phase;
 
+  const gpsButton=$('#gps');if(gpsButton)gpsButton.disabled=config.phase==='STOPPED';
+  if (config.phase === 'STOPPED') {if(gpsButton)gpsButton.textContent='GPS GESTOPPT';$('#gpsDot')?.classList.remove('on');return;}
   requestGpsPosition({ force: true });
 
   if (config.phase !== 'RESULT') {
@@ -2358,10 +2310,11 @@ function renderFindButtons(targets) {
       container.append(button);
     }
     const nearby = state.nearbyTargets?.includes(player.id);
-    const label = 'Fund melden · ' + player.vehicle + ' · ' + player.color;
+    const lock = state.locks?.find(item => item.seekerId === state.lobby.me.id);
+    const label = lock?.targetId === player.id ? findCountdownLabel(lock) : (nearby ? 'Fund starten · ' : 'Position wird bestätigt · ') + player.vehicle + ' · ' + player.color + ' · ' + player.name;
     if (button.textContent !== label) button.textContent = label;
     button.classList.toggle('findReady', !!nearby);
-    button.disabled = findPending;
+    button.disabled = findPending || !nearby || !!lock;
   }
 }
 
@@ -2381,7 +2334,7 @@ async function found(targetId) {
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
     const result = await api('found', gameCredentials({ targetId }), 'POST', controller.signal);
-    feedback.textContent = '✓ Fund bestätigt · ' + result.distance + ' m';
+    feedback.textContent = result.status === 'LOCKED' ? 'Fund-Countdown gestartet. Ziel bleibt fest ausgewählt; seine Fahrt ist auf der Karte sichtbar.' : '✓ Bereits bestätigt.';
     feedback.dataset.status = 'success';
     toast(feedback.textContent);
   } catch (error) {
@@ -2394,7 +2347,7 @@ async function found(targetId) {
     clearTimeout(timeout);
     findPending = false;
     $('#targetButtons').setAttribute('aria-busy', 'false');
-    for (const button of $('#targetButtons').children) button.disabled = false;
+    renderFindButtons(state.lobby.players.filter(player=>player.role==='HIDER'&&!player.found&&!player.eliminated&&!player.left));
     poll();
   }
 }
@@ -2473,18 +2426,6 @@ function resetGame() {
   gpsHeartbeat = null;
 
 
-  if (
-    watch !== null &&
-    navigator.geolocation
-  ) {
-    navigator.geolocation
-      .clearWatch(
-        watch
-      );
-  }
-
-
-  watch = null;
   gpsStarting = false;
   gpsPhase = '';
   lastGpsRequestAt = 0;
@@ -2702,7 +2643,7 @@ function renderLobbySettings() {
   if (!lobbySettingsBound) {
     lobbySettingsBound = true;
     document.getElementById('lobbyBackground')?.addEventListener('change', changeLobbyBackground);
-    ['lobbyRadius', 'lobbyDuration', 'lobbyHeadstart', 'lobbyEscape'].forEach(id => {
+    ['lobbyRadius', 'lobbyDuration', 'lobbyHeadstart', 'lobbyEscape', 'lobbyReplacement'].forEach(id => {
       document.getElementById(id)?.addEventListener('change', saveFreshLobbySettings);
     });
   }
@@ -2719,12 +2660,13 @@ function fillLobbySettings() {
     lobbyRadius: settings.radius,
     lobbyDuration: settings.duration,
     lobbyHeadstart: settings.headstart,
-    lobbyEscape: settings.escape ?? settings.escapeWindow ?? 15
+    lobbyEscape: settings.escape ?? settings.escapeWindow ?? 15,
+    lobbyReplacement: String(settings.replaceSeekers !== false)
   };
 
   for (const [id, value] of Object.entries(values)) {
     const field = document.getElementById(id);
-    if (!field || value == null) continue;
+    if (!field || value == null || field === document.activeElement) continue;
     if (field.tagName === 'SELECT') {
       if ([...field.options].some(option => String(option.value) === String(value))) field.value = String(value);
     } else {
@@ -2751,7 +2693,8 @@ async function saveFreshLobbySettings() {
       radius: Number(value('lobbyRadius') || lobby.settings.radius),
       duration: Number(value('lobbyDuration') || lobby.settings.duration),
       headstart: Number(value('lobbyHeadstart') || lobby.settings.headstart),
-      escape: Number(value('lobbyEscape') || lobby.settings.escape || 15)
+      escape: Number(value('lobbyEscape') || lobby.settings.escape || 15),
+      replaceSeekers: value('lobbyReplacement') !== 'false'
     }));
     toast('Lobby-Einstellungen gespeichert.');
     await poll();
@@ -3646,6 +3589,7 @@ function openLobbyPlayerCard(playerId) {
       : (player.profileId ? `<button type="button" data-lobby-profile="${esc(player.id)}">FREUNDSCHAFT</button>` : '')}
   `;
   dialog.querySelector('[data-edit-own-lobby-profile]')?.addEventListener('click',()=>{dialog.close();openProfileEditor();},{once:true});
+  if (!mine && typeof playerModerationActions === 'function') dialog.querySelector('[data-lobby-player-card]').append(playerModerationActions(player));
   if (!dialog.open) dialog.showModal();
 }
 if (typeof document !== 'undefined' && document.addEventListener) {
@@ -3770,7 +3714,7 @@ function renderFreshLobby() {
   if(!sameLobby){crew.dataset.lobbyCode=lobby.code;delete crew.dataset.selectedPlayer;}
   const renderPlayer=player=>{
     const mine=player.id===lobby.me.id,owner=player.id===lobby.hostId;
-    const status=player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
+    const status=player.eliminated?'AUSGESCHIEDEN':player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
     return `<article class="freshPlayerCard ${mine?'isYou':''} ${owner?'isHost':''} ${player.ready?'isReady':''} ${player.found?'isFound':''}" style="--crew-color:${freshPlayerColor(player.id)};--car-color:${lobbyCarColor(player.color)}">
       <div class="freshPlayerTop"><span>${owner?'♛ HOST':mine?'DU':'CREW'}</span><span class="freshConnection ${player.connected?'online':''}"></span></div>
       <div class="freshPlayerIdentity"><h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>${lobbyProfileMarkup(player)}</div>
