@@ -8,10 +8,10 @@ test('startup binds navigation with querySelectorAll so later login handlers sti
   assert.equal(source.includes("\n$('[data-page]')\n  .forEach"),false);
 
   const navigation=source.indexOf("$$('[data-page]')");
-  const googleLogin=source.indexOf("$('#googleLogin')");
-  const initialize=source.indexOf('initializeAuth();');
+  const googleLoginBinding=source.indexOf("$('#googleLogin')\n  ?.addEventListener");
+  const initialize=source.lastIndexOf('initializeAuth();');
 
   assert.ok(navigation>=0);
-  assert.ok(googleLogin>navigation);
-  assert.ok(initialize>googleLogin);
+  assert.ok(googleLoginBinding>navigation);
+  assert.ok(initialize>googleLoginBinding);
 });
