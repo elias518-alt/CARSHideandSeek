@@ -2,8 +2,7 @@
 #game.freshLobby.active.freshWaiting {
   background:
     linear-gradient(180deg,rgba(8,7,13,.12) 0%,rgba(9,7,13,.16) 48%,rgba(5,7,10,.58) 100%),
-    url('assets/lobby-reference.svg') center 54%/cover no-repeat;
-  background-attachment:fixed;
+    url('assets/lobby-rooftop-violet.webp') center 52%/cover no-repeat;
 }
 #game.freshWaiting #players {
   display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,340px) minmax(0,1fr);
@@ -58,8 +57,8 @@
 .lobbyCrewCharacter--1 { background-position:50% 50%; }
 .lobbyCrewCharacter--2 { background-position:100% 50%; }
 
-/* One consistent Fast-&-Furious-style stance: the character stands beside the
-   passenger/front side of the car instead of jumping to a random position. */
+/* One consistent lobby stance: every character stands beside the same side of
+   the vehicle, matching the reference composition instead of random offsets. */
 .lobbyCrewPose--side{left:69%;bottom:8px;transform:translateX(-50%) rotate(1deg);}
 #game.freshWaiting .freshPlayerCard.isHost .lobbyCrewCharacter {
   height:318px; width:212px; left:70%; bottom:14px;
