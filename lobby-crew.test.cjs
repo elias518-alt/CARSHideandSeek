@@ -72,6 +72,6 @@ test('legacy uploaded vehicle photos stay visible instead of falling back to the
 
 test('waiting lobby uses the violet rooftop image instead of the old blue background',()=>{
   const css=fs.readFileSync(__dirname+'/crew-lobby.css','utf8');
-  assert.match(css,/assets\\/lobby-rooftop-violet\\.webp/);
+  assert.match(css,/assets\/lobby-rooftop-violet\.webp/);
   assert.doesNotMatch(css,/lobby-bg\.png|night-hunt\.webp/);
 });
