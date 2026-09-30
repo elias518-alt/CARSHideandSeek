@@ -48,6 +48,11 @@ let publicSearchLastAt = 0;
 let garageSyncBusy = false;
 let gpsPhase = '';
 let lastGpsRequestAt = 0;
+let achievementCatalog = [];
+let achievementUnlocked = new Set();
+let resultClaimInFlight = '';
+let resultClaimRetryAt = 0;
+const claimedGameResults = new Set();
 
 
 /* =========================================================
@@ -415,6 +420,11 @@ async function logout() {
 
   authSession = null;
   dbProfile = null;
+  achievementCatalog = [];
+  achievementUnlocked = new Set();
+  resultClaimInFlight = '';
+  resultClaimRetryAt = 0;
+  claimedGameResults.clear();
 
   $('#app')?.classList.add('hidden');
   $('#authGate')?.classList.remove('hidden');
@@ -678,6 +688,106 @@ function renderProfile() {
 
   paintProfileAvatars();
   syncVehicleUI();
+  renderAchievements();
+}
+
+async function loadAchievements() {
+  if (!authSession?.user?.id) return;
+
+  try {
+    const [{ data: catalog, error: catalogError }, { data: unlocked, error: unlockedError }] =
+      await Promise.all([
+        supabaseClient
+          .from('achievements')
+          .select('id,name,description,xp_reward')
+          .order('id', { ascending: true }),
+        supabaseClient
+          .from('user_achievements')
+          .select('achievement_id,unlocked_at')
+          .eq('user_id', authSession.user.id)
+      ]);
+
+    if (catalogError) throw catalogError;
+    if (unlockedError) throw unlockedError;
+
+    achievementCatalog = Array.isArray(catalog) ? catalog : [];
+    achievementUnlocked = new Set((unlocked || []).map(item => item.achievement_id));
+    renderAchievements();
+  } catch (error) {
+    console.error('Erfolge konnten nicht geladen werden:', error);
+  }
+}
+
+function renderAchievements() {
+  const grid = document.getElementById('achievementGrid');
+  if (!grid || !achievementCatalog.length) return;
+
+  const icons = {
+    FIRST_GAME: '★',
+    FIRST_FIND: '⌖',
+    HIDE_MASTER: '◆'
+  };
+
+  grid.innerHTML = achievementCatalog.map(item => {
+    const unlocked = achievementUnlocked.has(item.id);
+    return `
+      <article class="achievementBadge ${unlocked ? 'isUnlocked' : 'isLocked'}">
+        <div class="achievementIcon" aria-hidden="true">${unlocked ? esc(icons[item.id] || '★') : '🔒'}</div>
+        <div>
+          <strong>${esc(item.name)}</strong>
+          <p>${esc(item.description)}</p>
+          <small>${unlocked ? 'FREIGESCHALTET' : '+' + Number(item.xp_reward || 0) + ' XP'}</small>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+async function claimGameProgress(reward) {
+  const resultId = reward?.resultId;
+  if (!resultId || !authSession?.user?.id || !dbProfile) return;
+  if (claimedGameResults.has(resultId) || resultClaimInFlight === resultId) return;
+  if (Date.now() < resultClaimRetryAt) return;
+
+  resultClaimInFlight = resultId;
+
+  try {
+    const { data, error } = await supabaseClient.rpc('chs_claim_game_result', {
+      p_result_id: resultId,
+      p_role: reward.role,
+      p_won: !!reward.won,
+      p_finds: Number(reward.finds) || 0,
+      p_survived: !!reward.survived
+    });
+
+    if (error) throw error;
+    if (!data?.profile) throw new Error('Fortschritt konnte nicht bestätigt werden.');
+
+    claimedGameResults.add(resultId);
+    resultClaimRetryAt = 0;
+    dbProfile = {
+      ...dbProfile,
+      ...data.profile
+    };
+
+    const xpNode = document.getElementById('xpGain');
+    if (xpNode) xpNode.textContent = String(Number(data.xp_awarded) || Number(reward.baseXp) || 0);
+
+    renderProfile();
+    await loadAchievements();
+
+    if (!data.already_claimed) {
+      const unlocked = Array.isArray(data.unlocked) ? data.unlocked.length : 0;
+      toast(unlocked
+        ? `Runde gespeichert · ${Number(data.xp_awarded) || 0} XP · ${unlocked} Erfolg freigeschaltet`
+        : `Runde gespeichert · ${Number(data.xp_awarded) || 0} XP`);
+    }
+  } catch (error) {
+    resultClaimRetryAt = Date.now() + 10000;
+    console.error('Rundenfortschritt konnte nicht gespeichert werden:', error);
+  } finally {
+    if (resultClaimInFlight === resultId) resultClaimInFlight = '';
+  }
 }
 
 
@@ -724,6 +834,7 @@ async function initializeAuth() {
       authSession.user.id
     );
 
+    await loadAchievements();
     await migrateLegacyProfileAvatar();
     await loadCloudGarage();
 
@@ -1218,6 +1329,9 @@ function playerData() {
 
     avatarUrl:
       profileImageSource(dbProfile.avatar_url),
+
+    level:
+      Math.max(1, Math.min(50, Number(dbProfile.level) || 1)),
 
     mode:
       $('#mode')?.value ||
@@ -1803,15 +1917,14 @@ function renderGame() {
 
 
     $('#xpGain').textContent =
-      me.role === 'SEEKER'
-        ? 100 +
-          (
-            lobby.result?.found ||
-            0
-          ) * 80
-        : me.found
-          ? 140
-          : 280;
+      String(Number(state.reward?.baseXp) ||
+        (me.role === 'SEEKER'
+          ? 100
+          : me.found
+            ? 140
+            : 280));
+
+    void claimGameProgress(state.reward);
 
 
     $('#rematch')

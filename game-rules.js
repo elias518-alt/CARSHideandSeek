@@ -25,9 +25,28 @@ function assignRoundRoles(players, random = Math.random) {
   for (const player of players) {
     player.role = seekerIds.has(player.id) ? 'SEEKER' : 'HIDER';
     player.found = false;
+    player.roundFinds = 0;
   }
 
   return seekerCount;
 }
 
-module.exports = { seekerCountFor, shuffledCopy, assignRoundRoles };
+function roundRewardFor(player, result) {
+  if (!player || !result || !['SEEKER','HIDER'].includes(player.role)) return null;
+
+  const role = player.role;
+  const finds = role === 'SEEKER'
+    ? Math.max(0, Math.min(20, Math.trunc(Number(player.roundFinds) || 0)))
+    : 0;
+  const survived = role === 'HIDER' && !player.found;
+  const won = role === 'SEEKER'
+    ? !!result.seekersWin
+    : !result.seekersWin && survived;
+  const baseXp = role === 'SEEKER'
+    ? 100 + finds * 80
+    : survived ? 280 : 140;
+
+  return { role, won, finds, survived, baseXp };
+}
+
+module.exports = { seekerCountFor, shuffledCopy, assignRoundRoles, roundRewardFor };
