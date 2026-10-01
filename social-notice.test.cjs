@@ -9,6 +9,7 @@ function fixture(rpc){
   const context=vm.createContext({authSession:{user:{id:'account-a'}},supabaseClient:{rpc},socialAction(){},
     $:selector=>selector==='#friends'?friends:list,
     document:{getElementById:id=>nodes.get(id),createElement:make,body:{append(node){nodes.set(node.id,node);}}},
+    profileImageSource:value=>typeof value==='string'&&value.startsWith('https://')?value:'',
     esc:value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
   });
   const source=fs.readFileSync(__dirname+'/social.js','utf8');
@@ -36,4 +37,13 @@ test('logging out clears request notices and a failed poll keeps already shown r
   const f=fixture(async()=>fail?{error:{message:'Network error'}}:{data:[{username:'Lea',request_id:'r1',incoming:true,status:'pending'}],error:null});
   await f.load();fail=true;await f.load();assert.ok(f.nodes.has('incomingFriendNotice'));
   f.context.authSession=null;await f.load();assert.equal(f.nodes.has('incomingFriendNotice'),false);
+});
+
+test('notification counts combine only incoming requests and received unread messages',()=>{
+ const f=fixture(async()=>({data:[],error:null}));const result=vm.runInContext(`socialCounts([{status:'pending',incoming:true},{status:'pending',incoming:false},{status:'accepted',unread_count:2},{status:'accepted',unread_count:-5},{status:'pending',incoming:false,unread_count:99}])`,f.context);
+ assert.deepEqual(JSON.parse(JSON.stringify(result)),{requests:1,messages:2});
+});
+test('request avatars accept safe image URLs and always escape names and identifiers',async()=>{
+ const f=fixture(async()=>({data:[{username:'Lea <script>',request_id:'r"1',incoming:true,status:'pending',avatar_url:'https://example.com/avatar.webp'},{username:'Ben',request_id:'r2',incoming:true,status:'pending',avatar_url:'javascript:alert(1)'}]}));await f.load();const html=f.nodes.get('incomingFriendNotice').innerHTML;
+ assert.match(html,/avatar\.webp/);assert.match(html,/Lea &lt;script&gt;/);assert.match(html,/r&quot;1/);assert.doesNotMatch(html,/javascript:|<script>/);
 });

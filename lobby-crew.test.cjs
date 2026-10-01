@@ -101,17 +101,13 @@ test('peer photos and authenticated player profiles survive the new scene render
   assert.match(markup,/&lt;script&gt;/);
 });
 
-test('solo is centered, a pair shares its row, and larger crews keep the host in front',()=>{
+test('host stays in the foreground for every crew size and peers retain distinct rear slots',()=>{
   for(let count=1;count<=20;count++){
     const f=lobbyFixture('LOBBY',count);f.render();
     assert.equal((f.node('players').innerHTML.match(/<article/g)||[]).length,count);
     assert.equal(f.node('players').dataset.formation,count===1?'solo':count===2?'pair':'crew');
-    if(count===2){
-      assert.doesNotMatch(f.node('players').innerHTML,/freshCrewLead/);
-      assert.equal((f.node('players').innerHTML.match(/--parking-ground:25%/g)||[]).length,2);
-      assert.match(f.node('players').innerHTML,/--parking-x:26%/);
-      assert.match(f.node('players').innerHTML,/--parking-x:74%/);
-    }else assert.match(f.node('players').innerHTML,/freshCrewLead/);
+    assert.equal((f.node('players').innerHTML.match(/class="freshCrewLead"/g)||[]).length,1);
+    if(count===2){assert.match(f.node('players').innerHTML,/--parking-x:25%/);assert.match(f.node('players').innerHTML,/--parking-ground:47%/);}
   }
 });
 test('waiting guests see the map immediately, hosts can keep the scene open',()=>{

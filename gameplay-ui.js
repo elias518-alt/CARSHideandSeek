@@ -45,6 +45,7 @@ function renderGameplayDetails() {
     if(lobby.me.eliminated)text('Ausgeschieden: '+({EARLY_START:'Startbereich zu früh verlassen',OUTSIDE:'Spielgebiet nicht rechtzeitig erreicht',GPS_TIMEOUT:'GPS zu lange ausgefallen',DISCONNECT:'Verbindung zu lange unterbrochen',AFK:'Inaktivität',LEFT:'Runde verlassen'}[lobby.me.eliminationReason]||lobby.me.eliminationReason));
     else if(lobby.me.found)text('Du wurdest gefunden. Deine Standortübertragung wurde beendet.');
     else {
+      if(lobby.state==='HEADSTART'&&lobby.me.role==='HIDER')text('Versteck dich im Spielgebiet. Die Sucher starten nach dem Countdown.');
       if(lobby.me.role==='HIDER')text(state.escapesUsed?'Deine einmalige Flucht ist verbraucht. Beim nächsten gültigen Fund-Countdown kannst du nicht erneut entkommen.':'Du darfst dich im Spielradius bewegen und einmal aus einem Fund-Countdown entkommen.');
       if(state.outsideDeadline)countdown('Außerhalb des Gebiets: Rückkehr in ',state.outsideDeadline);
       if(state.gpsWarning)text('GPS fehlt oder ist schwach. Letzte gültige Position bleibt vorübergehend erhalten.');
@@ -135,7 +136,7 @@ function playerModerationActions(player){
 
 function positionGameplayDetails(){
   const panel=document.getElementById('gameplayDetails');if(!panel)return;
-  const anchor=state?.lobby?.state==='RESULT'?document.getElementById('result'):document.getElementById('targets');
+  const anchor=state?.lobby?.state==='RESULT'?document.getElementById('result'):document.getElementById('freshMapFold');
   if(!anchor)return;
   if(state?.lobby?.state==='RESULT'){if(anchor.nextElementSibling!==panel)anchor.after(panel);}
   else if(panel.nextElementSibling!==anchor)anchor.before(panel);

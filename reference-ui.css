@@ -1,0 +1,208 @@
+/* Approved eight-screen composition. Existing orange action colour is retained;
+   green denotes actual activity/readiness only. All people and cars are live data. */
+:root{--reference-night:#0a0e15;--reference-muted:#aeb7c5;--reference-active:#9bee42}
+.page{max-width:1000px;margin-inline:auto}
+#home{max-width:760px}
+.appHeader{max-width:1000px;margin:auto;border-bottom:0}
+.appHeader .brand{font-size:21px;letter-spacing:-1px}
+.homeStage{min-height:0!important;height:390px;padding:0!important;border-radius:18px!important;background:linear-gradient(180deg,#11132316 35%,#080c13cc 100%),url('assets/lobby-meetup.webp') center/cover!important}
+.homeStageTop,.stageLogo,.stageTagline,.stageRoad{display:none!important}
+.referenceGreeting{position:absolute;z-index:5;top:20px;left:18px;right:18px;display:flex;align-items:center;gap:12px;text-shadow:0 2px 7px #000}
+.referenceGreeting h1{font-size:24px;margin:0 0 5px}
+.referenceGreeting p{font-size:12px;margin:0;color:#e3e5ef}
+.referenceGreeting .parkingStripAvatar{width:48px;height:48px;background:#151924;font-size:17px}
+.referenceGreeting>div{min-width:0;flex:1}
+.referenceGreeting button{position:relative;align-self:flex-start;border:1px solid #87909a55;border-radius:50%;background:#101622bb;min-width:42px;min-height:42px;color:#fff;font-size:22px}
+.referenceHeroScene{position:absolute;inset:100px 6% 0}
+.referenceHeroScene .parkingPlayer{position:absolute;inset:0;left:0;bottom:0;width:100%;height:100%;transform:none}
+.referenceHeroScene .lobbyCrewCharacter{height:245px;width:163px;left:78%;bottom:12px}
+.referenceHeroScene .lobbyModelCar{height:85%;bottom:0}
+.referenceHeroScene .vehicleIllustration{bottom:0;width:96%}
+.referenceNoCar{display:grid;gap:9px;position:absolute;inset:20% 10%;width:80%;color:white;border:1px solid #87909a55;border-radius:16px;background:#151d28e6;font-weight:700;font-size:18px}
+.referenceNoCar span{color:#b8c1cc;font-size:13px;font-weight:400}
+.referenceSectionHeading{display:flex;align-items:center;justify-content:space-between;margin:18px 0 12px;gap:12px}
+.referenceSectionHeading h2{font-size:16px;margin:0}
+.referenceSectionHeading button{color:#bdc6d2;background:none;border:0;font-size:12px;min-height:44px}
+.referenceCrewPeople{display:flex;gap:16px;overflow-x:auto;padding:0 2px 10px;scrollbar-width:thin}
+.referenceCrewPerson{position:relative;display:grid;justify-items:center;gap:7px;min-width:67px;max-width:94px;border:0;background:transparent;color:#fff;padding:0;font-size:12px}
+.referenceCrewPerson strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.referenceCrewPortrait{position:relative}
+.referenceCrewPortrait .socialAvatar{width:62px;height:62px;border:2px solid #9fa9b8;background:#202536}
+.referenceOnline{position:absolute;right:0;bottom:2px;width:12px;height:12px;border:2px solid #0a1018;border-radius:50%;background:var(--reference-active)}
+.homeActions{display:flex;flex-direction:column;gap:9px}
+.homeActions #openPlay{order:0}
+.homeActions .referenceCreateLobby{order:1}
+.homeActions>[data-page]{display:none}
+.homeAction{min-height:55px;padding:12px 16px!important;border-radius:12px!important}
+.homeAction .actionSymbol{font-size:21px}
+.homeAction .actionCopy strong{font-size:14px}
+.homeAction .actionCopy small{font-size:11px}
+.referenceCreateLobby{width:100%}
+.homeActionPrimary .actionCopy small{color:#241607!important}
+.homeActions .actionChevron{font-size:23px}
+#home>.activeCarCard,#home>.quickStats{display:none}
+#home .infoPanel{margin-top:16px}
+.referencePhotoHint{font-size:13px;line-height:1.6;color:#c4ccd9}
+.referencePhotoLobby{position:relative;height:255px;border-radius:12px;margin:12px 0;overflow:hidden;background:linear-gradient(180deg,#12132633,#090e1688),url('assets/lobby-meetup.webp') center/cover}
+.referencePhotoLobby[hidden]{display:none}
+.referencePhotoLobby .parkingPlayer{position:absolute;inset:36px 4% 4px;width:92%;height:auto;transform:none}
+.referencePhotoLobby .lobbyCrewCharacter{height:190px;width:127px;left:78%}
+.photoPreviewLabel{position:absolute;z-index:5;left:12px;top:12px;font-size:12px;color:#f5f5ff;background:#0b101cc9;padding:6px 9px;border-radius:8px}
+.newCarPhotoPreview{max-width:100%!important}
+.referencePhotoLobby .lobbyModelCar{height:85%}
+#carModal .vehiclePickerGrid{gap:12px}
+#carModal .carOptionalDetails{margin:4px 0 15px}
+#garage .garageVehicleVisual{background:linear-gradient(180deg,#1511244d,#090e15c9),url('assets/lobby-meetup.webp') center/cover;min-height:210px!important;border-radius:12px}
+.profileHero{min-height:345px!important;background:linear-gradient(180deg,#12142300 30%,#090d12 100%),url('assets/lobby-meetup.webp') center/cover!important}
+#profile .profileVehicleStage{width:74%;right:0;bottom:48px;height:205px}
+#profile .profileVehicleStage img{max-height:205px!important}
+.profileHero #profileName,.profileHero #profileTag{max-width:55%}
+#profileCrewPeople{padding-bottom:14px}
+#result{background:linear-gradient(180deg,#10152133,#0b1016dd 58%),url('assets/lobby-meetup.webp') center top/cover;border:1px solid #39414e;border-radius:18px;padding:26px 18px;position:relative}
+#resultIcon{font-size:44px}
+#resultTitle{font-size:26px}
+#result #rematch{width:100%;min-height:52px;margin-top:18px}
+#game.freshWaiting .parkingViewport{height:450px}
+#game.freshWaiting #players .freshCrewLead{top:210px;height:236px;width:min(78%,380px)}
+#game.freshWaiting #players[data-formation=solo] .freshCrewLead{top:125px;height:320px;width:min(92%,500px)}
+#players[data-formation=pair] .parkingPlayer{height:188px}
+#players[data-formation=pair] .parkingPlayer .lobbyCrewCharacter{height:144px;width:96px}
+#players .freshCrewLead .parkingPlayer .lobbyCrewCharacter{height:205px;width:137px}
+#game.freshWaiting .freshRoomHeader{padding:12px 14px!important;background:#0c1119dd!important;margin:5px 0 10px!important}
+#game.freshWaiting .freshRoomHeader h2{font-size:20px!important}
+.parkingScene::before{filter:none!important}
+.parkingCrewMember.isHost{border-color:var(--chs-lime)}
+.parkingCrewMember.isReady small,.parkingReadyDot.isReady{color:var(--reference-active)}
+.isReady .parkingReadyDot,.freshConnection.online,.referenceOnline{background:var(--reference-active)!important}
+.parkingCrewStrip{gap:5px;padding:9px 5px}
+.parkingCrewMember{flex-basis:calc((100% - 28px)/5);min-width:55px;max-width:72px;min-height:84px}
+.parkingReadiness{font-size:12px;padding:6px 8px 11px}
+#game.liveRound .gameStats{grid-template-columns:1fr 1.2fr 1fr}
+#game.liveRound .liveMap{height:clamp(340px,50dvh,560px)!important}
+#game.liveRound #targetButtons button{min-height:52px}
+#bottomNav{display:grid;grid-template-columns:repeat(4,1fr)!important;gap:4px;width:min(650px,calc(100% - 20px))!important}
+#navPlay{display:none!important}
+.navButton{position:relative;display:flex;flex-direction:column;gap:4px;align-items:center;font-size:11px;min-height:48px}
+.navButton>span:first-child{font-size:23px}
+.notificationBadge{position:absolute;display:grid;place-items:center;right:5px;top:0;min-width:19px;height:19px;padding:0 4px;background:#ee4847;border:2px solid #10151d;border-radius:99px;color:white!important;font:bold 11px/1 system-ui;z-index:3;pointer-events:none}
+.friendsTabs button,.socialActions button{position:relative}
+.socialActions .notificationBadge{right:-7px;top:-7px}
+.socialAvatar{display:grid;place-items:center;position:relative;flex:none;width:50px;height:50px;overflow:hidden;border-radius:50%;background:#243044;border:1px solid #9aa6b5;font-weight:700}
+.socialAvatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.socialAvatar::before,.socialAvatar::after,.socialPerson::before,.socialPerson::after{content:none!important}
+.socialPerson{position:relative;z-index:1;flex:1;min-width:0}
+.socialPerson strong{display:block;color:white;font-size:16px;font-weight:750;line-height:1.4;overflow-wrap:anywhere}
+.socialPerson small,.socialPerson>span{display:block;color:#bec8d5;font-size:12px;margin-top:4px;line-height:1.5}
+.socialRow{display:flex;align-items:center;gap:12px;padding:14px!important}
+.socialRow .socialActions{justify-content:flex-end}
+.socialRow .socialActions button{min-height:44px}
+#dmTitle{display:flex;align-items:center;gap:12px;margin:0;font-size:12px}
+#dmTitle>span>strong{display:block;font-size:17px;margin-top:4px;color:#fff}
+#dmTitle .socialAvatar{width:42px;height:42px}
+#dmPanel .panelTitle{align-items:center;gap:8px}
+#dmMessages{min-height:180px;max-height:340px}
+.friendRequestNotice{position:static;z-index:auto;left:auto;bottom:auto;transform:none;width:100%;max-height:none;margin:12px 0;padding:12px;box-sizing:border-box;background:#121922;border-color:#455260;box-shadow:none}
+.friendRequestNotice[hidden]{display:none}
+.friendRequestNotice>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.friendRequestNotice .socialPerson{flex:1 1 calc(100% - 70px)}
+.friendRequestNotice button{min-height:44px;margin:3px 0;background:var(--chs-lime);color:#10151d}
+.incomingLobbyInvite{position:static;transform:none;left:auto;right:auto;bottom:auto;width:100%;margin:12px 0;box-sizing:border-box}
+.incomingLobbyInvite[hidden]{display:none}
+.incomingInviteText{min-width:0}
+.incomingInviteText strong{overflow-wrap:anywhere}
+.incomingInviteActions{flex-wrap:wrap}
+.message{overflow-wrap:anywhere}
+.gameplayResults{min-width:620px}
+#gameplayDetails{overflow:auto}
+@media(max-width:600px){.page{padding:12px 12px 104px}
+.appHeader{padding:10px 14px}
+.homeStage{height:340px}
+.referenceGreeting{top:16px;left:14px;right:14px}
+.referenceGreeting h1{font-size:22px}
+.referenceHeroScene{inset:90px 2% 0}
+.referenceHeroScene .lobbyCrewCharacter{height:220px;width:147px;left:78%}
+.referenceCrewPeople{gap:14px}
+.referenceCrewPortrait .socialAvatar{width:56px;height:56px}
+.socialRow{flex-wrap:wrap!important}
+.socialRow .socialActions{width:100%;justify-content:flex-end}
+.socialRow .socialPerson{flex-basis:calc(100% - 70px)}
+#game.freshWaiting .freshCrewBoard{margin:10px 0 14px}
+#game.freshWaiting .freshCrewBoard>.panelTitle{display:none}
+#game.freshWaiting .freshToolButtons button span{display:none}
+#game.freshWaiting .freshRoomHeader .gameStats{gap:5px}
+.parkingNameplate{font-size:10px;padding:4px;gap:4px;max-width:105%}
+.parkingHostBadge{font-size:9px}
+.parkingAvatar{width:21px;height:21px}
+.referencePhotoLobby{height:230px}
+.referencePhotoLobby .lobbyCrewCharacter{height:170px;width:114px}
+#profile .profileHero{min-height:345px!important}
+#profile .profileVehicleStage{width:90%;bottom:62px;right:-3%;height:180px}
+#profile .profileProgress{margin-top:auto}
+#profile .profileHero #profileName{font-size:24px!important}
+#friends .pageHeading h1{font-size:25px}
+.socialAvatar{width:48px;height:48px}
+.friendRequestNotice button{font-size:12px}
+.referenceCrew .muted{font-size:13px}
+.homeActions .actionCopy small{display:none}
+.homeAction .actionCopy strong{font-size:13px}
+#game.freshWaiting .parkingViewport{height:405px}
+#game.freshWaiting #players .freshCrewLead{top:185px;height:215px;width:78%}
+#game.freshWaiting #players .freshCrewLead .lobbyCrewCharacter{height:187px;width:125px}
+#game.freshWaiting #players[data-formation=solo] .freshCrewLead{top:110px;height:285px}
+.incomingLobbyInvite{display:flex;flex-wrap:wrap}
+.incomingInviteActions{width:100%}}
+@media(min-width:760px){#home .homeStage{height:470px}
+.referenceHeroScene{inset:95px 7% 0}
+.referenceHeroScene .lobbyCrewCharacter{height:325px;width:217px}
+.referenceGreeting{top:28px;left:28px}
+.referenceGreeting h1{font-size:30px}
+.homeActions{display:grid;grid-template-columns:1fr 1fr}
+.referenceCrewPeople{gap:22px}
+.referenceCrewPortrait .socialAvatar{width:70px;height:70px}
+#game.freshWaiting .parkingViewport{height:540px}
+#game.freshWaiting #players .freshCrewLead{top:260px;height:270px;width:min(75%,450px)}}
+
+/* Keep the start page focused and place nameplates above the neighbouring vehicles. */
+#home>section:not(.homeStage):not(.referenceCrew):not(.homeActions){display:none}
+#game.freshLobby.active.freshWaiting{--chs-lime:#ff5a12;--chs-lime-2:#ff7a21}
+#game.freshWaiting .parkingPlayer:not(.isHost){left:var(--parking-left);transform:none;z-index:auto}
+#game.freshWaiting .parkingVehicleStage{z-index:2}
+#game.freshWaiting .parkingPlayer.isMiddle .parkingVehicleStage{z-index:4}
+#game.freshWaiting .parkingNameplate{z-index:30}
+#game.freshWaiting .parkingPlayer.isHost .parkingNameplate{border-color:#ff5a1280}
+.friendRequestNotice>div{display:grid;grid-template-columns:48px minmax(0,1fr) auto 44px;gap:9px}
+.friendRequestNotice .socialPerson{min-width:0}
+.friendRequestNotice .socialPerson strong{font-size:14px}
+.friendRequestNotice .socialPerson>span{font-size:11px}
+.friendRequestNotice [data-decline]{background:#293443;color:white;font-size:20px}
+@media(max-width:600px){.homeStage{height:clamp(250px,35dvh,330px)}
+.referenceHeroScene .lobbyCrewCharacter{height:200px;width:133px}
+.friendRequestNotice{padding:10px}
+.friendRequestNotice>div{gap:7px;grid-template-columns:42px minmax(0,1fr) auto 38px}
+.friendRequestNotice .socialAvatar{width:42px;height:42px}
+.friendRequestNotice button{padding:6px;min-width:38px}}
+
+/* During play, the real map leads and the crew remains a compact identity list. */
+#game.liveRound .freshPlayerCard .freshAvatarStage,#game.liveRound .freshPlayerCard .freshLobbyProfile{display:none!important}
+#game.liveRound .freshPlayerIdentity{display:flex;align-items:center;gap:9px;width:100%;min-width:0}
+#game.liveRound .freshPlayerIdentity h3{min-width:0;font-size:14px;margin:0}
+#game.liveRound .freshPlayerIdentity .parkingStripAvatar{width:34px;height:34px;flex:none}
+#game.liveRound .freshPlayerCard,#game.liveRound .freshPlayerCard.isHost{padding:12px;min-height:0}
+#game.liveRound .freshVehicleName,#game.liveRound .freshVehicleColor{font-size:11px}
+#game.liveRound #timer{font-size:26px;color:white}
+#game.liveRound .gameplayDetails{margin:8px 0;padding:9px 12px}
+#game.liveRound .freshCrewBoard{margin:14px 0}
+#referenceResultPeople{display:grid;gap:8px;margin:20px 0;text-align:left}
+.referenceResultPerson{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px;border:1px solid #535e6c66;border-radius:10px;background:#0e151be6;font-size:12px}
+.referenceResultPerson .parkingStripAvatar{width:34px;height:34px;grid-row:span 2}
+.referenceResultPerson strong{font-size:14px;overflow-wrap:anywhere}
+.referenceResultPerson small{grid-column:2;color:#ff945b}
+.referenceResultPerson>span:last-of-type{grid-column:3;grid-row:span 2;color:#dce3ed}
+
+#result{background:linear-gradient(180deg,#141b23,#0b1016)!important}
+#referenceResultScene{position:relative;height:185px;overflow:hidden;border-radius:12px;margin:-10px -3px 18px;background:linear-gradient(180deg,#12132633,#090e1688),url('assets/lobby-meetup.webp') center/cover}
+#referenceResultScene[hidden]{display:none}
+#referenceResultScene .parkingPlayer{position:absolute;inset:0;width:100%;height:100%;transform:none}
+#referenceResultScene .lobbyCrewCharacter{height:150px;width:100px;left:76%}
+#referenceResultScene .lobbyModelCar{height:95%}
+#referenceResultScene .vehicleIllustration{width:80%;bottom:-10%}
