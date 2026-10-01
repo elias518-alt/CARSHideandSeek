@@ -19,6 +19,7 @@ function fixture(){
       if(options.method==='POST'){acceptances.set(json.user_id,json);value=[json];}
       else {const row=acceptances.get(params.get('user_id')?.slice(3));value=row&&row.version===params.get('version')?.slice(3)&&row.document_hash===params.get('document_hash')?.slice(3)?[row]:[];}
     }
+    if(resource==='chs_onboarding')value=[{version:'beta-2026-10-01'}];
     if(resource==='profiles')value=[{id:player,username:'Testspieler',player_tag:'TEST',level:1,rounds_played:0,wins:0}];
     if(resource==='chs_admin_set_ban'){
       bans.set(json.p_target,{user_id:json.p_target,reason:json.p_reason,until_at:json.p_until,revoked_at:json.p_revoke?new Date().toISOString():null});
@@ -30,7 +31,7 @@ function fixture(){
   return {service:createAccountService({url:'https://example.supabase.co',key:'sb_secret_test',fetchImpl,env}),fetchImpl,bans,acceptances,calls,setOffline:value=>offline=value};
 }
 test('admin rights cannot be forged; non-admin requests fail before data access',async()=>{
-  const f=fixture();await assert.rejects(f.service.players(player,{is_admin:true}),{status:403});assert.equal(f.calls.length,0);
+  const f=fixture();await assert.rejects(f.service.players(player,{is_admin:true}),{status:403});assert.equal(f.calls.length,1);assert.ok(f.calls[0].url.includes('chs_staff_roles'));
   await assert.rejects(f.service.ban(owner,{targetId:owner,hours:0,reason:'Eigenes Konto sperren'}),{status:400});
   await assert.rejects(f.service.ban(owner,{targetId:player,hours:-1,reason:'Regelverstoß'}),{status:400});
 });
@@ -86,7 +87,12 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const moderation={code:created.data.lobby.code,userId:created.data.userId,targetId:joined.data.userId,reason:'Testmeldung für die Prüfung'};
     assert.equal((await request('report',moderation,'player-token','GET')).status,405);
     assert.equal((await request('report',moderation)).status,200);
+    server.reports.length=0;const beforeReports=f.calls.filter(c=>c.url.includes('/chs_player_reports')).length;
+    const duplicates=await Promise.all([request('report',moderation),request('report',moderation)]);
+    assert.deepEqual(duplicates.map(r=>r.status),[200,200]);
+    assert.equal(f.calls.filter(c=>c.url.includes('/chs_player_reports')).length-beforeReports,1);
     assert.equal((await request('block',{targetAuthId:owner,blocked:true})).status,200);
+    assert.equal((await request('join',{code:created.data.lobby.code},'owner-token')).status,403);
     assert.equal((await request('block',{targetAuthId:owner,blocked:false})).status,200);
     const look={collection:'realistic',gender:'female',hair:2,hairColor:'blonde',top:2,topColor:'green',pants:1,pantsColor:'navy',glasses:true,earrings:true,jewelry:'silver'};
     const updated=await request('join',{code:created.data.lobby.code,appearance:look});assert.equal(updated.status,200);
@@ -100,5 +106,6 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const blocked=await request('create',{name:'Testspieler',vehicle:'Testauto'});assert.equal(blocked.status,403);assert.equal(blocked.data.code,'ACCOUNT_BANNED');
     assert.equal((await request('legal-accept',{...legal,terms:true,safety:true,adult:true,privacyRead:true})).status,403);
     const source=await oldFetch('http://127.0.0.1:'+app.address().port+'/account-service.js');assert.equal(source.status,404);
+    for(const file of ['moderation-rules.js','beta-monitor.js','scripts/moderation-sql-qa.mjs'])assert.equal((await oldFetch('http://127.0.0.1:'+app.address().port+'/'+file)).status,404);
   }finally{await new Promise(resolve=>app.close(resolve));global.fetch=oldFetch;for(const key of Object.keys(process.env))if(!(key in oldEnv))delete process.env[key];Object.assign(process.env,oldEnv);server.lobbies.clear();}
 });

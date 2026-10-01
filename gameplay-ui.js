@@ -74,8 +74,8 @@ function renderGameplayDetails() {
   gameplayEventCursor=last?.id||'';
   if(lobby.state==='RESULT'){
     const table=document.createElement('table');table.className='gameplayResults';
-    const header=table.insertRow();for(const label of ['Spieler','Rolle','Funde','Fluchten','Fehlversuche','Überlebt','Außerhalb','XP']){const th=document.createElement('th');th.textContent=label;header.append(th);}
-    for(const player of lobby.result?.players||[]){const row=table.insertRow();for(const value of [player.name+(player.eliminated?' · ausgeschieden':''),player.role==='SEEKER'?'Sucher':'Verstecker',player.finds,player.escapes,player.failedFinds,formatTime(player.survivalSeconds),formatTime(Math.round((player.outsideMs||0)/1000)),player.baseXp||0])row.insertCell().textContent=String(value||0);}
+    const header=table.insertRow();for(const label of ['Spieler','Rolle','Gefunden von / Status','Funde','Fluchten','Fehlversuche','Überlebt','Außerhalb','XP']){const th=document.createElement('th');th.textContent=label;header.append(th);}
+    for(const player of lobby.result?.players||[]){const row=table.insertRow();for(const value of [player.name+(player.eliminated?' · ausgeschieden':''),player.role==='SEEKER'?'Sucher':'Verstecker',player.foundBy?(lobby.result.players.find(p=>p.id===player.foundBy)?.name||'Sucher'):player.eliminated?'Ausgeschieden':player.role==='HIDER'?'Überlebt':'—',player.finds,player.escapes,player.failedFinds,formatTime(player.survivalSeconds),formatTime(Math.round((player.outsideMs||0)/1000)),player.baseXp||0])row.insertCell().textContent=String(value||0);}
     panel.append(table);
     const journal=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Ereignisse dieser Runde';journal.append(summary);
     for(const event of state.events||[]){const line=document.createElement('p');line.textContent=event.body;journal.append(line);}panel.append(journal);
@@ -127,11 +127,7 @@ function playerModerationActions(player){
     const blocked=state?.blocksForMe?.includes(player.profileId);
     const block=gameplayButton(player.name+(blocked?' · Blockierung aufheben':' für nächste Lobbys blockieren'),'block',{targetAuthId:player.profileId,blocked:!blocked});actions.append(block);
     const report=document.createElement('button');report.textContent=player.name+' melden';report.addEventListener('click',()=>{
-      const dialog=document.createElement('dialog'),label=document.createElement('label'),input=document.createElement('textarea'),send=document.createElement('button'),cancel=document.createElement('button');
-      label.textContent='Grund der Meldung';input.maxLength=500;label.append(input);send.textContent='Meldung senden';cancel.textContent='Abbrechen';
-      cancel.addEventListener('click',()=>{dialog.close();dialog.remove();});
-      send.addEventListener('click',async()=>{if(input.value.trim().length<5){toast('Bitte einen konkreten Grund angeben.');return;}try{await api('report',gameCredentials({targetId:player.id,reason:input.value}));toast('Meldung gespeichert.');dialog.close();dialog.remove();}catch(error){toast(error.message);}});
-      dialog.append(label,send,cancel);document.body.append(dialog);dialog.showModal();
+      window.betaUI.report(player);
     });actions.append(report);
 
   return actions;

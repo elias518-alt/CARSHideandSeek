@@ -67,7 +67,7 @@ function startRound(lobby,now){
 function finish(lobby,seekersWin,reason='TIME',now=Date.now()){
   if(lobby.state==='RESULT')return;
   initialize(lobby,now);lobby.state='RESULT';lobby.locks={};
-  const aborted=['ABORT_VOTE','TOO_FEW_PLAYERS','NO_PLAYERS'].includes(reason);
+  const aborted=['ABORT_VOTE','TOO_FEW_PLAYERS','NO_PLAYERS','ADMIN_CLOSED'].includes(reason);
   event(lobby,'END',aborted?'Runde abgebrochen.':seekersWin?'Sucher gewinnen.':'Verstecker gewinnen.',{reason},now);
   const players=lobby.players.map(p=>{
     if(p.outsideSince)p.stats.outsideMs+=Math.max(0,now-p.outsideSince);

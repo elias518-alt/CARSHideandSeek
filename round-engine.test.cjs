@@ -102,14 +102,15 @@ test('abort requires a strict majority, votes are idempotent, and an active host
     assert.equal(f.lobby.state,'ACTIVE');await route('abort-vote',credentials(f.lobby.players[2]),f.lobby.players[2].authId);assert.equal(f.lobby.result.reason,'ABORT_VOTE');
   }finally{lobbies.delete(f.lobby.code);}
 });
-test('blocking prevents private admission and invitations; reports require lobby membership and store no coordinates',async()=>{
+test('restored blocking prevents private admission and invitations; invalid report identities fail closed',async()=>{
   const f=fixture();f.lobby.state='LOBBY';lobbies.set(f.lobby.code,f.lobby);
   try{
-    await route('block',{targetAuthId:'new-account'},f.seeker.authId);
+    blocks.set(f.seeker.authId,['new-account']);
     await assert.rejects(route('join',{code:f.lobby.code,name:'New',vehicle:'Auto'},'new-account'),/Blockierung/);
     await assert.rejects(route('invite',{code:f.lobby.code,userId:f.seeker.id,targetAuthId:'new-account'},f.seeker.authId),/Blockierung/);
-    await route('report',{code:f.lobby.code,userId:f.seeker.id,targetId:f.target.id,reason:'Wiederholtes unerlaubtes Verhalten'},f.seeker.authId);
-    assert.ok(reports.length);assert.equal(JSON.stringify(reports.at(-1)).includes('accuracy'),false);
+    await assert.rejects(route('report',{code:f.lobby.code,userId:f.seeker.id,targetId:f.target.id,category:'cheating'},'outsider'),{status:403});
+    await assert.rejects(route('report',{code:f.lobby.code,userId:f.seeker.id,targetId:f.target.id,category:'cheating'},f.seeker.authId),{status:400});
+    assert.equal(reports.length,0);
   }finally{lobbies.delete(f.lobby.code);blocks.clear();reports.length=0;}
 });
 test('fair role rotation gives every participant a turn before repeating a seeker in equal-size rematches',()=>{
