@@ -24,9 +24,10 @@
       const account=await api('account-status',{},'GET');
       if(!valid())return false;
       currentAccount=account;
+      const previewNotice=document.getElementById('developerPreviewNotice');if(previewNotice)previewNotice.hidden=!account.developerPreview;
       const button=document.getElementById('adminMenuButton');if(button)button.hidden=!currentAccount.admin||currentAccount.banned;
       if(currentAccount.banned){await gate(currentAccount);return false;}
-      if(!currentAccount.legal.ready||!currentAccount.accepted){await gate(currentAccount);return false;}
+      if(!currentAccount.developerPreview&&(!currentAccount.legal.ready||!currentAccount.accepted)){await gate(currentAccount);return false;}
       return true;
     }catch(error){if(valid())await gate({error:error.message});return false;}
   }

@@ -1,16 +1,16 @@
 'use strict';
 const {documents}=require('./legal');
+const {createBackend}=require('./server-backend');
 const uuid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 function error(status,message,extra={}){return Object.assign(new Error(message),{status,extra});}
 function adminIds(env=process.env){return (env.CHS_ADMIN_USER_IDS||'').split(',').map(v=>v.trim()).filter(uuid);}
 function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
+  const backend=createBackend({url,key,fetchImpl,gatewayUrl:env.CHS_BACKEND_GATEWAY_URL,gatewayToken:env.CHS_BACKEND_TOKEN});
   async function request(resource,{method='GET',body,ignoreDuplicates=false}={}){
-    if(!key)throw error(503,'Kontoschutz ist noch nicht eingerichtet. Bitte später erneut versuchen.');
-    const headers={apikey:key,'Content-Type':'application/json'};
-    if(!key.startsWith('sb_secret_'))headers.Authorization='Bearer '+key;
-    if(method==='POST')headers.Prefer=`resolution=${ignoreDuplicates?'ignore':'merge'}-duplicates,return=representation`;
+    if(!backend.configured)throw error(503,'Kontoschutz ist noch nicht eingerichtet. Bitte später erneut versuchen.');
+    const prefer=method==='POST'?`resolution=${ignoreDuplicates?'ignore':'merge'}-duplicates,return=representation`:undefined;
     let response;
-    try{response=await fetchImpl(url+'/rest/v1/'+resource,{method,headers,body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(7000)});}
+    try{response=await backend.request(resource,{method,body,prefer,timeout:10000});}
     catch{throw error(503,'Kontoschutz ist vorübergehend nicht erreichbar.');}
     if(!response.ok)throw error(503,'Kontoschutz konnte nicht geprüft oder gespeichert werden.');
     return response.status===204?null:response.json();
@@ -23,12 +23,13 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
       request('chs_legal_acceptances?user_id=eq.'+id+'&version=eq.'+legal.version+'&document_hash=eq.'+legal.hash+'&select=accepted_at&limit=1')
     ]);
     const row=bans[0],banned=!!(row&&!row.revoked_at&&(!row.until_at||Date.parse(row.until_at)>Date.now()));
-    return {admin:adminIds(env).includes(id),banned,ban:banned?{reason:row.reason,until:row.until_at}:null,accepted:acceptances.length>0,legal};
+    const admin=adminIds(env).includes(id),developerPreview=!legal.ready&&!banned&&admin&&env.CHS_DEVELOPER_PREVIEW==='true';
+    return {admin,developerPreview,banned,ban:banned?{reason:row.reason,until:row.until_at}:null,accepted:acceptances.length>0,legal};
   }
   async function requireAccess(id,{consent=true}={}){
     const account=await status(id);
     if(account.banned)throw error(403,'Dein Konto ist gesperrt.',{code:'ACCOUNT_BANNED',ban:account.ban});
-    if(consent&&(!account.legal.ready||!account.accepted))throw error(428,account.legal.ready?'Bitte zuerst Nutzungsbedingungen und Sicherheitshinweise bestätigen.':'Die Freigabe der Rechtstexte steht noch aus.',{code:'LEGAL_REQUIRED'});
+    if(consent&&!account.developerPreview&&(!account.legal.ready||!account.accepted))throw error(428,account.legal.ready?'Bitte zuerst Nutzungsbedingungen und Sicherheitshinweise bestätigen.':'Die Freigabe der Rechtstexte steht noch aus.',{code:'LEGAL_REQUIRED'});
     return account;
   }
   async function requireAdmin(id){
@@ -69,7 +70,7 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     return {ok:true,targetId:target,banned:!unban};
   }
   async function audit(actor){await requireAdmin(actor);return {actions:await request('chs_admin_audit?select=id,actor_id,target_id,action,reason,created_at&order=created_at.desc&limit=50')};}
-  async function prune(){if(key)await request('chs_admin_audit?created_at=lt.'+encodeURIComponent(new Date(Date.now()-90*86400000).toISOString()),{method:'DELETE'});}
+  async function prune(){if(backend.configured)await request('chs_admin_audit?created_at=lt.'+encodeURIComponent(new Date(Date.now()-90*86400000).toISOString()),{method:'DELETE'});}
   return {status,requireAccess,requireAdmin,accept,players,ban,audit,prune};
 }
 module.exports={createAccountService,adminIds,uuid};
