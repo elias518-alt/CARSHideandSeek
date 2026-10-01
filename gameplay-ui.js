@@ -32,6 +32,8 @@ function renderGameplayDetails() {
   const text=value=>{const p=document.createElement('p');p.textContent=value;output.append(p);};
   const playing=['COUNTDOWN','HEADSTART','ACTIVE'].includes(lobby.state);
   if(waiting){
+    text('Das Verstecken in mehrstöckigen Parkhäusern ist nicht erlaubt, da GPS keine zuverlässige Erkennung der jeweiligen Etage ermöglicht.');
+    text('Sucher warten während der Versteckphase sicher abseits im Wartebereich und beobachten die Verstecker nicht.');
     text('Start am Treffpunkt: Alle Teilnehmer müssen innerhalb von 50 m sein. Prüft vor Ort, ob das Gebiet geeignet ist.');
     if(lobby.hostId===lobby.me.id){
       output.append(gameplayButton('Meinen Standort als Treffpunkt setzen','checkpoint'));
@@ -39,6 +41,7 @@ function renderGameplayDetails() {
     }
   }
   if(playing){
+    if(lobby.state==='HEADSTART'&&lobby.me.role==='SEEKER')text('Sicher abseits warten. Beobachte nicht, wohin die Verstecker fahren. Gegnerhinweise sind bis zur Suchphase ausgeblendet.');
     if(lobby.me.eliminated)text('Ausgeschieden: '+({EARLY_START:'Startbereich zu früh verlassen',OUTSIDE:'Spielgebiet nicht rechtzeitig erreicht',GPS_TIMEOUT:'GPS zu lange ausgefallen',DISCONNECT:'Verbindung zu lange unterbrochen',AFK:'Inaktivität',LEFT:'Runde verlassen'}[lobby.me.eliminationReason]||lobby.me.eliminationReason));
     else if(lobby.me.found)text('Du wurdest gefunden. Deine Standortübertragung wurde beendet.');
     else {

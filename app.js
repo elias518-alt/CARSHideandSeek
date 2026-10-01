@@ -1505,8 +1505,7 @@ async function create() {
             'NIGHT HUNT',
 
           radius:
-            +$('#radius')?.value ||
-            3000,
+            Number($('#radius')?.value ?? 500),
 
           duration:
             +$('#duration')?.value ||
@@ -2118,7 +2117,7 @@ function gpsConfigForState() {
     return {phase:'STOPPED',interval:0,options:{}};
   const close = state?.replacementNeedsStop || state?.locks?.length || state?.proximity?.level === 'VERY_CLOSE';
   const near = state?.outsideDeadline || state?.gpsWarning || !me?.hasLocation || state?.proximity?.level === 'CLOSE';
-  const interval = phase === 'ACTIVE' ? close ? 2000 : near ? 5000 : 15000 : phase === 'LOBBY' ? 10000 : 5000;
+  const interval = phase === 'ACTIVE' ? close ? 1000 : near ? 4000 : 10000 : phase === 'LOBBY' ? 10000 : 5000;
   return {phase:phase+':'+interval,interval,options:{enableHighAccuracy:phase!=='ACTIVE'||close||near,maximumAge:0,timeout:10000}};
 }
 
@@ -2455,6 +2454,14 @@ function resetGame() {
    NAVIGATION
 ========================================================= */
 
+// Keep complex controls closed while a driver is moving or GPS speed is unknown.
+document.addEventListener('click',event=>{
+  if(!gameSession||!state?.driverBlocked)return;
+  if(!event.target.closest('[data-page], #freshSettingsButton, #freshChatButton, .profileMini'))return;
+  event.preventDefault();event.stopImmediatePropagation();
+  toast('Als Fahrer erst sicher anhalten, bevor du Menüs bedienst.');
+},true);
+
 $$('[data-page]')
   .forEach(button => {
 
@@ -2677,6 +2684,7 @@ function fillLobbySettings() {
     } else {
       field.value = String(value);
     }
+    if(id==='lobbyRadius')syncRadiusChoice(field);
   }
 }
 
@@ -2712,27 +2720,35 @@ async function saveFreshLobbySettings() {
   }
 }
 
-// Kleine Spielradien auch im bestehenden Formular zur Lobby-Erstellung anbieten.
+function syncRadiusChoice(field) {
+  const choice=document.getElementById(field.id+'Choice');
+  if(!choice)return;
+  choice.value=[...choice.options].some(option=>option.value===field.value)?field.value:'custom';
+  choice.disabled=field.disabled;
+  field.hidden=choice.value!=='custom';
+  const caption=document.getElementById(field.id+'Caption');
+  if(caption)caption.hidden=field.hidden;
+}
+
+// The original numeric fields remain the source of truth for creation/settings.
 function addSmallLobbyRadii() {
   for (const id of ['radius','lobbyRadius']) {
     const field = document.getElementById(id);
     if (!field) continue;
-    if (field.tagName === 'SELECT') {
-      const selected = field.value;
-      for (const meters of [50,100,200,300,500,750]) {
-        if ([...field.options].some(option => Number(option.value) === meters)) continue;
-        const option = document.createElement('option');
-        option.value = String(meters);
-        option.textContent = `${meters} m`;
-        const next = [...field.options].find(item => Number(item.value) > meters);
-        field.insertBefore(option, next || null);
-      }
-      field.value = selected;
-    } else {
-      field.min = '50';
-      field.max = '10000';
-      field.step = '10';
-    }
+    if(document.getElementById(id+'Choice'))continue;
+    field.min='50';field.max='10000';field.step='1';
+    const choice=document.createElement('select');choice.id=id+'Choice';choice.setAttribute('aria-label','Radius auswählen');
+    const presets=[50,...Array.from({length:100},(_,i)=>(i+1)*100),750].sort((a,b)=>a-b);
+    for(const meters of presets){const option=document.createElement('option');option.value=String(meters);option.textContent=meters+' m';choice.append(option);}
+    const custom=document.createElement('option');custom.value='custom';custom.textContent='Eigener Radius';choice.append(custom);
+    const caption=document.createElement('span');caption.id=id+'Caption';caption.textContent='Radius eingeben';
+    field.setAttribute('aria-label','Radius eingeben');field.before(choice,caption);
+    choice.addEventListener('change',()=>{
+      field.hidden=choice.value!=='custom';caption.hidden=field.hidden;
+      if(choice.value==='custom'){field.focus();field.select();return;}
+      field.value=choice.value;field.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    field.addEventListener('change',()=>syncRadiusChoice(field));syncRadiusChoice(field);
   }
 }
 if (document.readyState === 'loading') {
@@ -3339,6 +3355,7 @@ function ensureFreshLobby() {
 
   const setChatOpen = open => {
     if (!chatDrawer) return;
+    if(open&&state?.driverBlocked){toast('Als Fahrer erst sicher anhalten, bevor du den Chat bedienst.');return;}
 
     if (open) {
       clearChatBlockers();

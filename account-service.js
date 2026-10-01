@@ -6,6 +6,7 @@ function error(status,message,extra={}){return Object.assign(new Error(message),
 function adminIds(env=process.env){return (env.CHS_ADMIN_USER_IDS||'').split(',').map(v=>v.trim()).filter(uuid);}
 function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
   const backend=createBackend({url,key,fetchImpl,gatewayUrl:env.CHS_BACKEND_GATEWAY_URL,gatewayToken:env.CHS_BACKEND_TOKEN});
+  const attestations=new Map();
   async function request(resource,{method='GET',body,ignoreDuplicates=false}={}){
     if(!backend.configured)throw error(503,'Kontoschutz ist noch nicht eingerichtet. Bitte später erneut versuchen.');
     const prefer=method==='POST'?`resolution=${ignoreDuplicates?'ignore':'merge'}-duplicates,return=representation`:undefined;
@@ -70,7 +71,16 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     return {ok:true,targetId:target,banned:!unban};
   }
   async function audit(actor){await requireAdmin(actor);return {actions:await request('chs_admin_audit?select=id,actor_id,target_id,action,reason,created_at&order=created_at.desc&limit=50')};}
+  async function attest(id,reward) {
+    if(!uuid(id)||!uuid(reward.resultId)||!['HIDER','SEEKER'].includes(reward.role))throw error(400,'Ungültiges bestätigtes Ergebnis.');
+    const key=id+':'+reward.resultId;
+    if(attestations.has(key))return attestations.get(key);
+    const pending=request('chs_verified_results?on_conflict=user_id,result_id',{method:'POST',ignoreDuplicates:true,body:{user_id:id,result_id:reward.resultId,role:reward.role,won:reward.won,finds:reward.finds,survived:reward.survived}});
+    attestations.set(key,pending);
+    try{await pending;}catch(error){attestations.delete(key);throw error;}
+    if(attestations.size>2000)attestations.delete(attestations.keys().next().value);
+  }
   async function prune(){if(backend.configured)await request('chs_admin_audit?created_at=lt.'+encodeURIComponent(new Date(Date.now()-90*86400000).toISOString()),{method:'DELETE'});}
-  return {status,requireAccess,requireAdmin,accept,players,ban,audit,prune};
+  return {status,requireAccess,requireAdmin,accept,players,ban,audit,prune,attest};
 }
 module.exports={createAccountService,adminIds,uuid};

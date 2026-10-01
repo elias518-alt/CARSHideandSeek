@@ -1,4 +1,6 @@
-# Aktueller Arbeitsstand – 01.10.2026
+# Arbeitsstand – 01.10.2026
+
+Aktuell: [Schritt 1 – technische Stabilisierung](docs/STABILISIERUNG-1.md). Die folgenden Abschnitte dokumentieren den früheren Stand vor PR 24 und den nachfolgenden Korrekturen.
 
 PR #21 ist in `main` zusammengeführt und auf Render veröffentlicht. Die folgende Gateway-Ergänzung baut auf `a66c4fa19831c6b1fa686394153d8ce602ebc4a5` auf und liegt im Branch `codex/server-protection-setup`. Bestehende Garage, Fahrzeugbilder, Lobbyhintergründe, Spielphasen und GPS-Regeln wurden weiterverwendet.
 
@@ -40,6 +42,6 @@ Für diese Erweiterung wurde keine vollständige Browser- oder Smartphone-Prüfu
 
 ## Separat bekannte Restpunkte
 
-Die bisherige XP-RPC nimmt weiterhin vom Browser behauptete Ergebnisse an; ausschließlich serverbestätigte Gutschriften sind noch umzusetzen. Die Zustimmungsschranke schützt Spielserver-Aktionen und die reguläre App-Initialisierung, ersetzt jedoch keine konsolidierte Autorisierung aller bisherigen direkten Profil-/Social-RPCs. Werbung, PLUS/Payments, Apple-Anmeldung, Hintergrund-Push und große Mehrinstanz-Skalierung sind keine fertigen Funktionen dieser Erweiterung.
+Seit Schritt 1 benötigt die XP-RPC eine unveränderliche Serverbestätigung; direkte Fortschrittsänderungen am Profil sind gesperrt. Die Zustimmungsschranke schützt Spielserver-Aktionen und die reguläre App-Initialisierung, ersetzt jedoch keine konsolidierte Autorisierung aller bisherigen direkten Profil-/Social-RPCs. Werbung, PLUS/Payments, Apple-Anmeldung, Hintergrund-Push und große Mehrinstanz-Skalierung sind keine fertigen Funktionen dieser Erweiterung.
 
 Die Codex-Meldung „Fehler beim Senden der Nachricht“ ist damit nicht als behoben ausgewiesen; sie ist von den App-Änderungen zu unterscheiden.

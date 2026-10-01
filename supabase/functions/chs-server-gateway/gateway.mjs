@@ -1,6 +1,6 @@
 // Restricted server-to-server gateway. Supabase credentials stay inside the
 // function runtime. Only a hash of the Render credential is stored in the DB.
-const methods={chs_account_bans:['GET'],chs_legal_acceptances:['GET','POST'],profiles:['GET'],chs_admin_audit:['GET','DELETE'],chs_server_state:['GET','POST'],'rpc/chs_admin_set_ban':['POST']};
+const methods={chs_account_bans:['GET'],chs_legal_acceptances:['GET','POST'],profiles:['GET'],chs_admin_audit:['GET','DELETE'],chs_server_state:['GET','POST'],chs_verified_results:['POST'],'rpc/chs_admin_set_ban':['POST']};
 const columns={profiles:['id','username','player_tag','level','rounds_played','wins','created_at','last_seen_at'],chs_account_bans:['user_id','reason','until_at','revoked_at'],chs_legal_acceptances:['accepted_at'],chs_admin_audit:['id','actor_id','target_id','action','reason','created_at'],chs_server_state:['snapshot','expires_at']};
 const json=(status,error)=>Response.json({error},{status,headers:{'Cache-Control':'no-store'}});
 async function readJson(req){
@@ -43,6 +43,7 @@ export function createGateway({url,serviceKey,fetchImpl=fetch,now=Date.now}){
         if(!cutoff.startsWith('lt.')||!(Date.parse(cutoff.slice(3))<=now()-90*86400000))return json(403,'Retention filter required');
       }
       if(path==='chs_server_state'&&method==='POST'&&input.body?.slot!=='gameplay')return json(403,'Invalid state slot');
+      if(path==='chs_verified_results'&&input.prefer!=='resolution=ignore-duplicates,return=representation')return json(403,'Immutable result required');
       const h=headers();
       if(input.prefer){if(!['resolution=merge-duplicates,return=minimal','resolution=merge-duplicates,return=representation','resolution=ignore-duplicates,return=representation'].includes(input.prefer))return json(400,'Invalid write mode');h.Prefer=input.prefer;}
       const response=await fetchImpl(url+'/rest/v1/'+resource,{method,headers:h,body:input.body?JSON.stringify(input.body):undefined,signal:AbortSignal.timeout(7000)});
