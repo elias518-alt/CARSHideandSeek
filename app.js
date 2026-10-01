@@ -877,6 +877,7 @@ async function initializeAuth() {
     $('#app')
       ?.classList.remove('hidden');
 
+    if (!await window.accountUI.initialize()) return;
 
     await loadProfile(
       authSession.user.id
@@ -929,6 +930,7 @@ supabaseClient.auth.onAuthStateChange(
       newSession;
 
     if (event === 'SIGNED_OUT') {
+      window.accountUI?.closePrivateViews();
       $('#app')
         ?.classList.add('hidden');
 
@@ -1329,7 +1331,7 @@ async function api(
     error.data =
       json;
     error.status = response.status;
-
+    void window.accountUI?.handleError(error);
     throw error;
   }
 
@@ -1391,6 +1393,8 @@ function playerData() {
 
     characterStyle:
       getCharacterStyle(),
+
+    appearance: window.accountUI.appearance(),
 
     level:
       Math.max(1, Math.min(50, Number(dbProfile.level) || 1)),
@@ -1709,6 +1713,7 @@ async function poll() {
   catch (error) {
     console.error(error);
 
+    if (['ACCOUNT_BANNED','LEGAL_REQUIRED'].includes(error.data?.code)) return;
 
     const lobbyGone =
       error.status === 404 ||
@@ -3172,7 +3177,9 @@ function openProfileEditor() {
         let preferenceSyncFailed=false;
         try {
           const { data: authUpdate, error: authUpdateError } = await supabaseClient.auth.updateUser({
-            data: { character_style: characterStyle, lobby_background: background }
+            data: { character_style: characterStyle, lobby_background: background,
+              chs_appearance: wardrobe.normalize({...window.accountUI.appearance(),classic:characterStyle,
+                collection:characterStyle!==dialog._oldCharacterStyle?'classic':window.accountUI.appearance().collection}) }
           });
           if (authUpdateError) throw authUpdateError;
           if (authSession?.user?.id !== userId) return;
@@ -3203,6 +3210,7 @@ function openProfileEditor() {
   dialog._userId = authSession.user.id; dialog._photo = '__KEEP__';
   form.elements.username.value = dbProfile.username || '';
   form.elements.characterStyle.value = String(getCharacterStyle());
+  dialog._oldCharacterStyle = getCharacterStyle();
   form.elements.lobbyBackground.value = getLobbyBackground();
   form.elements.photo.value = '';
   form.querySelector('[data-profile-error]').textContent = '';
@@ -3553,6 +3561,7 @@ function lobbyProfileMarkup(player) {
 }
 
 function lobbyCharacterMarkup(player) {
+  if (player?.appearance && typeof wardrobe !== 'undefined') return wardrobe.markup(player.appearance);
   let hash=0;for(const ch of String(player.profileId||player.id))hash=(hash*31+ch.charCodeAt(0))>>>0;
   const fallback=hash%3;
   const skin=Number.isInteger(player?.characterStyle) ? Math.max(0,Math.min(2,player.characterStyle)) : fallback;

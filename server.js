@@ -7,6 +7,9 @@ const https = require('node:https');
 const lobbyScene = require('./lobby-scene');
 const round = require('./round-engine');
 const {createStore}=require('./state-store');
+const wardrobe=require('./wardrobe');
+const {documents}=require('./legal');
+const {createAccountService}=require('./account-service');
 const { roadRoute } = require('./meetup-route');
 const { assignRoundRoles, roundRewardFor } = require('./game-rules');
 
@@ -15,6 +18,7 @@ const ROOT = __dirname;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yyvljkzitodxhtkilsxm.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
 const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY || '';
+const accounts=createAccountService({url:SUPABASE_URL,key:process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY});
 const lobbies = new Map();
 const lobbyInvites = new Map();
 const authCache = new Map();
@@ -36,6 +40,19 @@ async function restore(store){
   stateStore=store;
 }
 const blocked=(a,b)=>(blocks.get(a)||[]).includes(b)||(blocks.get(b)||[]).includes(a);
+
+function removeAccountFromLobbies(authId,reason){
+  for(const lobby of lobbies.values()){
+    const player=lobby.players.find(p=>p.authId===authId);
+    if(!player)continue;
+    if(round.playing(lobby)){round.eliminate(lobby,player,reason,Date.now());player.left=true;updateGame(lobby);}
+    else lobby.players=lobby.players.filter(p=>p!==player);
+    if(!lobby.players.length){lobbies.delete(lobby.code);clearLobbyInvitesForCode(lobby.code);}
+    else if(lobby.hostId===player.id){const host=lobby.players.filter(p=>!p.left&&!p.eliminated).sort((a,b)=>a.joinedAt-b.joinedAt)[0];if(host)lobby.hostId=host.id;}
+    clearLobbyInvitesFor(authId,lobby.code);
+  }
+  for(const [id,invite]of lobbyInvites)if(invite.fromAuthId===authId||invite.targetAuthId===authId)lobbyInvites.delete(id);
+}
 
 const MAX_PLAYERS = 20;
 const PUBLIC_RANGE_M = 1000;
@@ -83,11 +100,11 @@ function clearLobbyInvitesForCode(codeValue) {
   for (const [id, invite] of lobbyInvites) if (invite.code === codeValue) lobbyInvites.delete(id);
 }
 
-async function verifyAuth(req) {
+async function verifyAuth(req, force = false) {
   const token = /^Bearer (.+)$/i.exec(req.headers.authorization || '')?.[1];
   if (!token) fail(401, 'Bitte erneut anmelden.');
   const cached = authCache.get(token);
-  if (cached && cached.until > Date.now()) return cached.userId;
+  if (!force && cached && cached.until > Date.now()) return cached.userId;
   let response;
   try {
     response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -144,6 +161,7 @@ function newPlayer(data, authId) {
     photoUrl: safePhotoUrl(data.photoUrl),
     avatarUrl: safePhotoUrl(data.avatarUrl),
     characterStyle: Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || 0))),
+    appearance: data.appearance ? wardrobe.normalize(data.appearance) : null,
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: Math.max(1, Math.min(50, Math.trunc(number(data.level) || 1))),
     role: null, ready: false, found: false, roundFinds: 0, location: null,
@@ -153,7 +171,7 @@ function newPlayer(data, authId) {
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
     id: p.id, profileId: p.authId, name: p.name, vehicle: p.vehicle, color: p.color, bodyType: p.bodyType || '',
-    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, mode: p.mode,
+    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found, eliminated: !!p.eliminated, left: !!p.left, eliminationReason: p.eliminationReason || "",
     connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge), hasStoredLocation: !!p.location
   };
@@ -382,6 +400,7 @@ async function route(action, data, authId) {
       if (Number.isFinite(number(data.characterStyle))) {
         existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle))));
       }
+      if (data.appearance) existing.appearance=wardrobe.normalize(data.appearance);
       existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       existing.lastSeen = now;
@@ -645,10 +664,36 @@ async function handler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
       const action = url.pathname.slice(5);
+      if(action==='legal') {
+        if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
+        send(res,200,documents());return;
+      }
+      if(['account-status','legal-accept','admin-players','admin-ban','admin-audit','admin-reports'].includes(action)) {
+        const method=['legal-accept','admin-ban'].includes(action)?'POST':'GET';
+        if(req.method!==method)fail(405,'Methode nicht erlaubt.');
+        const authId=await verifyAuth(req,action.startsWith('admin-'));
+        const data=method==='GET'?Object.fromEntries(url.searchParams):await readBody(req);
+        let response;
+        if(action==='account-status')response=await accounts.status(authId);
+        if(action==='legal-accept')response=await accounts.accept(authId,data);
+        if(action==='admin-players')response=await accounts.players(authId,data);
+        if(action==='admin-audit')response=await accounts.audit(authId);
+        if(action==='admin-reports'){
+          await accounts.requireAdmin(authId);
+          response={reports:reports.filter(r=>Date.now()-r.at<30*86400000).slice(-100).reverse().map(r=>({id:r.id,reporter:r.reporter,target:r.target,code:r.code,at:r.at,reason:r.reason}))};
+        }
+        if(action==='admin-ban'){
+          response=await accounts.ban(authId,data);
+          if(response.banned)removeAccountFromLobbies(response.targetId,'ACCOUNT_BANNED');
+          await persist();
+        }
+        send(res,200,response);return;
+      }
 
       if (action === 'remove-background') {
         if (req.method !== 'POST') fail(405, 'Methode nicht erlaubt.');
-        await verifyAuth(req);
+        const authId=await verifyAuth(req);
+        await accounts.requireAccess(authId);
         const data = await readBody(req, 5 * 1024 * 1024);
         send(res, 200, await removeVehicleBackground(data));
         return;
@@ -657,6 +702,7 @@ async function handler(req, res) {
       if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route','activity','checkpoint','kick','abort-vote','rejoin-lookup','debug','block','report'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state','lobby-info','invites','meetup-route','rejoin-lookup','debug','block','report'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
+      await accounts.requireAccess(authId,{consent:action!=='leave'});
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
       const response=await route(action,data,authId);
       await persist();
@@ -664,11 +710,18 @@ async function handler(req, res) {
       return;
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') fail(405, 'Methode nicht erlaubt.');
+    if(['/legal/terms','/legal/privacy','/legal/imprint'].includes(url.pathname)){
+      const legal=documents(),escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const kind=url.pathname.split('/').pop(),title={terms:'Nutzungsbedingungen und Sicherheit',privacy:'Datenschutzhinweise',imprint:'Impressum'}[kind];
+      const sections=kind==='imprint'?[['Anbieter',legal.operator.name],['Anschrift',legal.operator.address||'Noch nicht eingetragen'],['Kontakt',legal.operator.email||'Noch nicht eingetragen']]:legal[kind==='terms'?'terms':'privacy'];
+      const html=`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · CAR HIDE & SEEK</title><link rel="stylesheet" href="/account-ui.css"><main class="legalDocument"><a href="/">Zur App</a><nav><a href="/legal/terms">Nutzungsbedingungen</a> · <a href="/legal/privacy">Datenschutz</a> · <a href="/legal/imprint">Impressum</a></nav><h1>${title}</h1><p>Fassung ${escape(legal.version)}</p>${legal.ready?'':'<p role="status">Entwurf · Betreiberangaben und rechtliche Prüfung noch offen. Noch nicht zur Zustimmung freigegeben.</p>'}${sections.map(([heading,text])=>`<section><h2>${escape(heading)}</h2><p>${escape(text)}</p></section>`).join('')}</main></html>`;
+      res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:html);return;
+    }
     const requestPath = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
-    if (!types[extension] || ['server.js','round-engine.js','state-store.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || requestPath.startsWith('/supabase/')) fail(404, 'Datei nicht gefunden.');
+    if (!types[extension] || ['server.js','round-engine.js','state-store.js','account-service.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || requestPath.startsWith('/supabase/')) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -692,6 +745,7 @@ setInterval(() => {
   for(let index=reports.length-1;index>=0;index--)if(now-reports[index].at>=30*86400000)reports.splice(index,1);
   void persist().catch(error=>console.error('State storage failed:',error.message));
 }, 1000).unref();
+setInterval(()=>void accounts.prune().catch(error=>console.error('Moderation retention:',error.message)),30*60*1000).unref();
 if (require.main === module) {
   const key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
   const file=process.env.CHS_STATE_FILE || (!process.env.RENDER?path.join(ROOT,'.state','gameplay.json'):null);
@@ -700,4 +754,4 @@ if (require.main === module) {
     http.createServer(handler).listen(PORT,()=>console.log(`Car Hide & Seek auf Port ${PORT}`));
   }).catch(error=>{console.error('State recovery failed:',error.message);process.exitCode=1;});
 }
-module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError,restore,blocks,reports,roundHistory };
+module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError,restore,blocks,reports,roundHistory,removeAccountFromLobbies };

@@ -1,2 +1,5 @@
 
 .state/
+supabase/.temp/
+
+node_modules/
