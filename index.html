@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="premium.css?v=20260930-22">
 <link rel="stylesheet" href="design-reference.css?v=20260930-gameplay">
 <link rel="stylesheet" href="crew-lobby.css?v=20260930-gameplay">
+<link rel="stylesheet" href="account-ui.css?v=20261001-wardrobe">
 </head>
 
 
@@ -1330,6 +1331,8 @@
     <!-- PROFILE MENU -->
 
     <section class="panel">
+      <button id="wardrobeMenuButton" class="menuRow" type="button"><span>👕</span><div><strong>KLEIDERSCHRANK</strong><small>Charakter, Haare, Kleidung und Schmuck</small></div><b>›</b></button>
+      <button id="adminMenuButton" class="menuRow" type="button" hidden><span>🛡</span><div><strong>ENTWICKLER · ADMIN</strong><small>Spieler, Kontosperren und Meldungen</small></div><b>›</b></button>
 
       <button
         class="menuRow"
@@ -2639,6 +2642,8 @@
 
 
 
+<footer class="legalFooter"><a href="/legal/terms" target="_blank" rel="noopener">Nutzungsbedingungen &amp; Sicherheit</a><a href="/legal/privacy" target="_blank" rel="noopener">Datenschutz</a><a href="/legal/imprint" target="_blank" rel="noopener">Impressum</a></footer>
+
 <!-- ======================================================
      SCRIPTS
 ====================================================== -->
@@ -2651,7 +2656,9 @@
 <script src="vehicle-search.js?v=20260930-22"></script>
 <script src="lobby-scene.js?v=20260930-gameplay"></script>
 <script src="gameplay-ui.js?v=20260930-gameplay"></script>
-<script src="app.js?v=20260930-gameplay"></script>
+<script src="wardrobe.js?v=20261001-wardrobe"></script>
+<script src="account-ui.js?v=20261001-wardrobe"></script>
+<script src="app.js?v=20261001-wardrobe"></script>
 
 <script src="garage-actions.js?v=20260930-22"></script>
 <script src="social.js?v=20260930-gameplay"></script>
@@ -2665,4 +2672,3 @@
 
 </body>
 </html>
-

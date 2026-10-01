@@ -1,5 +1,26 @@
 # CAR HIDE & SEEK – Playable Alpha 0.5
 
+## Kleiderschrank, Kontosperren und Zustimmung
+
+Der Profilbereich enthält einen Kleiderschrank mit den bisherigen drei Figuren und sechs zusätzlichen frei lizenzierten Quaternius-Figuren. Frisur, Oberteil, Hose/Rock und Schuhe lassen sich innerhalb der jeweiligen Körpergruppe kombinieren; ein Anhänger ist optional. Die Auswahl wird im Supabase-Konto gespeichert und im Warteraum dargestellt. Quellen, Lizenzen und Reproduktion: [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
+
+Adminrechte stammen ausschließlich aus der Servervariable `CHS_ADMIN_USER_IDS` (kommagetrennte Auth-Konto-UUIDs). Die Administration zeigt Spieler, Meldungen und ein Moderationsprotokoll. Zeitlich begrenzte oder dauerhafte Sperren und ihre Aufhebung benötigen eine Begründung. Freigeschaltete Admins können nicht über diese Oberfläche gesperrt werden. E-Mails, private Nachrichten und genaue Spielerpositionen werden dort nicht angezeigt. Eine Sperre beendet die Teilnahme an den vom Server verwalteten Lobbys und sperrt den direkten Datenbankzugriff über bestehende RLS-Policies und Social-RPCs. Die Zustimmungsschranke schützt Spielserver-Aktionen; sie ersetzt keine vollständig konsolidierte Zugriffsschicht für alle bisherigen Profil-/Social-RPCs.
+
+Neue Datenbankmigrationen: `20261001062228_wardrobe_admin_legal.sql` und `20261001063042_restrict_signup_trigger_rpc.sql`. Sie wurden im bestehenden Projekt angewendet; die Dateinamen entsprechen den zurückgelesenen Remote-Versionen. Nicht erneut anwenden. Bans, versionierte Zustimmungen und Moderationsprotokoll sind nur mit dem Server-Schlüssel erreichbar. Benutzer-Metadaten können keine Adminrechte vergeben. Das Entfernen der öffentlichen EXECUTE-Rechte vom bestehenden Signup-Trigger lässt dessen Triggerbindung bestehen.
+
+Vor Veröffentlichung des App-Updates am Server konfigurieren:
+
+- `SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`: vorhandener Supabase-Server-Schlüssel, ausschließlich als Secret.
+- `CHS_ADMIN_USER_IDS`: überprüfte Auth-UUID des Entwicklerkontos; nicht E-Mail-Adresse oder Profilname.
+- `CHS_OPERATOR_NAME`, `CHS_OPERATOR_ADDRESS`, `CHS_OPERATOR_EMAIL`: echte Anbieter- und Kontaktangaben, einschließlich ladungsfähiger Anschrift.
+- `CHS_LEGAL_REVIEWED=true`: erst nach Prüfung der Texte und tatsächlichen Datenverarbeitung setzen.
+
+`/legal/terms`, `/legal/privacy` und `/legal/imprint` sind öffentlich erreichbar. Ohne vollständige Angaben und Freigabemarker zeigt die App den Entwurfsstatus und lässt neue Spielaktionen nicht zu. Nutzungsbedingungen, Sicherheitsregeln, Volljährigkeit und Kenntnisnahme der Datenschutzhinweise werden getrennt und ohne vorausgewählte Häkchen bestätigt. Der Server speichert Textstand, Hash und Zeitpunkt. Geänderte Texte erfordern eine erneute Bestätigung. Die Datenschutz-Kenntnisnahme ist keine pauschale Einwilligung.
+
+Die Rechtstexte sind ein prüfbedürftiger Entwurf für den beschriebenen kostenlosen Betrieb, keine Garantie vollständiger Haftungsfreiheit. Anbieteranschrift, Auftragsverarbeitungsverträge, Hostingregionen, Drittlandübermittlungen und tatsächliche Backupfristen müssen vor Freigabe geklärt werden. PLUS/Payments/Ads benötigen eigene Umsetzung und passende Texte. Eine Kontrollbox macht die Bedienung am Steuer nicht zulässig. Bestehende XP-RPCs benötigen weiterhin eine separate Absicherung gegen selbst behauptete Spielergebnisse.
+
+Prüfstand dieser Erweiterung: Node-Tests einschließlich HTTP-Autorisierung, gefälschter Admin-Metadaten, Rechtsstand-Hash, Sperren trotz bestehenden Tokens und Zugriffsausfall; Datenbankprüfung für gesperrte und normale Konten, Signup-Triggerbindung und Browserprivilegien. Smartphone-Reconnect und vollständige Browserbedienung müssen vor Veröffentlichung zusätzlich geprüft werden. Diesen PR bis zu diesen Prüfungen und der Serverkonfiguration als Entwurf belassen.
+
 ## Start
 1. Node.js 18+ installieren.
 2. Ordner öffnen.
