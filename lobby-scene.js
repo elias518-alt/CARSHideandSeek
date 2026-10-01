@@ -17,10 +17,10 @@
       const page = Math.floor(index / 4), position = index % 4;
       const count = Math.min(4, players.length - page * 4);
       // Incomplete sections stay balanced rather than filling only the left side.
-      const positions = count === 1 ? [[50, 50, 0]]
-        : count === 2 ? [[26, 50, 0], [74, 50, 0]]
-        : count === 3 ? [[50, 61, 0], [26, 35, 1], [74, 35, 1]]
-        : [[26, 54, 0], [74, 54, 0], [26, 34, 1], [74, 34, 1]];
+      const positions = count === 1 ? [[25, 47, 1]]
+        : count === 2 ? [[25, 47, 1], [75, 47, 1]]
+        : count === 3 ? [[25, 47, 1], [75, 47, 1], [23, 23, 0]]
+        : [[23, 23, 0], [77, 23, 0], [25, 47, 1], [75, 47, 1]];
       const [localX, ground, row] = positions[position];
       return { player, page, row, x: (page * 100 + localX) / pages, width: (row ? 46 : 40) / pages, ground };
     }) };

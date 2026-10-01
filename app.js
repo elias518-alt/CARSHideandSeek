@@ -394,7 +394,7 @@ function openPage(page) {
 
   window.scrollTo({
     top: 0,
-    behavior: 'smooth'
+    behavior: 'instant'
   });
 
   if (page === 'play') {
@@ -1023,6 +1023,7 @@ function syncVehicleUI() {
   }
 
   renderGarage();
+  window.referenceUI?.renderOwn();
 }
 
 
@@ -1797,10 +1798,10 @@ function renderGame() {
     lobby.code;
 
   $('#state').textContent =
-    lobby.state;
+    ({LOBBY:'Warten',COUNTDOWN:'Startet',HEADSTART:'Verstecken',ACTIVE:'Suche läuft',RESULT:'Beendet'}[lobby.state] || lobby.state);
 
   $('#stateLabel').textContent =
-    lobby.state;
+    ({LOBBY:'Warten',COUNTDOWN:'Startet',HEADSTART:'Verstecken',ACTIVE:'Suche läuft',RESULT:'Beendet'}[lobby.state] || lobby.state);
 
   $('#count').textContent =
     lobby.players.length;
@@ -1905,22 +1906,11 @@ function renderGame() {
     );
 
 
-  $('#start').disabled =
-    isHost &&
-    enoughPlayers &&
-    inLobby &&
-    !me.hasLocation;
-
-
-  $('#start').textContent =
-    (
-      isHost &&
-      enoughPlayers &&
-      inLobby &&
-      !me.hasLocation
-    )
-      ? 'POSITION WIRD ERMITTELT...'
-      : 'SPIEL STARTEN';
+  const crewReady = lobby.players.every(player => player.connected && player.hasLocation && (player.id === lobby.hostId || player.ready));
+  $('#start').disabled = inLobby && !crewReady;
+  $('#start').textContent = !me.hasLocation
+    ? 'POSITION WIRD ERMITTELT...'
+    : !crewReady ? 'WARTE AUF DIE CREW...' : 'SPIEL STARTEN';
 
 
   const proximity =
@@ -2082,6 +2072,7 @@ function renderGame() {
 
 
     $('#xpGain').textContent = String(Number(state.reward?.baseXp) || 0);
+    window.referenceUI?.renderResult?.(lobby);
 
     void claimGameProgress(state.reward);
 
@@ -2781,7 +2772,7 @@ function vehiclePaintFilter(color) {
   if (/gelb|yellow/.test(value)) return 'sepia(.65) saturate(4.5) hue-rotate(5deg) brightness(1.05)';
   if (/braun|brown/.test(value)) return 'sepia(.6) saturate(2) hue-rotate(340deg) brightness(.55)';
   if (/beige/.test(value)) return 'sepia(.45) saturate(.8) brightness(1.12)';
-  if (/lila|purple/.test(value)) return 'sepia(.45) saturate(4) hue-rotate(225deg) brightness(.72)';
+  if (/lila|purple|violett|violet/.test(value)) return 'sepia(.45) saturate(4) hue-rotate(225deg) brightness(.72)';
   return 'none';
 }
 
@@ -3541,7 +3532,7 @@ function freshPlayerColor(id) {
 }
 function lobbyCarColor(color) {
   const value=String(color||'').toLowerCase();
-  const colors={schwarz:'#17191c',black:'#17191c',weiß:'#ecece8',weiss:'#ecece8',white:'#ecece8',grau:'#777d84',gray:'#777d84',grey:'#777d84',silber:'#aeb4ba',silver:'#aeb4ba',blau:'#245ca9',blue:'#245ca9',rot:'#a81c22',red:'#a81c22',grün:'#28653f',gruen:'#28653f',green:'#28653f',orange:'#e96619',gelb:'#e5c328',yellow:'#e5c328',braun:'#5d4032',brown:'#5d4032',beige:'#b8aa8e',lila:'#68408b',purple:'#68408b'};
+  const colors={schwarz:'#17191c',black:'#17191c',weiß:'#ecece8',weiss:'#ecece8',white:'#ecece8',grau:'#777d84',gray:'#777d84',grey:'#777d84',silber:'#aeb4ba',silver:'#aeb4ba',blau:'#245ca9',blue:'#245ca9',rot:'#a81c22',red:'#a81c22',grün:'#28653f',gruen:'#28653f',green:'#28653f',orange:'#e96619',gelb:'#e5c328',yellow:'#e5c328',braun:'#5d4032',brown:'#5d4032',beige:'#b8aa8e',lila:'#68408b',violett:'#68408b',violet:'#68408b',purple:'#68408b'};
   for(const [name,hex] of Object.entries(colors))if(value.includes(name))return hex;
   return '#737981';
 }
@@ -3661,22 +3652,20 @@ function parkingStatus(player) {
 }
 function parkingPlayerMarkup(player,lobby,slot) {
   const owner=player.id===lobby.hostId,mine=player.id===lobby.me.id;
-  const position=slot ? '--parking-x:'+slot.x+'%;--parking-width:'+slot.width+'%;--parking-ground:'+slot.ground+'%;' : '';
+  const position=slot ? '--parking-x:'+slot.x+'%;--parking-left:'+(slot.x-slot.width/2)+'%;--parking-width:'+slot.width+'%;--parking-ground:'+slot.ground+'%;' : '';
   return '<article class="parkingPlayer '+(owner?'isHost':slot?.row?'isMiddle':'isRear')+' '+(player.ready?'isReady':'')+'" style="'+position+'--car-color:'+lobbyCarColor(player.color)+'" data-parking-id="'+esc(player.id)+'">'
     +'<button class="parkingNameplate" type="button" data-lobby-card="'+esc(player.id)+'" aria-label="Profil von '+esc(player.name)+' ansehen"><span class="parkingAvatar">'+parkingAvatarMarkup(player)+'</span><strong>'+esc(player.name)+'</strong>'
     +(owner?'<span class="parkingHostBadge">♛ HOST</span>':mine?'<span class="parkingYouBadge">DU</span>':'')+'<i class="parkingReadyDot" aria-label="'+parkingStatus(player)+'"></i></button>'
     +'<div class="parkingVehicleStage"><span class="parkingContactShadow" aria-hidden="true"></span>'+lobbyCarMarkup(player,mine)+lobbyCharacterMarkup(player)+'</div></article>';
 }
 function parkingLobbyMarkup(lobby,hostPlayer,others) {
-  const paired=lobby.players.length===2;
-  const layout=parkingLayout(paired?[hostPlayer,...others].filter(Boolean):others);
-  if(paired)layout.slots.forEach(slot=>{slot.ground=25;slot.width=49;slot.row=1;});
+  const layout=parkingLayout(others);
   const ordered=hostPlayer?[hostPlayer,...others]:lobby.players;
   const waiting=ordered.filter(player=>!player.ready||!player.connected);
   const readiness=(ordered.length-waiting.length)+'/'+ordered.length+' bereit · '+(waiting.length===1?'Warte auf '+esc(waiting[0].name):waiting.length?'Warte auf '+waiting.length+' Spieler':'Crew bereit');
   return '<div class="parkingViewport" tabindex="0" role="region" aria-label="Parkplatz deiner Crew. Weitere Parkplätze seitlich ansehen." style="--parking-pages:'+layout.pages+'"><div class="parkingScene">'
     +layout.slots.map(slot=>parkingPlayerMarkup(slot.player,lobby,slot)).join('')+'</div></div>'
-    +(hostPlayer&&!paired?'<div class="freshCrewLead">'+parkingPlayerMarkup(hostPlayer,lobby)+'</div>':'')
+    +(hostPlayer?'<div class="freshCrewLead">'+parkingPlayerMarkup(hostPlayer,lobby)+'</div>':'')
     +'<div class="parkingNavigation" '+(layout.pages===1?'hidden':'')+'><button type="button" data-parking-step="-1" aria-label="Vorherige Parkreihe">‹</button><span data-parking-progress>Parkreihe 1 / '+layout.pages+'</span><button type="button" data-parking-step="1" aria-label="Nächste Parkreihe">›</button></div>'
     +'<div class="parkingCrewStrip" role="group" aria-label="Alle '+ordered.length+' Spieler in der Lobby">'+ordered.map(player=>{
       const owner=player.id===lobby.hostId;
@@ -3702,7 +3691,7 @@ function renderFreshLobby() {
   ensureFreshLobby();
   const lobby=state.lobby,waiting=lobby.state==='LOBBY',host=lobby.hostId===lobby.me.id;
   const game=document.getElementById('game');game.classList.toggle('freshWaiting',waiting);game.classList.toggle('liveRound',!waiting);
-  document.getElementById('freshRoomLabel').textContent=waiting?'DEIN WARTERAUM':'DEINE CREW · LIVE';
+  document.getElementById('freshRoomLabel').textContent=waiting?'DEIN WARTERAUM':lobby.state==='HEADSTART'?'VERSTECKPHASE':lobby.state==='RESULT'?'RUNDE BEENDET':'RUNDE LÄUFT';
   const settings=document.getElementById('lobbySettingsPanel');
   const settingsDialog=document.getElementById('freshSettingsDialog');
   if(settings&&settings.parentNode!==settingsDialog)settingsDialog.append(settings);
@@ -3725,8 +3714,8 @@ function renderFreshLobby() {
   const targetPanel=document.getElementById('targets');
   const crewPanel=document.querySelector('.freshCrewBoard');
   if(!waiting){
-    if(targetPanel.nextElementSibling!==mapFold)mapFold.before(targetPanel);
-    if(mapFold.nextElementSibling!==crewPanel)mapFold.after(crewPanel);
+    if(mapFold.nextElementSibling!==targetPanel)mapFold.after(targetPanel);
+    if(targetPanel.nextElementSibling!==crewPanel)targetPanel.after(crewPanel);
   } else {
     if(crewPanel.nextElementSibling!==mapFold)mapFold.before(crewPanel);
     if(mapFold.nextElementSibling!==targetPanel)mapFold.after(targetPanel);
@@ -3745,7 +3734,7 @@ function renderFreshLobby() {
     const status=player.eliminated?'AUSGESCHIEDEN':player.found?'GEFUNDEN':!player.connected?'VERBINDUNG…':waiting?(player.ready?'BEREIT':'WARTET'):player.role==='SEEKER'?'SUCHER':'VERSTECKER';
     return `<article class="freshPlayerCard ${mine?'isYou':''} ${owner?'isHost':''} ${player.ready?'isReady':''} ${player.found?'isFound':''}" style="--crew-color:${freshPlayerColor(player.id)};--car-color:${lobbyCarColor(player.color)}">
       <div class="freshPlayerTop"><span>${owner?'♛ HOST':mine?'DU':'CREW'}</span><span class="freshConnection ${player.connected?'online':''}"></span></div>
-      <div class="freshPlayerIdentity"><h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>${lobbyProfileMarkup(player)}</div>
+      <div class="freshPlayerIdentity"><span class="parkingStripAvatar">${parkingAvatarMarkup(player)}</span><h3>${esc(player.name)}${mine?'<small>DU</small>':''}</h3>${lobbyProfileMarkup(player)}</div>
       <div class="freshAvatarStage">${lobbyCarMarkup(player,mine)}${waiting?lobbyCharacterMarkup(player):''}<span class="freshPlatform"></span></div>
       <p class="freshVehicleName">${esc(player.vehicle||'Kein Fahrzeug')}</p>
       <p class="freshVehicleColor">${esc(player.color||'Keine Farbe')} · Level ${Number(player.level)||1}</p>

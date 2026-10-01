@@ -1,5 +1,5 @@
 'use strict';
-/* Social RPCs are unchanged. Vehicle selection uses one searchable field. */
+/* Social identity and unread counts use account-bound authenticated RPCs. */
 let chooseSearchedVehicle=()=>{};
 
 function renderVehicleModelPicker(brand, selected = {}) {
@@ -197,15 +197,15 @@ async function socialRpc(name, params = {}) {
 }
 const socialError = error => toast(error.message || 'Aktion fehlgeschlagen.');
 async function loadFriends() {
-  if (!authSession) { socialRows=[];renderFriendNotice();return; }
+  if (!authSession) { socialRows=[];activePeer=null;dmLastId=null;renderFriendNotice();renderSocialBadges();renderReferenceCrew();return; }
   if (socialBusy) return;
   const accountId=authSession.user.id;
   socialBusy = true;
   try {
-    const rows=await socialRpc('chs_social_overview') || [];
+    const rows=await socialRpc('chs_social_overview_v2') || [];
     if(authSession?.user?.id!==accountId)return;
     socialRows=rows;
-    renderFriendNotice();
+    renderFriendNotice();renderSocialBadges();renderReferenceCrew();
     if($('#friends')?.classList.contains('active'))renderFriends();
   } catch (error) {
     if($('#friends')?.classList.contains('active'))$('#friendList').textContent = error.message;
@@ -213,6 +213,18 @@ async function loadFriends() {
 }
 
 function friendDisplayName(row) { return row.username?.trim() || row.player_tag || 'Spieler'; }
+function socialAvatarMarkup(row){
+ const name=friendDisplayName(row),src=profileImageSource(row.avatar_url);
+ return '<span class="socialAvatar" aria-hidden="true">'+(src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'<span>'+esc(name.slice(0,2).toUpperCase())+'</span>')+'</span>';
+}
+function socialCounts(rows=socialRows){return {requests:rows.filter(r=>r.status==='pending'&&r.incoming).length,messages:rows.filter(r=>r.status==='accepted').reduce((sum,r)=>sum+Math.max(0,Math.trunc(Number(r.unread_count)||0)),0)};}
+function renderSocialBadges(){
+ const counts=authSession?socialCounts():{requests:0,messages:0};
+ const paint=(button,count,label)=>{if(!button)return;let badge=button.querySelector('[data-count-badge]');if(!count){badge?.remove();button.setAttribute('aria-label',label);return;}if(!badge){badge=document.createElement('span');badge.className='notificationBadge';badge.dataset.countBadge='';button.append(badge);}badge.textContent=count>99?'99+':String(count);button.setAttribute('aria-label',label+' · '+count+' ungelesen');};
+ (document.querySelectorAll?.('#bottomNav [data-page="friends"], [data-reference-crew]')||[]).forEach(b=>paint(b,counts.requests+counts.messages,'Crew'));
+ const tabs=document.querySelectorAll?.('.friendsTabs button')||[];paint(tabs[0],counts.messages,'Chats');paint(tabs[1],counts.requests,'Freundschaftsanfragen');
+}
+function renderReferenceCrew(){if(typeof window!=='undefined')window.referenceUI?.renderCrew?.(socialRows);}
 function renderFriendNotice() {
   let notice=document.getElementById('incomingFriendNotice');
   const incoming=authSession ? socialRows.filter(row=>row.status==='pending'&&row.incoming) : [];
@@ -220,33 +232,35 @@ function renderFriendNotice() {
   if(!notice){
     notice=document.createElement('aside');notice.id='incomingFriendNotice';notice.className='friendRequestNotice';
     notice.setAttribute('aria-label','Freundschaftsanfragen');notice.setAttribute('aria-live','polite');
-    notice.addEventListener('click',socialAction);document.body.append(notice);
+    notice.addEventListener('click',socialAction);(document.getElementById('homeSocialFeed')||document.body).append(notice);
   }
-  const markup=incoming.map(row=>'<div><strong>'+esc(friendDisplayName(row))+'</strong><span> möchte dich als Freund hinzufügen.</span><button type="button" data-accept="'+esc(row.request_id)+'">Annehmen</button><button type="button" data-decline="'+esc(row.request_id)+'" aria-label="Anfrage von '+esc(friendDisplayName(row))+' ablehnen">Ablehnen</button></div>').join('');
+  notice.hidden=!!document.querySelector?.('#friends.active');
+  const markup=incoming.map(row=>'<div>'+socialAvatarMarkup(row)+'<div class="socialPerson"><strong>'+esc(friendDisplayName(row))+'</strong><span> möchte dich als Freund hinzufügen.</span></div><button type="button" data-accept="'+esc(row.request_id)+'">Annehmen</button><button type="button" data-decline="'+esc(row.request_id)+'" aria-label="Anfrage von '+esc(friendDisplayName(row))+' ablehnen">×</button></div>').join('');
   if(notice.dataset.markup!==markup){notice.innerHTML=markup;notice.dataset.markup=markup;}
 }
 
 function renderFriends() {
   const list = $('#friendList');
   const rows = socialRows.filter(x => socialTab === 'friends' ? x.status === 'accepted' : x.status === 'pending');
-  list.innerHTML = rows.length ? rows.map(row => `
+  const markup = rows.length ? rows.map(row => `
     <div class="socialRow">
-      <div class="socialAvatar">${esc((row.username || '?').slice(0,1).toUpperCase())}</div>
+      ${socialAvatarMarkup(row)}
       <div class="socialPerson"><strong>${esc(friendDisplayName(row))}</strong><small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}${row.status === 'pending' ? (row.incoming ? ' · Anfrage erhalten' : ' · Anfrage gesendet') : ''}</small></div>
       <div class="socialActions">
-        ${row.status === 'accepted' ? `<button data-dm="${row.peer_id}">CHAT</button><button data-remove="${row.request_id}" aria-label="Freund entfernen">×</button>` : row.incoming ? `<button data-accept="${row.request_id}">ANNEHMEN</button><button data-decline="${row.request_id}" aria-label="Ablehnen">×</button>` : `<button data-remove="${row.request_id}">ZURÜCKZIEHEN</button>`}
+        ${row.status === 'accepted' ? `<button data-dm="${esc(row.peer_id)}">CHAT${Number(row.unread_count)>0?'<span class="notificationBadge">'+esc(Math.min(99,Number(row.unread_count)))+'</span>':''}</button><button data-remove="${row.request_id}" aria-label="Freund entfernen">×</button>` : row.incoming ? `<button data-accept="${row.request_id}">ANNEHMEN</button><button data-decline="${row.request_id}" aria-label="Ablehnen">×</button>` : `<button data-remove="${row.request_id}">ZURÜCKZIEHEN</button>`}
       </div>
     </div>`).join('') : `<div class="emptyState">${socialTab === 'friends' ? 'Noch keine Freunde. Suche oben nach einem Spielernamen.' : 'Keine offenen Anfragen.'}</div>`;
+  if(list.dataset.markup!==markup){list.innerHTML=markup;list.dataset.markup=markup;}
 }
 async function searchPlayers() {
   const q = $('#friendSearch').value.trim(), box = $('#friendSearchResults');
   if (q.length < 2) { box.innerHTML = ''; return; }
   try {
-    const users = await socialRpc('chs_search_players', { q });
+    const users = await socialRpc('chs_search_players_v2', { q });
     if ($('#friendSearch').value.trim() !== q) return;
     box.innerHTML = users.length ? users.map(user => {
       const relation = socialRows.find(row => row.peer_id === user.user_id);
-      return `<div class="socialRow"><div class="socialAvatar">${esc((user.username || '?').slice(0,1).toUpperCase())}</div><div class="socialPerson"><strong>${esc(user.username)}</strong><small>${esc(user.player_tag || '')} · Lv. ${Number(user.level) || 1}</small></div>${relation ? '<span class="socialLinked">Bereits verbunden</span>' : `<button data-request="${user.user_id}">ANFRAGE</button>`}</div>`;
+      return `<div class="socialRow">${socialAvatarMarkup(user)}<div class="socialPerson"><strong>${esc(user.username)}</strong><small>${esc(user.player_tag || '')} · Lv. ${Number(user.level) || 1}</small></div>${relation ? '<span class="socialLinked">Bereits verbunden</span>' : `<button data-request="${user.user_id}">ANFRAGE</button>`}</div>`;
     }).join('') : '<div class="emptyState">Kein Spieler gefunden.</div>';
   } catch (error) { box.textContent = error.message; }
 }
@@ -262,7 +276,7 @@ async function socialAction(event) {
     else if (button.dataset.dm) {
       activePeer = socialRows.find(row => row.peer_id === button.dataset.dm && row.status === 'accepted');
       if (!activePeer) return;
-      dmLastId = null; $('#dmTitle').textContent = `CHAT MIT ${activePeer.username}`;
+      dmLastId=null;$('#dmTitle').innerHTML=socialAvatarMarkup(activePeer)+'<span>CHAT MIT <strong>'+esc(friendDisplayName(activePeer))+'</strong></span>';
       $('#dmPanel').classList.remove('hidden'); await loadDm();
       $('#dmPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
@@ -272,15 +286,21 @@ async function socialAction(event) {
   finally { button.disabled = false; }
 }
 async function loadDm() {
-  if (!activePeer || !$('#friends')?.classList.contains('active')) return;
-  try {
-    const messages = (await socialRpc('chs_get_messages', { peer: activePeer.peer_id }) || []).reverse();
-    const last = messages.at(-1)?.message_id || null;
-    if (dmLastId === last) return;
-    dmLastId = last;
-    $('#dmMessages').innerHTML = messages.length ? messages.map(msg => `<div class="message ${msg.sender_id === authSession.user.id ? 'mine' : ''}"><small>${msg.sender_id === authSession.user.id ? 'DU' : esc(activePeer.username)} · ${new Date(msg.sent_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</small><span>${esc(msg.body)}</span></div>`).join('') : '<p class="muted">Schreib die erste Nachricht.</p>';
-    $('#dmMessages').scrollTop = $('#dmMessages').scrollHeight;
-  } catch (error) { $('#dmMessages').textContent = error.message; }
+ if(!activePeer||!$('#friends')?.classList.contains('active')||document.visibilityState==='hidden')return;
+ const peer=activePeer.peer_id,account=authSession?.user?.id;
+ const current=()=>activePeer?.peer_id===peer&&authSession?.user?.id===account&&$('#friends')?.classList.contains('active')&&!$('#dmPanel')?.classList.contains('hidden')&&document.visibilityState!=='hidden';
+ try{
+  const messages=(await socialRpc('chs_get_messages',{peer})||[]).reverse();if(!current())return;
+  const last=messages.at(-1)?.message_id||null;
+  if(dmLastId!==last){dmLastId=last;$('#dmMessages').innerHTML=messages.length?messages.map(msg=>`<div class="message ${msg.sender_id===account?'mine':''}"><small>${msg.sender_id===account?'DU':esc(friendDisplayName(activePeer))} · ${new Date(msg.sent_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</small><span>${esc(msg.body)}</span></div>`).join(''):'<p class="muted">Schreib die erste Nachricht.</p>';$('#dmMessages').scrollTop=$('#dmMessages').scrollHeight;}
+  const latestIncoming=messages.filter(msg=>msg.sender_id===peer).at(-1);
+  const list=$('#dmMessages'),rect=list.getBoundingClientRect?.();
+  const visible=(!rect||rect.bottom>0&&rect.top<window.innerHeight)&&list.scrollHeight-list.scrollTop-list.clientHeight<40;
+  if(latestIncoming&&current()&&visible&&activePeer.readThrough!==latestIncoming.message_id){
+    await socialRpc('chs_mark_messages_read',{peer,message_id:latestIncoming.message_id});if(!current())return;
+    activePeer.readThrough=latestIncoming.message_id;await loadFriends();
+  }
+ }catch(error){if(current())$('#dmMessages').textContent=error.message;}
 }
 async function sendDm(event) {
   event.preventDefault();
@@ -350,12 +370,12 @@ async function openLobbyInviteDialog() {
   list.innerHTML = '<div class="inviteLoading"><span></span> Freundesliste wird geladen…</div>';
   lobbyInviteLoading = true;
   try {
-    const rows = await socialRpc('chs_social_overview') || [];
+    const rows = await socialRpc('chs_social_overview_v2') || [];
     socialRows = rows;
     const friends = rows.filter(row => row.status === 'accepted');
     list.innerHTML = friends.length ? friends.map(friend => `
       <div class="lobbyInviteFriend">
-        <div class="socialAvatar">${esc((friend.username || '?').slice(0,1).toUpperCase())}</div>
+        ${socialAvatarMarkup(friend)}
         <div class="socialPerson">
           <strong>${esc(friend.username || 'Spieler')}</strong>
           <small>${esc(friend.player_tag || '')} · Lv. ${Number(friend.level) || 1}</small>
@@ -402,7 +422,7 @@ function ensureIncomingInviteCard() {
   card.id = 'incomingLobbyInvite';
   card.className = 'incomingLobbyInvite';
   card.hidden = true;
-  document.body.append(card);
+  (document.getElementById('homeSocialFeed')||document.body).append(card);
   return card;
 }
 
@@ -425,7 +445,7 @@ function renderIncomingLobbyInvite(invites) {
   incomingInviteSignature = signature;
   card.hidden = false;
   card.innerHTML = `
-    <div class="incomingInviteIcon">👥</div>
+    ${socialAvatarMarkup({username:invite.fromName,avatar_url:invite.fromAvatarUrl})}
     <div class="incomingInviteText">
       <span>LOBBY-EINLADUNG</span>
       <strong>${esc(invite.fromName)} lädt dich ein</strong>
@@ -483,6 +503,8 @@ function setupSocial() {
     $$('.friendsTabs button').forEach(b => b.classList.toggle('active',b === button));
     renderFriends();
   }));
+  let dmScrollTimer;
+  $('#dmMessages')?.addEventListener('scroll',()=>{clearTimeout(dmScrollTimer);dmScrollTimer=setTimeout(()=>void loadDm(),120);},{passive:true});
   $('#closeDm')?.addEventListener('click', () => { activePeer = null; $('#dmPanel').classList.add('hidden'); });
   $('#dmForm')?.addEventListener('submit', sendDm);
   const lobbyChatForm = $('#lobbyChatForm');
@@ -506,12 +528,14 @@ function setupSocial() {
   document.addEventListener('click', handleIncomingLobbyInvite);
 
   document.addEventListener('click', event => {
-    if (event.target.closest('[data-page="friends"]')) setTimeout(loadFriends, 0);
+    if (event.target.closest('[data-page="friends"]')) {renderFriendNotice();setTimeout(loadFriends,0);}
   });
   syncLobbyInviteButton();
   loadFriends();
   loadIncomingLobbyInvites();
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){void loadFriends();void loadDm();}});
   setInterval(() => {
+    if(document.visibilityState==='hidden')return;
     loadFriends();
     if ($('#friends')?.classList.contains('active') && activePeer) loadDm();
     renderLobbyChat();
@@ -546,7 +570,7 @@ async function renderLobbyFriendStatus(dialog) {
   const status=dialog.querySelector('[data-friend-status]'),actions=dialog.querySelector('[data-friend-actions]');
   status.textContent='Freundschaft wird geprüft …';actions.replaceChildren();
   try {
-    const rows=await socialRpc('chs_social_overview')||[];
+    const rows=await socialRpc('chs_social_overview_v2')||[];
     if(dialog.dataset.peer!==peer)return;
     const relation=rows.find(row=>row.peer_id===peer);
     socialRows=rows;

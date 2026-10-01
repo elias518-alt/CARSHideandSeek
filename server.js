@@ -400,7 +400,7 @@ async function route(action, data, authId) {
       .map(invite => {
         const lobby = lobbies.get(invite.code);
         return {
-          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName,
+          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName, fromAvatarUrl:invite.fromAvatarUrl||'',
           createdAt: invite.createdAt, expiresAt: invite.expiresAt, players: lobby?.players.length || 0, maxPlayers: MAX_PLAYERS
         };
       });
@@ -427,7 +427,7 @@ async function route(action, data, authId) {
       if (invite.targetAuthId === targetAuthId && invite.code === lobby.code) lobbyInvites.delete(id);
     }
     const invite = {
-      id: crypto.randomUUID(), targetAuthId, fromAuthId: authId, fromName: me.name,
+      id: crypto.randomUUID(), targetAuthId, fromAuthId: authId, fromName: me.name,fromAvatarUrl:me.avatarUrl,
       code: lobby.code, lobbyName: lobby.name, createdAt: now, expiresAt: now + 10 * 60 * 1000
     };
     lobbyInvites.set(invite.id, invite);

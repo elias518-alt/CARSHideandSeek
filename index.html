@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="crew-lobby.css?v=20260930-gameplay">
 <link rel="stylesheet" href="beta-ui.css?v=20261001-moderation-2">
 <link rel="stylesheet" href="account-ui.css?v=20261001-realistic-v2">
+<link rel="stylesheet" href="reference-ui.css?v=20261001-reference-3">
 </head>
 
 
@@ -162,7 +163,7 @@
 
 
   <!-- ====================================================
-       HOME
+       Start
   ==================================================== -->
 
   <main
@@ -171,6 +172,8 @@
 
 
     <section class="homeStage">
+      <div class="referenceGreeting"><span id="homeGreetingAvatar" class="parkingStripAvatar"></span><div><h1 id="homeGreeting">Hey Spieler</h1><p id="homeGreetingCar">Dein Fahrzeug ist bereit</p></div><button id="homeNotificationButton" type="button" data-reference-crew aria-label="Crew und Nachrichten"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9Z"/><path d="M10 20h4"/></svg></button></div>
+      <div id="homeOwnScene" class="referenceHeroScene"></div>
 
       <div class="homeStageTop">
 
@@ -222,11 +225,14 @@
 
 
 
+    <div id="homeSocialFeed"></div>
+    <section class="referenceCrew"><div class="referenceSectionHeading"><h2>Deine Crew</h2><button type="button" data-page="friends">Alle anzeigen ›</button></div><div id="homeCrewPeople" class="referenceCrewPeople"></div></section>
     <!-- HOME BUTTONS -->
 
     <section
       class="homeActions"
       aria-label="Schnellzugriff">
+<button id="homeCreateLobby" class="homeAction referenceCreateLobby" type="button"><span class="actionSymbol">＋</span><span class="actionCopy"><strong>LOBBY ERSTELLEN</strong><small>Deine eigene Runde</small></span><span class="actionChevron">›</span></button>
 
 
       <button
@@ -241,11 +247,11 @@
         <span class="actionCopy">
 
           <strong>
-            SPIEL STARTEN
+            SCHNELL BEITRETEN
           </strong>
 
           <small>
-            Neue Runde finden
+            Öffentliche Runden in deiner Nähe
           </small>
 
         </span>
@@ -269,7 +275,7 @@
         <span class="actionCopy">
 
           <strong>
-            FREUNDE
+            CREW & CHATS
           </strong>
 
           <small>
@@ -1238,6 +1244,7 @@
 
 
 
+
     <section class="profileStats">
 
       <div>
@@ -1294,6 +1301,8 @@
     </section>
 
 
+
+<section class="referenceCrew"><div class="referenceSectionHeading"><h2>Deine Crew</h2><button type="button" data-page="friends">Alle anzeigen ›</button></div><div id="profileCrewPeople" class="referenceCrewPeople"></div></section>
 
     <!-- ACHIEVEMENTS -->
 
@@ -2366,7 +2375,7 @@
       </div>
 
       <label>
-        BAUJAHR
+        BAUJAHR (OPTIONAL)
         <input
           id="newCarYear"
           inputmode="numeric"
@@ -2486,10 +2495,10 @@
 
       <!-- PHOTO -->
 
-      <div class="carPhotoSection">
+      <div class="carPhotoSection"><p class="referencePhotoHint">Foto schräg von vorne aufnehmen: ganzes Auto, Tageslicht und freier Hintergrund. Keine fremden Gesichter oder Kennzeichen.</p>
 
         <span class="sectionEyebrow">
-          FAHRZEUGBILD
+          EIGENES AUTOFOTO · OPTIONAL
         </span>
 
 
@@ -2514,6 +2523,7 @@
           </div>
 
         </div>
+<div id="photoLobbyPreview" class="referencePhotoLobby" hidden></div>
 
 
         <label class="carPhotoUpload">
@@ -2569,7 +2579,7 @@
         ⌂
       </span>
 
-      HOME
+      Start
 
     </button>
 
@@ -2584,7 +2594,7 @@
         🚘
       </span>
 
-      GARAGE
+      Garage
 
     </button>
 
@@ -2612,7 +2622,7 @@
         ♟
       </span>
 
-      FREUNDE
+      Crew
 
     </button>
 
@@ -2627,7 +2637,7 @@
         ●
       </span>
 
-      PROFIL
+      Profil
 
     </button>
 
@@ -2656,15 +2666,16 @@
 
 <script src="vehicle-catalog.js?v=20260930-gameplay"></script>
 <script src="vehicle-search.js?v=20260930-22"></script>
-<script src="lobby-scene.js?v=20260930-gameplay"></script>
-<script src="gameplay-ui.js?v=20261001-moderation-2"></script>
+<script src="lobby-scene.js?v=20261001-reference-3"></script>
+<script src="gameplay-ui.js?v=20261001-reference-3"></script>
 <script src="wardrobe.js?v=20261001-realistic-v2"></script>
 <script src="beta-ui.js?v=20261001-moderation-2"></script>
 <script src="account-ui.js?v=20261001-moderation-2"></script>
-<script src="app.js?v=20261001-moderation-2"></script>
+<script src="reference-ui.js?v=20261001-reference-3"></script>
+<script src="app.js?v=20261001-reference-3"></script>
 
 <script src="garage-actions.js?v=20260930-22"></script>
-<script src="social.js?v=20260930-gameplay"></script>
+<script src="social.js?v=20261001-reference-3"></script>
 <script src="ui-icons.js?v=20260930-22"></script>
 
 <script
