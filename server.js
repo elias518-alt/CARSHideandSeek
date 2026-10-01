@@ -25,9 +25,24 @@ const authCache = new Map();
 const blocks = new Map();
 const reports = [];
 const roundHistory = new Map();
+const rateWindows=new Map();
+function rateLimit(authId,action,now=Date.now()) {
+  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000]};
+  const policy=policies[action];if(!policy)return;
+  const key=authId+':'+action;let window=rateWindows.get(key);
+  if(!window||now>=window.until){window={count:0,until:now+policy[1]};rateWindows.set(key,window);}
+  if(++window.count>policy[0])fail(429,'Zu viele Anfragen. Bitte kurz warten.',{retryAfterMs:Math.max(1,window.until-now)});
+}
 let stateStore=null;
+let lastCheckpointAt=0;
+const CHECKPOINT_INTERVAL_MS=2000;
 const snapshot=()=>({version:1,lobbies:[...lobbies.values()],blocks:[...blocks],roundHistory:[...roundHistory].filter(([,r])=>Date.now()-r.result.endedAt<30*86400000),reports:reports.filter(item=>Date.now()-item.at<30*86400000)});
 async function persist(){if(stateStore)await stateStore.save(snapshot());}
+async function checkpoint(now=Date.now()) {
+  if(now-lastCheckpointAt<CHECKPOINT_INTERVAL_MS)return;
+  lastCheckpointAt=now;
+  try{await persist();}catch(error){lastCheckpointAt=0;throw error;}
+}
 async function restore(store){
   const saved=await store.load();
   if(saved){
@@ -67,6 +82,12 @@ class HttpError extends Error {
 const fail = (status, message, extra) => { throw new HttpError(status, message, extra); };
 const clean = (value, max = 60) => String(value || '').trim().slice(0, max);
 const number = value => Number(value);
+function radiusValue(value) {
+  if(value===undefined)return 500;
+  if(typeof value!=='number'||!Number.isInteger(value)||value<50||value>10000)
+    fail(400,'Ungültiger Radius (50–10000 m, ganze Zahl erforderlich).');
+  return value;
+}
 const validPoint = p => Number.isFinite(p.lat) && Math.abs(p.lat) <= 90 && Number.isFinite(p.lng) && Math.abs(p.lng) <= 180;
 const distance = (a, b) => {
   const rad = Math.PI / 180;
@@ -126,7 +147,7 @@ function readBody(req, maxBytes = 8192) {
       raw += chunk;
       if (raw.length > maxBytes) { reject(new HttpError(413, 'Anfrage zu groß.')); req.destroy(); }
     });
-    req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(new HttpError(400, 'Ungültige Daten.')); } });
+    req.on('end', () => { try { const data=raw?JSON.parse(raw):{};if(!data||Array.isArray(data)||typeof data!=='object')throw Error();resolve(data); } catch { reject(new HttpError(400, 'Ungültige Daten.')); } });
     req.on('error', reject);
   });
 }
@@ -200,7 +221,7 @@ function resultState(lobby, me) {
   const nearest = fresh(me, now)
     ? opponents.map(p => ({ p, meters: distance(me.location, p.location) })).sort((a, b) => a.meters - b.meters)[0]
     : null;
-  const proximity = nearest ? {
+  const proximity = lobby.state==='ACTIVE' && nearest ? {
     distance: Math.round(nearest.meters / 10) * 10,
     level: nearest.meters < 50 ? 'VERY_CLOSE' : nearest.meters < 150 ? 'CLOSE' : nearest.meters < 500 ? 'NEAR' : 'FAR'
   } : null;
@@ -246,6 +267,7 @@ function resultState(lobby, me) {
   };
 }
 function parsePosition(data, maxAccuracy = 100) {
+  if(['lat','lng','accuracy'].some(key=>typeof data[key]!=='number'))fail(400,'GPS-Werte müssen Zahlen sein.');
   const p = { lat: number(data.lat), lng: number(data.lng), accuracy: number(data.accuracy) };
   if (!validPoint(p) || !Number.isFinite(p.accuracy) || p.accuracy <= 0 || p.accuracy > maxAccuracy)
     fail(400, 'GPS-Position zu ungenau oder ungültig.');
@@ -256,6 +278,7 @@ function updateLocation(p, data, maxAccuracy = ACTIVE_MAX_ACCURACY_M) {
   const now = Date.now();
   round.initializePlayer(p,now);
   const sampleAt = Number(data.timestamp);
+  if(data.timestamp!==undefined && (typeof data.timestamp!=='number'||!Number.isFinite(data.timestamp)||data.timestamp<=0))fail(400,'Ungültige GPS-Messzeit.');
   if (Number.isFinite(sampleAt) && sampleAt > 0) {
     if (sampleAt > now + 30000 || now - sampleAt > 45000) fail(400,'GPS-Messung ist veraltet oder liegt in der Zukunft.');
     if (sampleAt <= (p.lastSampleAt || 0)) return;
@@ -284,6 +307,7 @@ function updateLocation(p, data, maxAccuracy = ACTIVE_MAX_ACCURACY_M) {
 }
 async function route(action, data, authId) {
   const now = Date.now();
+  rateLimit(authId,action,now);
   if (action === 'block') {
     const target=clean(data.targetAuthId,100);
     if(!target||target===authId)fail(400,'Ungültiger Spieler.');
@@ -370,7 +394,7 @@ async function route(action, data, authId) {
       code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
       background: lobbyScene.background(data.background),
       hostId: player.id, players: [player], state: 'LOBBY', result: null,
-      radius: Math.min(10000, Math.max(50, number(data.radius) || 3000)),
+      radius: radiusValue(data.radius),
       duration: Math.min(3600, Math.max(300, number(data.duration) || 900)),
       headstart: Math.min(300, Math.max(30, number(data.headstart) || 180)),
       escape: Math.min(15, Math.max(10, number(data.escape) || 15)),
@@ -391,6 +415,7 @@ async function route(action, data, authId) {
     const existing = lobby.players.find(p => p.authId === authId);
     if (existing) {
       if (existing.left) fail(409,'Du hast diese Runde verlassen. Ein erneuter Einstieg ist erst nach dem Rematch möglich.');
+      if(data.mode==='PASSENGER' && existing.mode==='DRIVER' && round.driverBlocked(existing))fail(409,'Für einen Rollenwechsel erst sicher anhalten und GPS bestätigen lassen.');
       existing.name = clean(data.name, 24) || existing.name;
       existing.vehicle = clean(data.vehicle, 70) || existing.vehicle;
       existing.color = clean(data.color, 30) || existing.color;
@@ -401,7 +426,7 @@ async function route(action, data, authId) {
         existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle))));
       }
       if (data.appearance) existing.appearance=wardrobe.normalize(data.appearance);
-      existing.mode = data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER';
+      if(['DRIVER','PASSENGER'].includes(data.mode))existing.mode=data.mode;
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       existing.lastSeen = now;
       clearLobbyInvitesFor(authId, lobby.code);
@@ -427,6 +452,7 @@ async function route(action, data, authId) {
     return lobby?{code:lobby.code,userId:me.id}: {code:null};
   }
   const { lobby, me } = getSession(data, authId);
+  if(['settings','background','start','checkpoint','kick','invite','rematch'].includes(action)&&round.driverBlocked(me))fail(409,'Als Fahrer erst sicher anhalten, bevor du die Lobby bedienst.');
   updateGame(lobby, now);
   if (action === 'debug') {
     const admins=(process.env.CHS_ADMIN_USER_IDS||'').split(',').map(id=>id.trim()).filter(Boolean);
@@ -485,6 +511,7 @@ async function route(action, data, authId) {
     return resultState(lobby, me);
   }
   if (action === 'chat') {
+    if(round.driverBlocked(me))fail(409,'Als Fahrer erst sicher anhalten, bevor du den Chat bedienst.');
     const body = clean(data.body, 500);
     if (!body) fail(400, 'Bitte eine Nachricht eingeben.');
     if (body.length > 500) fail(400, 'Nachricht ist zu lang.');
@@ -506,7 +533,9 @@ async function route(action, data, authId) {
   }
   if (action === 'ready') {
     if (lobby.state !== 'LOBBY') fail(409, 'Runde läuft bereits.');
-    me.ready = !!data.ready;
+    if(typeof data.ready!=='boolean')fail(400,'Bereit-Status muss ein Wahrheitswert sein.');
+    if(round.driverBlocked(me))fail(409,'Als Fahrer erst sicher anhalten, bevor du dich bereit meldest.');
+    me.ready = data.ready;
     return { ok: true };
   }
   if (action === 'start') {
@@ -700,12 +729,17 @@ async function handler(req, res) {
       }
 
       if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route','activity','checkpoint','kick','abort-vote','rejoin-lookup','debug','block','report'].includes(action)) fail(404, 'Unbekannte Funktion.');
-      if (req.method !== (['public','state','lobby-info','invites','meetup-route','rejoin-lookup','debug','block','report'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
+      if (req.method !== (['public','state','lobby-info','invites','meetup-route','rejoin-lookup','debug'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       await accounts.requireAccess(authId,{consent:action!=='leave'});
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
+      // URL coordinates are strings by transport; POST payloads remain strictly typed.
+      if(action==='public')for(const key of ['lat','lng','accuracy']) {
+        if(typeof data[key]==='string' && data[key].trim())data[key]=Number(data[key]);
+      }
       const response=await route(action,data,authId);
-      await persist();
+      if(response.reward)await accounts.attest(authId,response.reward);
+      if(req.method==='POST' && !['location','activity'].includes(action))await persist();
       send(res,200,response);
       return;
     }
@@ -733,6 +767,7 @@ async function handler(req, res) {
 }
 setInterval(() => {
   const now = Date.now();
+  for(const [key,window]of rateWindows)if(now>=window.until)rateWindows.delete(key);
   for (const [key, lobby] of lobbies) {
     updateGame(lobby, now);
     if (now - lobby.createdAt > 6 * 60 * 60 * 1000 || (lobby.state === 'LOBBY' && now - Math.max(...lobby.players.map(p => p.lastSeen)) > 10 * 60 * 1000)) {
@@ -743,7 +778,7 @@ setInterval(() => {
   pruneLobbyInvites(now);
   for(const [id,record]of roundHistory)if(now-record.result.endedAt>=30*86400000)roundHistory.delete(id);
   for(let index=reports.length-1;index>=0;index--)if(now-reports[index].at>=30*86400000)reports.splice(index,1);
-  void persist().catch(error=>console.error('State storage failed:',error.message));
+  void checkpoint(now).catch(error=>console.error('State storage failed:',error.message));
 }, 1000).unref();
 setInterval(()=>void accounts.prune().catch(error=>console.error('Moderation retention:',error.message)),30*60*1000).unref();
 if (require.main === module) {
@@ -755,4 +790,4 @@ if (require.main === module) {
     http.createServer(handler).listen(PORT,()=>console.log(`Car Hide & Seek auf Port ${PORT}`));
   }).catch(error=>{console.error('State recovery failed:',error.message);process.exitCode=1;});
 }
-module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError,restore,blocks,reports,roundHistory,removeAccountFromLobbies };
+module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError,restore,blocks,reports,roundHistory,removeAccountFromLobbies,checkpoint };

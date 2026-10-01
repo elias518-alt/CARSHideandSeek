@@ -83,6 +83,11 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.equal(created.data.lobby.players[0].appearance.character,5);
     await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true},'owner-token');
     const joined=await request('join',{code:created.data.lobby.code,name:'Zweiter Spieler',vehicle:'Zweites Auto'},'owner-token');assert.equal(joined.status,200);
+    const moderation={code:created.data.lobby.code,userId:created.data.userId,targetId:joined.data.userId,reason:'Testmeldung für die Prüfung'};
+    assert.equal((await request('report',moderation,'player-token','GET')).status,405);
+    assert.equal((await request('report',moderation)).status,200);
+    assert.equal((await request('block',{targetAuthId:owner,blocked:true})).status,200);
+    assert.equal((await request('block',{targetAuthId:owner,blocked:false})).status,200);
     const look={collection:'realistic',gender:'female',hair:2,hairColor:'blonde',top:2,topColor:'green',pants:1,pantsColor:'navy',glasses:true,earrings:true,jewelry:'silver'};
     const updated=await request('join',{code:created.data.lobby.code,appearance:look});assert.equal(updated.status,200);
     const seen=await request('state',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token','GET');assert.equal(seen.status,200);
