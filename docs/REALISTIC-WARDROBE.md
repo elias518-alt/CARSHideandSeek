@@ -59,3 +59,15 @@ blender --background --disable-autoexec INPUT.blend --python scripts/render-real
 Das Skript rendert einen Testausschnitt; es erzeugt keine neue Kleidung und schaltet keine Sammlung frei. Bei Verwendung eines separat entpackten Blender-Builds müssen dessen Bibliotheks-, Skript-, Daten- und OCIO-Pfade gesetzt sein. Im hier getesteten Build ist OpenImageDenoiser nicht enthalten; das Skript verwendet deshalb CPU-Rendering ohne diesen optionalen Dienst.
 
 Noch offen: männliche Hautmaterialien, Pose/Rig, drei Frisuren pro Figur, alle vereinbarten Oberteile/Hosen/Accessoires, Farbvarianten, saubere transparente Layer, versionierte Auswahl und Cloud-/Lobbyprüfung. Es wurden keine KI-Bilder erzeugt und keine neuen Figuren im Live-Spiel aktiviert.
+
+## Umsetzung der realistischen Sammlung – 01.10.2026
+
+Appearance-Version 2 ergänzt die Sammlung `realistic`; Classic- und Quaternius-Profile bleiben in Version 1 lesbar. Beide ausgewählten NoEdge-Modelle werden als transparente 384×540-WebP-Layer dargestellt. Originalmodelle, USD-Daten, Blender-Szenen und Texturen werden nicht veröffentlicht. Die Bildausgabe benötigt keine Blender-Laufzeit und keine laufende WebGL-Szene auf dem Handy.
+
+Auswahl: männliche/weibliche Figur; drei abgeleitete Frisuren je Figur; vier Haarfarben; T-Shirt/Hoodie/Halfzip mit weißem Untershirt beim Mann und T-Shirt/Hoodie/Crop-Top bei Camilia; Shorts/Jeans/Jogger mit offenem Beinabschluss; sieben getrennte Farbvarianten für Oberteil und Hose; gold-/silberfarbene Kette, Sonnenbrille und optionale Creolen bei Camilia. Frisuren wurden aus den Originalhaaren abgeleitet. Kleidungsgeometrie und Zubehör werden im Render-Skript erstellt. Sneakers sind feste, zur Pose passende Renderteile. Vorhandene Schuhe der Quaternius-Sammlung bleiben auswählbar.
+
+Der USD-Importer verwendet bei skinned meshes die bereits vorhandenen Bind-Koordinaten. Eine erneute Anwendung der Parent-Joint-Transformation hatte zuvor Haare und Gesichtsteile doppelt verschoben. Haar-, Kleidungs- und Schmuck-Layer verwenden einen Holdout-Körper zur korrekten Verdeckung. Der publizierte Haut-Layer enthält ausschließlich exponierte Bereiche; keine vollständige unbekleidete Figur wird ausgeliefert.
+
+Prüfung: 111 Node-Tests erfolgreich, darunter kompatible alte Profile, Schutz vor eingeschleusten Assetpfaden/CSS, sämtliche 54 Haar-/Oberteil-/Hosen-Kombinationen und eine HTTP-Lobby mit zwei simulierten authentifizierten Konten inklusive Look-Wechsel und Wiederbeitritt. Dies ist keine Prüfung mit zwei echten angemeldeten Geräten. Ganzkörperkombinationen wurden lokal gerendert und visuell geprüft. Es wurden keine KI-Bilder erzeugt. Keine Spielregeln, Anmeldung oder Moderationsrechte geändert.
+
+Verarbeitung: `export-realistic-usd.py INPUT.usdz PRIVATE_OUTPUT`, danach Blender mit `import-realistic-male.py -- --source PRIVATE_OUTPUT --output PRIVATE_MODEL.blend`. `render-realistic-wardrobe.py -- --gender male|female --output PRIVATE_RENDERS --samples 256` erzeugt die Layer; `--only` erlaubt einzelne Korrekturen. Keine Quelldateien ins Repository aufnehmen.
