@@ -67,12 +67,29 @@
   }
   function wardrobeOptions(v){
     const group=wardrobe.choices(v.character),option=(value,label)=>`<option value="${value}">${esc(label)}</option>`;
-    return `<label>DARSTELLUNG<select name="collection">${option('classic','Vorhandene Lobbyfiguren')}${option('modular','Modulare Charaktere · Quaternius')}</select></label>
+    return `<label>DARSTELLUNG<select name="collection">${option('classic','Vorhandene Lobbyfiguren')}${option('modular','Modulare Charaktere · Quaternius')}${option('realistic','Realistische Figuren · NoEdge')}</select></label>
       <div data-classic-fields><label>CHARAKTER<select name="classic">${['Dunkle Jacke','Helle Jacke','Orange Jacke'].map((n,i)=>option(i,n)).join('')}</select></label></div>
       <div data-modular-fields class="wardrobeForm"><label>CHARAKTER<select name="character">${wardrobe.characters.map((n,i)=>option(i,n)).join('')}</select></label>
       <label>HAARE<select name="hair">${group.map((index,i)=>option(i,wardrobe.hair[index])).join('')}</select></label>
       ${['top','pants','shoes'].map((key,column)=>`<label>${['OBERTEIL','HOSE','SCHUHE'][column]}<select name="${key}">${group.map((index,i)=>option(i,wardrobe.outfits[index][column])).join('')}</select></label>`).join('')}
-      <label>SCHMUCK<select name="jewelry">${Object.entries(wardrobe.jewelry).map(([key,n])=>option(key,n)).join('')}</select></label></div>`;
+      <label>SCHMUCK<select name="jewelry">${Object.entries(wardrobe.jewelry).map(([key,n])=>option(key,n)).join('')}</select></label></div>${realisticOptions(v,option)}`;
+  }
+  function realisticOptions(v,option){
+    const female=v.gender==='female';
+    const select=(name,label,values)=>`<label>${label}<select name="${name}">${values.map(([key,text])=>option(key,text)).join('')}</select></label>`;
+    return `<div data-realistic-fields class="wardrobeForm">
+      ${select('gender','FIGUR',[['male','Männlich · NoEdge'],['female','Weiblich · Camilia']])}
+      ${select('hair','FRISUR',(female?['Lange Locken','Bob','Pferdeschwanz']:['Mittelscheitel','Kurz','Zurückgekämmt']).map((text,i)=>[i,text]))}
+      ${select('hairColor','HAARFARBE',Object.entries(wardrobe.hairColors).map(([key,v])=>[key,v[0]]))}
+      ${select('top','OBERTEIL',(female?['T-Shirt','Hoodie','Bauchfreies Oberteil']:['T-Shirt','Hoodie','Halfzip mit T-Shirt']).map((text,i)=>[i,text]))}
+      ${select('topColor','FARBE OBERTEIL',Object.entries(wardrobe.colors).map(([key,v])=>[key,v[0]]))}
+      ${select('pants','HOSE',['Kurze Hose','Jeans','Lockere Jogger · offener Beinabschluss'].map((text,i)=>[i,text]))}
+      ${select('pantsColor','FARBE HOSE',Object.entries(wardrobe.colors).map(([key,v])=>[key,v[0]]))}
+      ${select('jewelry',female?'KETTE':'KÖNIGSKETTE',[['none','Keine'],['gold','Gold'],['silver','Silber']])}
+      ${select('glasses','SONNENBRILLE',[['false','Keine'],['true','Sonnenbrille']])}
+      ${female?select('earrings','OHRRINGE',[['false','Keine'],['true','Creolen']]):''}
+      <p class="assetCredits">Realistische Figuren: <a href="https://www.fab.com/listings/5e145586-3955-4688-8666-dc4b242e78e9" target="_blank" rel="noopener">NoEdge</a>. Schuhe passend zur Figur.</p>
+    </div>`;
   }
   function openWardrobe(){
     if(!authSession?.user?.id){toast('Bitte zuerst anmelden.');return;}
@@ -81,15 +98,15 @@
     const userId=authSession.user.id,form=dialog.querySelector('form');let draft=appearance(),busy=false;
     function render(){
       const fields=form.querySelector('[data-wardrobe-fields]');fields.innerHTML=wardrobeOptions(draft);
-      for(const [key,value]of Object.entries(draft))if(form.elements[key])form.elements[key].value=String(value);
-      fields.querySelector('[data-classic-fields]').hidden=draft.collection!=='classic';fields.querySelector('[data-modular-fields]').hidden=draft.collection!=='modular';
+      for(const field of fields.querySelectorAll('select'))if(Object.hasOwn(draft,field.name))field.value=String(draft[field.name]);
+      fields.querySelector('[data-classic-fields]').hidden=draft.collection!=='classic';fields.querySelector('[data-modular-fields]').hidden=draft.collection!=='modular';fields.querySelector('[data-realistic-fields]').hidden=draft.collection!=='realistic';
       dialog.querySelector('[data-wardrobe-preview]').innerHTML=wardrobe.markup(draft);
     }
     render();
     form.addEventListener('change',event=>{
       const field=event.target;if(!field.name)return;
-      draft=wardrobe.normalize({...draft,[field.name]:['character','classic','hair','top','pants','shoes'].includes(field.name)?Number(field.value):field.value});
-      const focusName=field.name;render();form.elements[focusName]?.focus();
+      draft=wardrobe.normalize({...draft,[field.name]:['character','classic','hair','top','pants','shoes'].includes(field.name)?Number(field.value):['glasses','earrings'].includes(field.name)?field.value==='true':field.value});
+      const focusName=field.name;render();Array.from(form.querySelectorAll('select')).find(e=>e.name===focusName&&!e.closest('[hidden]'))?.focus();
     });
     dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
     form.addEventListener('submit',async event=>{

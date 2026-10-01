@@ -81,6 +81,15 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const legal=documents(process.env);assert.equal((await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true})).status,200);
     const created=await request('create',{name:'Testspieler',vehicle:'Testauto',appearance:{collection:'modular',character:5}});assert.equal(created.status,200);
     assert.equal(created.data.lobby.players[0].appearance.character,5);
+    await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true},'owner-token');
+    const joined=await request('join',{code:created.data.lobby.code,name:'Zweiter Spieler',vehicle:'Zweites Auto'},'owner-token');assert.equal(joined.status,200);
+    const look={collection:'realistic',gender:'female',hair:2,hairColor:'blonde',top:2,topColor:'green',pants:1,pantsColor:'navy',glasses:true,earrings:true,jewelry:'silver'};
+    const updated=await request('join',{code:created.data.lobby.code,appearance:look});assert.equal(updated.status,200);
+    const seen=await request('state',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token','GET');assert.equal(seen.status,200);
+    assert.deepEqual(seen.data.lobby.players.find(p=>p.id===created.data.userId).appearance,wardrobe.normalize(look));
+    const rejoined=await request('join',{code:created.data.lobby.code});assert.deepEqual(rejoined.data.lobby.players.find(p=>p.id===created.data.userId).appearance,wardrobe.normalize(look));
+    await request('leave',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token');
+
     assert.equal((await request('admin-ban',{targetId:player,hours:24,reason:'Nachgewiesener Testverstoß'},'owner-token')).status,200);
     assert.equal(server.lobbies.size,0);
     const blocked=await request('create',{name:'Testspieler',vehicle:'Testauto'});assert.equal(blocked.status,403);assert.equal(blocked.data.code,'ACCOUNT_BANNED');
