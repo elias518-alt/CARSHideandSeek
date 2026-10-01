@@ -10,7 +10,7 @@ Neue Datenbankmigrationen: `20261001062228_wardrobe_admin_legal.sql` und `202610
 
 Vor Veröffentlichung des App-Updates am Server konfigurieren:
 
-- `SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`: vorhandener Supabase-Server-Schlüssel, ausschließlich als Secret.
+- `SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY`: vorhandener Supabase-Server-Schlüssel, ausschließlich als Secret. Alternativ `CHS_BACKEND_TOKEN` mit der unten beschriebenen Gateway-Funktion.
 - `CHS_ADMIN_USER_IDS`: überprüfte Auth-UUID des Entwicklerkontos; nicht E-Mail-Adresse oder Profilname.
 - `CHS_OPERATOR_NAME`, `CHS_OPERATOR_ADDRESS`, `CHS_OPERATOR_EMAIL`: echte Anbieter- und Kontaktangaben, einschließlich ladungsfähiger Anschrift.
 - `CHS_LEGAL_REVIEWED=true`: erst nach Prüfung der Texte und tatsächlichen Datenverarbeitung setzen.
@@ -75,8 +75,18 @@ Prüfergebnis, bereits bereinigte Doppelungen und offene Probleme bei XP/Spielre
 
 Im bestehenden Supabase-Projekt ist die Migration `20260930193420_gameplay_server_state` bereits angewendet. Neue Installationen wenden die Migration aus `supabase/migrations` an. Die Tabelle ist nur für den Server erreichbar; keine Browser-Policies und keine Freigabe an `anon`/`authenticated`.
 
-Render benötigt `SUPABASE_SECRET_KEY` (bevorzugt) oder den bestehenden `SUPABASE_SERVICE_ROLE_KEY` als Server-Umgebungsvariable. **Kein Secret in `app.js`, Git oder den Chat kopieren.** Beim Start wird der letzte Stand geladen; absolute Phasentimer, Locks, Rollen und verbrauchte Fluchten bleiben erhalten. API-Antworten warten auf die Speicherung, parallele Anfragen werden zu einer begrenzten Schreibwarteschlange zusammengeführt. Bei Speicherfehlern wird kein ungespeicherter Erfolg bestätigt. Lokale Entwicklung nutzt `.state/gameplay.json`; alternativ kann `CHS_STATE_FILE` auf einen tatsächlich dauerhaften Datenträger zeigen. Render-Free-Dateien sind keine dauerhafte Ablage.
+Render benötigt `SUPABASE_SECRET_KEY` (bevorzugt), den bestehenden `SUPABASE_SERVICE_ROLE_KEY` oder den unten beschriebenen Gateway-Zugang als Server-Umgebungsvariable. **Kein Secret in `app.js`, Git oder den Chat kopieren.** Beim Start wird der letzte Stand geladen; absolute Phasentimer, Locks, Rollen und verbrauchte Fluchten bleiben erhalten. API-Antworten warten auf die Speicherung, parallele Anfragen werden zu einer begrenzten Schreibwarteschlange zusammengeführt. Bei Speicherfehlern wird kein ungespeicherter Erfolg bestätigt. Lokale Entwicklung nutzt `.state/gameplay.json`; alternativ kann `CHS_STATE_FILE` auf einen tatsächlich dauerhaften Datenträger zeigen. Render-Free-Dateien sind keine dauerhafte Ablage.
 
 Eine Serverinstanz beibehalten. Das Snapshot-Verfahren ist keine gemeinsame Spielverwaltung für mehrere Instanzen. Resultate löschen aktive GPS-Daten sofort; aktive Lobbys werden spätestens nach 6 Stunden verworfen. Ergebnisjournale/Meldungen enthalten keine Koordinaten und sind auf 30 Tage und eine begrenzte Anzahl beschränkt. `CHS_ADMIN_USER_IDS` erlaubt ausgewählten authentifizierten Konten die Diagnose-/Meldungseinsicht; Benutzer-Metadaten vergeben keine Adminrechte.
 
-Die produktive Einrichtung des Schlüssels und ein Neustarttest auf Render stehen noch aus. Bis dahin den Gameplay-PR als Entwurf belassen. Regeln und Abgleich beider Anhänge: [GAMEPLAY-ABGLEICH.md](GAMEPLAY-ABGLEICH.md). Die bestehende XP-RPC muss separat auf ausschließlich serverbestätigte Gutschriften umgestellt werden.
+Die produktive Einrichtung des Schlüssels und ein Neustarttest auf Render stehen noch aus. Die Gateway-Ergänzung bleibt bis zur Einrichtung als Entwurf. Regeln und Abgleich beider Anhänge: [GAMEPLAY-ABGLEICH.md](GAMEPLAY-ABGLEICH.md). Die bestehende XP-RPC muss separat auf ausschließlich serverbestätigte Gutschriften umgestellt werden.
+
+## Server-Gateway und Entwickler-Testzugang
+
+Die Alternative zum direkten Supabase-Schlüssel ist `chs-server-gateway`, konfiguriert in `supabase/config.toml`. Die Funktion verwendet den von Supabase intern bereitgestellten Server-Schlüssel ausschließlich innerhalb ihrer Laufzeit. Render erhält stattdessen ein zufälliges 256-Bit-Token als `CHS_BACKEND_TOKEN`; dessen SHA-256-Hash steht in `chs_backend_credentials` (Slot `render`). Optional setzt `CHS_BACKEND_GATEWAY_URL` eine explizite Funktionsadresse; andernfalls wird sie aus `SUPABASE_URL` abgeleitet. Token niemals im Browser, Repository oder Protokoll veröffentlichen.
+
+Die Funktion prüft ihr eigenes obligatorisches Token; die vorgelagerte JWT-Prüfung ist deshalb ausgeschaltet. Ohne Token antwortet sie mit 401. Browser-Origin-Anfragen, beliebige Tabellen, private Profilspalten und unzulässige Methoden werden abgewiesen. Zulässig sind nur die benötigten Konto-, Moderations- und Spielstandoperationen. Browserrollen besitzen keine Rechte auf die Credential-Tabelle. Migration `20261001074617_backend_gateway_credentials.sql` wurde bereits angewendet; nicht wiederholen.
+
+`CHS_DEVELOPER_PREVIEW=true` erlaubt ausschließlich serverseitig freigeschalteten, nicht gesperrten Admin-Konten einen gekennzeichneten Testzugang, solange die Rechtstexte noch nicht freigegeben sind. Es werden keine Zustimmungen erfunden oder gespeichert. Normale Konten bleiben gesperrt; nach rechtlicher Freigabe müssen auch Admins die Erklärungen bestätigen. Die Anschrift kann während dieser Entwicklung offen bleiben und muss vor öffentlicher Teilnahme ergänzt werden.
+
+Stand 01.10.2026: Gateway bereitgestellt, anonymer Zugriff mit 401 geprüft, 108 lokale Tests bestanden. Authentifizierter Live-Test, Token-Konfiguration auf Render, Aktivierung des Testzugangs und Deployment dieser Ergänzung stehen aus. Die automatische Freigabeprüfung verlangt ausdrücklich die Erlaubnis zur Übertragung des neuen Tokens an den eigenen Supabase-Endpunkt. Der bereits veröffentlichte Kleiderschrank-/Admin-/Zustimmungsstand aus PR #21 bleibt bestehen.

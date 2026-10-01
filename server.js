@@ -721,7 +721,7 @@ async function handler(req, res) {
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
-    if (!types[extension] || ['server.js','round-engine.js','state-store.js','account-service.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || requestPath.startsWith('/supabase/')) fail(404, 'Datei nicht gefunden.');
+    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || requestPath.startsWith('/supabase/')) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -749,8 +749,9 @@ setInterval(()=>void accounts.prune().catch(error=>console.error('Moderation ret
 if (require.main === module) {
   const key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
   const file=process.env.CHS_STATE_FILE || (!process.env.RENDER?path.join(ROOT,'.state','gameplay.json'):null);
-  if(!key&&!file&&process.env.RENDER) console.error('Gameplay persistence is not configured. Set SUPABASE_SECRET_KEY before hosting real rounds.');
-  restore(createStore({url:SUPABASE_URL,key,file})).then(()=>{
+  const gatewayToken=process.env.CHS_BACKEND_TOKEN,gatewayUrl=process.env.CHS_BACKEND_GATEWAY_URL;
+  if(!key&&!gatewayToken&&!file&&process.env.RENDER) console.error('Gameplay persistence is not configured. Set a server backend before hosting real rounds.');
+  restore(createStore({url:SUPABASE_URL,key,file,gatewayToken,gatewayUrl})).then(()=>{
     http.createServer(handler).listen(PORT,()=>console.log(`Car Hide & Seek auf Port ${PORT}`));
   }).catch(error=>{console.error('State recovery failed:',error.message);process.exitCode=1;});
 }

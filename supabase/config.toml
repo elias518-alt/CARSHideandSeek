@@ -1,0 +1,5 @@
+[functions.chs-server-gateway]
+# Authentication is mandatory in gateway.mjs, using a random server-only
+# credential whose SHA-256 hash is checked against the protected DB table.
+verify_jwt = false
+entrypoint = "./functions/chs-server-gateway/index.js"
