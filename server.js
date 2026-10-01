@@ -9,7 +9,16 @@ const round = require('./round-engine');
 const {createStore}=require('./state-store');
 const wardrobe=require('./wardrobe');
 const {documents}=require('./legal');
-const {createAccountService}=require('./account-service');
+const {createAccountService,uuid}=require('./account-service');
+const moderation=require('./moderation-rules');
+const monitor=require('./beta-monitor').createMonitor();
+const pendingMetrics=new Map();
+const moderationQueues=new Map();
+async function serialModeration(key,work){
+ const previous=moderationQueues.get(key)||Promise.resolve();
+ const next=previous.catch(()=>{}).then(work);moderationQueues.set(key,next);
+ try{return await next;}finally{if(moderationQueues.get(key)===next)moderationQueues.delete(key);}
+}
 const { roadRoute } = require('./meetup-route');
 const { assignRoundRoles, roundRewardFor } = require('./game-rules');
 
@@ -27,8 +36,8 @@ const reports = [];
 const roundHistory = new Map();
 const rateWindows=new Map();
 function rateLimit(authId,action,now=Date.now()) {
-  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000]};
-  const policy=policies[action];if(!policy)return;
+  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000],'client-error':[10,60000]};
+  const policy=policies[action]||(action.startsWith('admin-')?[60,60000]:null);if(!policy)return;
   const key=authId+':'+action;let window=rateWindows.get(key);
   if(!window||now>=window.until){window={count:0,until:now+policy[1]};rateWindows.set(key,window);}
   if(++window.count>policy[0])fail(429,'Zu viele Anfragen. Bitte kurz warten.',{retryAfterMs:Math.max(1,window.until-now)});
@@ -49,10 +58,32 @@ async function restore(store){
     if(saved.version!==1)throw new Error('Unsupported state version');
     for(const lobby of saved.lobbies||[])if(Date.now()-lobby.createdAt<6*3600000){lobbies.set(lobby.code,lobby);updateGame(lobby);}
     for(const [id,list]of saved.blocks||[])blocks.set(id,list);
-    for(const [id,record] of saved.roundHistory||[])if(Date.now()-record.result.endedAt<30*86400000)roundHistory.set(id,record);
+    for(const [id,record] of saved.roundHistory||[])if(Date.now()-record.result.endedAt<30*86400000){roundHistory.set(id,record);if(record.metrics)pendingMetrics.set(id,record);}
     reports.push(...(saved.reports||[]).filter(item=>Date.now()-item.at<30*86400000));
   }
   stateStore=store;
+}
+async function flushBeta(){
+  for(const [id,record]of [...pendingMetrics].slice(0,20)){
+    await accounts.recordMatch(record.metrics,record.metricPlayers||[]);pendingMetrics.delete(id);
+  }
+  await monitor.flush(events=>accounts.recordOperations(events));
+}
+async function closeLobby(actor,data){
+  await accounts.requirePermission(actor,'lobbies');
+  const lobby=lobbies.get(clean(data.code,5).toUpperCase()),reason=String(data.reason||'').trim();
+  if(!lobby)fail(404,'Lobby nicht gefunden.');
+  if(data.confirmed!==true||data.createdAt!==lobby.createdAt||reason.length<5||reason.length>500)fail(400,'Bitte die konkrete Lobby und den Schließgrund bestätigen.');
+  if(lobby.closed){await persist();return {ok:true};}
+  if(lobby.closing)fail(409,'Diese Lobby wird bereits geschlossen.');
+  lobby.closing=true;
+  try{
+    await accounts.logClose(actor,lobby.code,reason);
+    if(round.playing(lobby)){round.finish(lobby,false,'ADMIN_CLOSED',Date.now());updateGame(lobby);lobby.closed=true;}
+    else if(lobby.state==='RESULT')lobby.closed=true;
+    else lobbies.delete(lobby.code);
+    clearLobbyInvitesForCode(lobby.code);await persist();return {ok:true};
+  }finally{delete lobby.closing;}
 }
 const blocked=(a,b)=>(blocks.get(a)||[]).includes(b)||(blocks.get(b)||[]).includes(a);
 
@@ -154,6 +185,7 @@ function readBody(req, maxBytes = 8192) {
 function getSession(data, authId) {
   const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
   if (!lobby) fail(404, 'Lobby nicht gefunden.');
+  if(lobby.closing)fail(409,'Diese Lobby wird gerade durch die Moderation geschlossen.');
   const me = lobby.players.find(p => p.id === data.userId && p.authId === authId);
   if (!me) fail(403, 'Session nicht gefunden.');
   updateGame(lobby);
@@ -201,8 +233,18 @@ function updateGame(lobby, now = Date.now()) {
   round.tick(lobby, now, distance);
   if(lobby.state==='RESULT'&&lobby.result&&!roundHistory.has(lobby.result.id)){
     for(const record of lobby.result.players||[]){const player=lobby.players.find(p=>p.id===record.id);record.baseXp=lobby.result.aborted||record.eliminated?0:(roundRewardFor(player,lobby.result)?.baseXp||0);}
-    roundHistory.set(lobby.result.id,{result:structuredClone(lobby.result),events:structuredClone(lobby.events||[]),participants:lobby.players.map(p=>p.authId)});
+    const metrics={result_id:lobby.result.id,lobby_code:lobby.code,started_at:new Date(lobby.roundStartedAt||now).toISOString(),ended_at:new Date(lobby.result.endedAt).toISOString(),duration_seconds:Math.max(0,Math.min(21600,Math.round((lobby.result.endedAt-(lobby.roundStartedAt||now))/1000))),player_count:lobby.players.length,visibility:lobby.visibility||'PRIVATE',aborted:lobby.result.aborted,reason:lobby.result.reason};
+    const players=lobby.result.players.filter(p=>lobby.players.some(player=>player.id===p.id&&uuid(player.authId))).map(p=>({user_id:lobby.players.find(player=>player.id===p.id).authId,role:p.role,finds:p.finds||0,survival_seconds:Math.min(21600,p.survivalSeconds),won:!p.eliminated&&(p.role==='SEEKER'?lobby.result.seekersWin:!lobby.result.seekersWin&&!p.found)}));
+    const record={result:structuredClone(lobby.result),events:structuredClone(lobby.events||[]),participants:lobby.players.map(p=>p.authId),metrics,metricPlayers:players};
+    roundHistory.set(lobby.result.id,record);pendingMetrics.set(lobby.result.id,record);
     if(roundHistory.size>1000)roundHistory.delete(roundHistory.keys().next().value);
+  }
+  for(const p of lobby.players){
+    const connected=now-p.lastSeen<30000;
+    if(p._betaConnected===true&&!connected)monitor.record('DISCONNECT','CONNECTION_LOST');
+    p._betaConnected=connected;
+    if((p.gpsGapCount||0)>(p._betaGpsGaps||0))monitor.record('GPS','TEMPORARY_GAP');
+    p._betaGpsGaps=p.gpsGapCount||0;
   }
 }
 function meetupPoint(lobby) {
@@ -259,7 +301,7 @@ function resultState(lobby, me) {
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility, background: lobbyScene.background(lobby.background),
       settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, escape: lobby.escape, revision: lobby.settingsRevision || 0, replaceSeekers: lobby.replaceSeekers !== false },
-      state: lobby.state, hostId: lobby.hostId,
+      state: lobby.state, hostId: lobby.hostId,closed:!!lobby.closed,
       players: lobby.players.map(p => publicPlayer(p, now, locationMaxAge)),
       me: publicPlayer(me, now, locationMaxAge), countdownEndsAt: lobby.countdownEndsAt,
       headstartEndsAt: lobby.headstartEndsAt, endsAt: lobby.endsAt, result: lobby.result
@@ -310,21 +352,26 @@ async function route(action, data, authId) {
   rateLimit(authId,action,now);
   if (action === 'block') {
     const target=clean(data.targetAuthId,100);
-    if(!target||target===authId)fail(400,'Ungültiger Spieler.');
+    if(!target||target===authId||typeof data.blocked!=='boolean')fail(400,'Ungültiger Spieler oder Blockierstatus.');
+    return serialModeration('block:'+authId,async()=>{
+    if(data.blocked&&!(blocks.get(authId)||[]).includes(target)&&(blocks.get(authId)||[]).length>=200)fail(409,'Maximal 200 Blockierungen. Bitte zuerst eine aufheben.');
+    await accounts.saveBlock(authId,target,data.blocked);
     const list=blocks.get(authId)||[];
     blocks.set(authId,data.blocked===false?list.filter(id=>id!==target):[...new Set([...list,target])].slice(-200));
-    return {ok:true};
+    return {ok:true};});
   }
   if (action === 'report') {
     const lobby=lobbies.get(clean(data.code,5).toUpperCase());
     const me=lobby?.players.find(p=>p.authId===authId&&p.id===data.userId);
     const target=lobby?.players.find(p=>p.id===data.targetId);
     if(!me||!target||target.id===me.id)fail(403,'Melden ist nur für Mitspieler dieser Lobby möglich.');
-    const reason=clean(data.reason,500);if(reason.length<5)fail(400,'Bitte einen konkreten Grund angeben.');
+    const input=moderation.reportInput(data);
+    return serialModeration('report:'+authId+':'+target.authId,async()=>{
     if(reports.some(r=>r.reporter===authId&&r.target===target.authId&&now-r.at<60000))return {ok:true};
-    reports.push({id:crypto.randomUUID(),reporter:authId,target:target.authId,code:lobby.code,at:now,reason,events:(lobby.events||[]).slice(-40)});
+    const record={id:crypto.randomUUID(),reporter:authId,target:target.authId,code:lobby.code,at:now,...input};
+    await accounts.saveReport(authId,record);reports.push(record);
     if(reports.length>2000)reports.splice(0,reports.length-2000);
-    return {ok:true};
+    return {ok:true};});
   }
   if (action === 'public') {
     const position = parsePosition(data, LOBBY_MAX_ACCURACY_M);
@@ -338,6 +385,7 @@ async function route(action, data, authId) {
   if (action === 'lobby-info') {
     const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
     if (!lobby) fail(404, 'Lobby nicht gefunden.');
+    if(lobby.closing)fail(409,'Diese Lobby wird gerade geschlossen.');
     updateGame(lobby, now);
     if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
     if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
@@ -407,11 +455,13 @@ async function route(action, data, authId) {
   if (action === 'join') {
     const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
     if (!lobby) fail(404, 'Lobby nicht gefunden.');
+    if(lobby.closing)fail(409,'Diese Lobby wird gerade geschlossen.');
 
     // A known authenticated participant may rejoin every running phase.
     // New players are still restricted to the waiting lobby.
     updateGame(lobby, now);
     if((lobby.kickedAuthIds||[]).includes(authId))fail(403,'Du wurdest aus dieser Lobby entfernt.');
+    if(lobby.players.some(p=>p.authId!==authId&&blocked(authId,p.authId)))fail(403,'Beitritt wegen Blockierung nicht möglich.');
     const existing = lobby.players.find(p => p.authId === authId);
     if (existing) {
       if (existing.left) fail(409,'Du hast diese Runde verlassen. Ein erneuter Einstieg ist erst nach dem Rematch möglich.');
@@ -428,6 +478,7 @@ async function route(action, data, authId) {
       if (data.appearance) existing.appearance=wardrobe.normalize(data.appearance);
       if(['DRIVER','PASSENGER'].includes(data.mode))existing.mode=data.mode;
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
+      if(now-existing.lastSeen>=30000)monitor.record('REJOIN','REJOIN_ACCEPTED');
       existing.lastSeen = now;
       clearLobbyInvitesFor(authId, lobby.code);
       return { userId: existing.id, lobby: resultState(lobby, existing).lobby };
@@ -594,6 +645,7 @@ async function route(action, data, authId) {
     return {ok:true,votes,required:Math.floor(voters.length/2)+1};
   }
   if (action === 'rematch') {
+    if(lobby.closed)fail(409,'Diese Lobby wurde durch die Moderation geschlossen. Bitte verlassen und eine neue Lobby erstellen.');
     if(me.id===lobby.hostId&&lobby.state==='LOBBY')return {ok:true};
     if (me.id !== lobby.hostId || lobby.state !== 'RESULT') fail(403, 'Nur der Host kann eine neue Runde starten.');
     lobby.players=lobby.players.filter(p=>!p.left);
@@ -662,13 +714,13 @@ async function removeVehicleBackground(data) {
     request.on('error', reject);
     request.end(body);
   }).catch(error => {
-    console.error('remove.bg request failed:', error);
+    monitor.record('VEHICLE','PHOTO_PROCESSING_FAILED');console.error('remove.bg request failed:',error.name||'Error');
     fail(502, 'Bildfreistellung ist gerade nicht erreichbar. Bitte erneut versuchen.');
   });
 
   if (!response || response.status < 200 || response.status >= 300) {
     const detail = response?.body?.toString('utf8') || '';
-    console.error('remove.bg error:', response?.status, detail.slice(0, 800));
+    console.error('remove.bg error:', response?.status);
     if (response?.status === 400) fail(400, 'remove.bg konnte dieses Foto nicht verarbeiten. Bitte ein anderes Foto testen.');
     if (response?.status === 402) fail(503, 'Das remove.bg-Kontingent ist aufgebraucht.');
     if (response?.status === 403) fail(503, 'REMOVE_BG_API_KEY ist ungültig oder nicht freigeschaltet.');
@@ -678,7 +730,7 @@ async function removeVehicleBackground(data) {
 
   const contentType = String(response.headers['content-type'] || '');
   if (!contentType.includes('image/')) {
-    console.error('remove.bg unexpected content-type:', contentType, response.body.toString('utf8').slice(0, 500));
+    console.error('remove.bg unexpected response');
     fail(502, 'remove.bg hat kein Bild zurückgegeben.');
   }
 
@@ -689,28 +741,43 @@ async function removeVehicleBackground(data) {
 const send = (res, status, obj) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); };
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 async function handler(req, res) {
+  let action='';
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
-      const action = url.pathname.slice(5);
+      action = url.pathname.slice(5);
       if(action==='legal') {
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         send(res,200,documents());return;
       }
-      if(['account-status','legal-accept','admin-players','admin-ban','admin-audit','admin-reports'].includes(action)) {
-        const method=['legal-accept','admin-ban'].includes(action)?'POST':'GET';
+      if(['account-status','legal-accept','onboarding','personal-stats','client-error','admin-players','admin-ban','admin-audit','admin-reports','admin-report-update','admin-role','admin-stats','admin-lobbies','admin-lobby-close'].includes(action)) {
+        const method=['legal-accept','onboarding','client-error','admin-ban','admin-report-update','admin-role','admin-lobby-close'].includes(action)?'POST':'GET';
         if(req.method!==method)fail(405,'Methode nicht erlaubt.');
         const authId=await verifyAuth(req,action.startsWith('admin-'));
+        rateLimit(authId,action);
         const data=method==='GET'?Object.fromEntries(url.searchParams):await readBody(req);
         let response;
         if(action==='account-status')response=await accounts.status(authId);
         if(action==='legal-accept')response=await accounts.accept(authId,data);
+        if(['onboarding','personal-stats','client-error'].includes(action)){
+          await accounts.requireAccess(authId,{consent:action!=='client-error'});
+          if(action==='onboarding')response=await accounts.onboard(authId,data);
+          if(action==='personal-stats')response=await accounts.personalStats(authId);
+          if(action==='client-error'){monitor.record(['FRONTEND','VEHICLE','CHAT','SUPABASE','NETWORK','GPS'].includes(data.category)?data.category:'FRONTEND','CLIENT_ERROR');response={ok:true};}
+        }
         if(action==='admin-players')response=await accounts.players(authId,data);
         if(action==='admin-audit')response=await accounts.audit(authId);
         if(action==='admin-reports'){
-          await accounts.requireAdmin(authId);
-          response={reports:reports.filter(r=>Date.now()-r.at<30*86400000).slice(-100).reverse().map(r=>({id:r.id,reporter:r.reporter,target:r.target,code:r.code,at:r.at,reason:r.reason}))};
+          response=await accounts.reportList(authId,data);
         }
+        if(action==='admin-report-update')response=await accounts.updateReport(authId,data);
+        if(action==='admin-role')response=await accounts.setRole(authId,data);
+        if(action==='admin-stats'){
+          const stats=await accounts.stats(authId),now=Date.now();
+          response={...stats,live_players:[...lobbies.values()].reduce((sum,l)=>sum+l.players.filter(p=>!p.left&&now-p.lastSeen<30000).length,0),active_matches:[...lobbies.values()].filter(l=>round.playing(l)).length,public_lobbies:[...lobbies.values()].filter(l=>l.visibility==='PUBLIC'&&l.state==='LOBBY').length,private_lobbies:[...lobbies.values()].filter(l=>l.visibility==='PRIVATE'&&l.state==='LOBBY').length};
+        }
+        if(action==='admin-lobbies'){await accounts.requirePermission(authId,'lobbies');const summaries=[...lobbies.values()].map(l=>moderation.lobbySummary(l));const regions=await accounts.coarseRegions(summaries.flatMap(l=>l.participants.map(p=>p.profileId)));for(const l of summaries)for(const p of l.participants){const r=regions.find(r=>r.user_id===p.profileId);p.region=r?{country:r.country,region:r.region,source:'optional_self_report'}:null;}response={lobbies:summaries};}
+        if(action==='admin-lobby-close')response=await closeLobby(authId,data);
         if(action==='admin-ban'){
           response=await accounts.ban(authId,data);
           if(response.banned)removeAccountFromLobbies(response.targetId,'ACCOUNT_BANNED');
@@ -731,7 +798,8 @@ async function handler(req, res) {
       if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route','activity','checkpoint','kick','abort-vote','rejoin-lookup','debug','block','report'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state','lobby-info','invites','meetup-route','rejoin-lookup','debug'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
-      await accounts.requireAccess(authId,{consent:action!=='leave'});
+      await accounts.requireAccess(authId,{consent:action!=='leave',cached:['state','location','activity'].includes(action),onboarding:action!=='leave'});
+      void accounts.markActive(authId).catch(()=>monitor.record('BACKEND','ACTIVITY_WRITE_FAILED'));
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
       // URL coordinates are strings by transport; POST payloads remain strictly typed.
       if(action==='public')for(const key of ['lat','lng','accuracy']) {
@@ -755,14 +823,15 @@ async function handler(req, res) {
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
-    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || requestPath.startsWith('/supabase/')) fail(404, 'Datei nicht gefunden.');
+    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     if (req.method === 'HEAD') res.end(); else fs.createReadStream(file).pipe(res);
   } catch (err) {
     if (!res.headersSent) send(res, err.status || 500, { error: err.status ? err.message : 'Serverfehler.', ...(err.extra || {}) });
-    if (!err.status) console.error(err);
+    if(action)monitor.record([401,403].includes(err.status)?'AUTH':action==='location'?'GPS':'API','HTTP_'+(err.status||500));
+    if (!err.status) console.error('Unhandled server error:',err.name||'Error');
   }
 }
 setInterval(() => {
@@ -778,7 +847,7 @@ setInterval(() => {
   pruneLobbyInvites(now);
   for(const [id,record]of roundHistory)if(now-record.result.endedAt>=30*86400000)roundHistory.delete(id);
   for(let index=reports.length-1;index>=0;index--)if(now-reports[index].at>=30*86400000)reports.splice(index,1);
-  void checkpoint(now).catch(error=>console.error('State storage failed:',error.message));
+  void checkpoint(now).catch(error=>{monitor.record('BACKEND','STATE_WRITE_FAILED');console.error('State storage failed:',error.message);});
 }, 1000).unref();
 setInterval(()=>void accounts.prune().catch(error=>console.error('Moderation retention:',error.message)),30*60*1000).unref();
 if (require.main === module) {
@@ -786,8 +855,11 @@ if (require.main === module) {
   const file=process.env.CHS_STATE_FILE || (!process.env.RENDER?path.join(ROOT,'.state','gameplay.json'):null);
   const gatewayToken=process.env.CHS_BACKEND_TOKEN,gatewayUrl=process.env.CHS_BACKEND_GATEWAY_URL;
   if(!key&&!gatewayToken&&!file&&process.env.RENDER) console.error('Gameplay persistence is not configured. Set a server backend before hosting real rounds.');
-  restore(createStore({url:SUPABASE_URL,key,file,gatewayToken,gatewayUrl})).then(()=>{
+  restore(createStore({url:SUPABASE_URL,key,file,gatewayToken,gatewayUrl})).then(async()=>{
+    const savedBlocks=await accounts.initializeModeration();
+    blocks.clear();for(const row of savedBlocks)blocks.set(row.user_id,[...(blocks.get(row.user_id)||[]),row.target_id]);
+    setInterval(()=>void flushBeta().catch(()=>monitor.record('BACKEND','METRICS_WRITE_FAILED')),10000).unref();
     http.createServer(handler).listen(PORT,()=>console.log(`Car Hide & Seek auf Port ${PORT}`));
   }).catch(error=>{console.error('State recovery failed:',error.message);process.exitCode=1;});
 }
-module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError,restore,blocks,reports,roundHistory,removeAccountFromLobbies,checkpoint };
+module.exports = { handler, route, distance, lobbies, lobbyInvites, HttpError,restore,blocks,reports,roundHistory,removeAccountFromLobbies,checkpoint,closeLobby,flushBeta };

@@ -15,7 +15,7 @@
     accountCheck++;
     stopActivity();
     currentAccount=null;document.getElementById('adminMenuButton')?.setAttribute('hidden','');
-    for(const id of ['adminDialog','wardrobeDialog','accountGate'])document.getElementById(id)?.remove();
+    for(const id of ['adminDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog'])document.getElementById(id)?.remove();
   }
   async function initialize(){
     const userId=authSession?.user?.id,attempt=++accountCheck;if(!userId)return false;
@@ -28,6 +28,7 @@
       const button=document.getElementById('adminMenuButton');if(button)button.hidden=!currentAccount.admin||currentAccount.banned;
       if(currentAccount.banned){await gate(currentAccount);return false;}
       if(!currentAccount.developerPreview&&(!currentAccount.legal.ready||!currentAccount.accepted)){await gate(currentAccount);return false;}
+      if(account.onboardingRequired){stopActivity();window.betaUI.onboard(account);return false;}
       return true;
     }catch(error){if(valid())await gate({error:error.message});return false;}
   }
@@ -126,44 +127,12 @@
   }
   async function openAdmin(){
     if(!currentAccount?.admin)return;
-    const actor=authSession?.user?.id,dialog=accountDialog('adminDialog','ENTWICKLER · MODERATION');dialog.classList.add('adminDialog');
-    dialog.insertAdjacentHTML('beforeend','<p>Spieler verwalten und Meldungen prüfen. Standortkoordinaten und private Nachrichten werden hier nicht angezeigt.</p><div class="adminTabs"><button data-admin-view="players">SPIELER</button><button data-admin-view="reports">MELDUNGEN</button><button data-admin-view="audit">PROTOKOLL</button></div><div class="adminList" data-admin-output></div><p class="accountError" role="alert"></p>');
-    const output=dialog.querySelector('[data-admin-output]'),errorNode=dialog.querySelector('[role=alert]');let query='',page=0,generation=0;
-    const valid=()=>authSession?.user?.id===actor&&dialog.isConnected;
-    async function show(view){
-      const attempt=++generation;errorNode.textContent='';output.textContent='Wird geladen …';
-      try{
-        const result=await api('admin-'+view,view==='players'?{q:query,page}:{},'GET');if(!valid()||attempt!==generation)return;
-        if(view==='players'){
-          output.innerHTML=`<form class="adminForm" data-admin-search><label>Spielername oder Tag<input name="query" maxlength="40" value="${esc(query)}"></label><button>SUCHEN</button></form><div>${result.players.map(p=>`<article class="adminPlayer"><div><strong>${esc(p.username)} · ${esc(p.player_tag)}</strong><p>Level ${esc(p.level)} · ${esc(p.rounds_played)} Runden · ${esc(p.wins)} Siege</p><code>${esc(p.id)}</code><p>${p.admin?'Administrator':p.ban?'Gesperrt: '+esc(p.ban.reason):'Keine aktive Sperre'}</p></div>${p.admin?'':`<button type="button" data-admin-target="${esc(p.id)}" data-admin-unban="${!!p.ban}">${p.ban?'SPERRE AUFHEBEN':'SPERREN'}</button>`}</article>`).join('')||'<p>Keine Spieler gefunden.</p>'}</div><div class="adminTabs"><button type="button" data-admin-prev ${page===0?'disabled':''}>ZURÜCK</button><span>Seite ${page+1}</span><button type="button" data-admin-next ${result.hasMore?'':'disabled'}>WEITER</button></div>`;
-          output.querySelector('[data-admin-search]').addEventListener('submit',event=>{event.preventDefault();query=event.currentTarget.elements.query.value;page=0;void show('players');});
-          output.querySelector('[data-admin-prev]').addEventListener('click',()=>{page=Math.max(0,page-1);void show('players');});output.querySelector('[data-admin-next]').addEventListener('click',()=>{page++;void show('players');});
-          output.querySelectorAll('[data-admin-target]').forEach(button=>button.addEventListener('click',()=>banForm(button.dataset.adminTarget,button.dataset.adminUnban==='true')));
-        }else{
-          const rows=view==='reports'?result.reports:result.actions;
-          output.innerHTML=rows.map(row=>`<article class="adminPlayer"><div><strong>${esc(view==='reports'?'Meldung':row.action)} · ${esc(new Date(row.at||row.created_at).toLocaleString('de-DE'))}</strong><p>${esc(row.reason)}</p><p>Zielkonto: <code>${esc(row.target||row.target_id||'gelöscht')}</code></p></div>${view==='reports'?`<button type="button" data-admin-target="${esc(row.target)}">SPERRE PRÜFEN</button>`:''}</article>`).join('')||'<p>Keine Einträge.</p>';
-          output.querySelectorAll('[data-admin-target]').forEach(button=>button.addEventListener('click',()=>banForm(button.dataset.adminTarget,false)));
-        }
-      }catch(error){if(valid()&&attempt===generation){errorNode.textContent=error.message;output.textContent='Ansicht konnte nicht geladen werden.';}}
-    }
-    function banForm(targetId,unban){
-      output.querySelector('[data-ban-form]')?.remove();
-      const form=document.createElement('form');form.className='adminForm adminBanForm';form.dataset.banForm='1';
-      form.innerHTML=`<h3>${unban?'Sperre aufheben':'Kontosperre prüfen'}</h3><p>Zielkonto: <code>${esc(targetId)}</code></p><label>Begründung<textarea name="reason" minlength="5" maxlength="500" required></textarea></label>${unban?'':`<label>Dauer<select name="hours"><option value="1">1 Stunde</option><option value="24" selected>24 Stunden</option><option value="168">7 Tage</option><option value="720">30 Tage</option><option value="0">Dauerhaft</option></select></label>`}<label><input name="confirmed" type="checkbox" required> Ich habe Zielkonto und Begründung geprüft.</label><button type="submit">${unban?'SPERRE AUFHEBEN':'SPERRE VERBINDLICH SPEICHERN'}</button><button type="button" data-cancel-ban>ABBRECHEN</button>`;
-      form.querySelector('[data-cancel-ban]').addEventListener('click',()=>form.remove());
-      form.addEventListener('submit',async event=>{
-        event.preventDefault();if(!valid())return;form.querySelectorAll('button').forEach(e=>e.disabled=true);
-        try{await api('admin-ban',{targetId,unban,reason:form.elements.reason.value,hours:Number(form.elements.hours?.value||0)});toast(unban?'Sperre aufgehoben':'Kontosperre gespeichert');await show('players');}
-        catch(error){errorNode.textContent=error.message;form.querySelectorAll('button').forEach(e=>e.disabled=false);}
-      });output.prepend(form);form.elements.reason.focus();
-    }
-    dialog.querySelectorAll('[data-admin-view]').forEach(button=>button.addEventListener('click',()=>void show(button.dataset.adminView)));
-    dialog.showModal();await show('players');
+    return window.betaUI.openAdmin(currentAccount);
   }
   function setup(){
     document.getElementById('wardrobeMenuButton')?.addEventListener('click',openWardrobe);
     document.getElementById('adminMenuButton')?.addEventListener('click',()=>void openAdmin());
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
-  window.accountUI={initialize,appearance,openWardrobe,closePrivateViews,handleError:async error=>{if(error.data?.code==='ACCOUNT_BANNED'||error.data?.code==='LEGAL_REQUIRED'){stopActivity();await initialize();}}};
+  window.accountUI={initialize,appearance,openWardrobe,closePrivateViews,handleError:async error=>{if(error.data?.code==='ACCOUNT_BANNED'||error.data?.code==='LEGAL_REQUIRED'||error.data?.code==='ONBOARDING_REQUIRED'){stopActivity();await initialize();}}};
 })();

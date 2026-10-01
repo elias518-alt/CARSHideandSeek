@@ -31,7 +31,7 @@ test('logout discards delayed success and stops GPS and polling without reopenin
   f.pending[0].resolve(accepted(true));assert.equal(await request,false);
   assert.equal(f.button.hidden,true);assert.equal(f.context.gpsHeartbeat,null);assert.equal(f.context.gpsPhase,'STOPPED');
   assert.deepEqual(f.timers,[['timeout',41],['interval',42]]);
-  assert.deepEqual(f.removed,['adminDialog','wardrobeDialog','accountGate']);
+  assert.deepEqual(f.removed,['adminDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']);
 });
 
 test('a failed account check from the previous session cannot show a gate for the new account',async()=>{

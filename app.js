@@ -2089,7 +2089,7 @@ function renderGame() {
     $('#rematch')
       ?.classList.toggle(
         'hidden',
-        lobby.hostId !== me.id
+        lobby.hostId !== me.id || lobby.closed
       );
   }
 
@@ -3261,6 +3261,8 @@ function openProfileStatistics() {
   }
   const hint = document.createElement('p'); hint.textContent = 'Gespeicherte Kontowerte. Eine Liste einzelner vergangener Runden ist noch nicht vorhanden.'; body.append(hint);
   if (!dialog.open) dialog.showModal();
+  const actor=authSession?.user?.id;
+  api('personal-stats',{},'GET').then(stats=>{if(!dialog.isConnected||actor!==authSession?.user?.id)return;const p=document.createElement('p');p.textContent='Beta-Erfassung: '+stats.seekerRounds+' Sucherrunden · '+stats.hiderRounds+' Versteckerrunden · Ø Überleben '+(stats.averageSurvivalSeconds===null?'noch keine Daten':formatTime(stats.averageSurvivalSeconds));body.append(p);}).catch(()=>{});
 }
 function setupProfileActions() {
   document.querySelector('#profile .settingsButton')?.addEventListener('click', openProfileEditor);

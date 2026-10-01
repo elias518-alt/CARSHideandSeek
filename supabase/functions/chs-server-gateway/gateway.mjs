@@ -2,6 +2,10 @@
 // function runtime. Only a hash of the Render credential is stored in the DB.
 const methods={chs_account_bans:['GET'],chs_legal_acceptances:['GET','POST'],profiles:['GET'],chs_admin_audit:['GET','DELETE'],chs_server_state:['GET','POST'],chs_verified_results:['POST'],'rpc/chs_admin_set_ban':['POST']};
 const columns={profiles:['id','username','player_tag','level','rounds_played','wins','created_at','last_seen_at'],chs_account_bans:['user_id','reason','until_at','revoked_at'],chs_legal_acceptances:['accepted_at'],chs_admin_audit:['id','actor_id','target_id','action','reason','created_at'],chs_server_state:['snapshot','expires_at']};
+Object.assign(methods,{chs_staff_roles:['GET','POST'],chs_player_blocks:['GET','POST','DELETE'],chs_player_reports:['GET','POST'],chs_onboarding:['GET','POST'],chs_user_regions:['GET','POST'],chs_daily_activity:['POST'],chs_player_round_stats:['GET'],chs_ops_events:['POST']});
+for(const name of ['chs_admin_set_role','chs_admin_update_report','chs_admin_log_close','chs_admin_beta_stats','chs_record_match','chs_beta_retention','chs_personal_beta_stats'])methods['rpc/'+name]=['POST'];
+Object.assign(columns,{chs_staff_roles:['user_id','role'],chs_player_blocks:['user_id','target_id'],chs_player_reports:['id','reporter_id','target_id','lobby_code','category','comment','status','resolution','created_at','updated_at'],chs_onboarding:['version'],chs_user_regions:['user_id','country','region'],chs_player_round_stats:['role','finds','survival_seconds','won']});
+columns.chs_admin_audit.push('context');
 const json=(status,error)=>Response.json({error},{status,headers:{'Cache-Control':'no-store'}});
 async function readJson(req){
   const reader=req.body?.getReader();if(!reader)throw Error('Missing body');
@@ -44,6 +48,9 @@ export function createGateway({url,serviceKey,fetchImpl=fetch,now=Date.now}){
       }
       if(path==='chs_server_state'&&method==='POST'&&input.body?.slot!=='gameplay')return json(403,'Invalid state slot');
       if(path==='chs_verified_results'&&input.prefer!=='resolution=ignore-duplicates,return=representation')return json(403,'Immutable result required');
+      if(path==='chs_player_blocks'&&method==='DELETE'&&['user_id','target_id'].some(key=>!/^eq\.[a-f0-9-]{36}$/i.test(query.get(key)||'')))return json(403,'Exact block owner and target required');
+      if(path==='chs_staff_roles'&&method==='POST'&&(input.body?.role!=='super_admin'||input.prefer!=='resolution=ignore-duplicates,return=representation'))return json(403,'Bootstrap only; role changes require audited RPC');
+      if(path==='chs_player_reports'&&method==='POST'&&(input.prefer!=='resolution=ignore-duplicates,return=representation'||Object.keys(input.body||{}).some(key=>!['id','reporter_id','target_id','lobby_code','category','comment'].includes(key))))return json(403,'New report only; updates require audited RPC');
       const h=headers();
       if(input.prefer){if(!['resolution=merge-duplicates,return=minimal','resolution=merge-duplicates,return=representation','resolution=ignore-duplicates,return=representation'].includes(input.prefer))return json(400,'Invalid write mode');h.Prefer=input.prefer;}
       const response=await fetchImpl(url+'/rest/v1/'+resource,{method,headers:h,body:input.body?JSON.stringify(input.body):undefined,signal:AbortSignal.timeout(7000)});

@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-01T11:54:37.248Z",
+  "scope": "Local HTTP; mocked Supabase/auth; no network latency, active rounds, durable checkpoint writer or real GPS devices. Not production capacity proof.",
+  "results": [
+    {
+      "clients": 50,
+      "requests": 300,
+      "elapsed_ms": 302,
+      "p50_ms": 35,
+      "p95_ms": 95,
+      "cpu_ms": 431,
+      "rss_mb": 86,
+      "backend_fixture_reads": 200,
+      "backend_fixture_writes": 0,
+      "gps_requests": 150,
+      "state_snapshot_writes": 0,
+      "errors": 0
+    },
+    {
+      "clients": 100,
+      "requests": 600,
+      "elapsed_ms": 315,
+      "p50_ms": 18,
+      "p95_ms": 64,
+      "cpu_ms": 552,
+      "rss_mb": 129,
+      "backend_fixture_reads": 200,
+      "backend_fixture_writes": 0,
+      "gps_requests": 300,
+      "state_snapshot_writes": 0,
+      "errors": 0
+    },
+    {
+      "clients": 500,
+      "requests": 3000,
+      "elapsed_ms": 913,
+      "p50_ms": 12,
+      "p95_ms": 29,
+      "cpu_ms": 1267,
+      "rss_mb": 235,
+      "backend_fixture_reads": 1600,
+      "backend_fixture_writes": 0,
+      "gps_requests": 1500,
+      "state_snapshot_writes": 0,
+      "errors": 0
+    },
+    {
+      "clients": 1000,
+      "requests": 6000,
+      "elapsed_ms": 2330,
+      "p50_ms": 15,
+      "p95_ms": 34,
+      "cpu_ms": 3478,
+      "rss_mb": 270,
+      "backend_fixture_reads": 4000,
+      "backend_fixture_writes": 0,
+      "gps_requests": 3000,
+      "state_snapshot_writes": 0,
+      "errors": 0
+    }
+  ]
+}

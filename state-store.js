@@ -19,7 +19,7 @@ function createStore({file,url,key,gatewayUrl,gatewayToken,fetchImpl=fetch}={}) 
   }
   async function write(value) {
     if(value===lastValue)return;
-    if(backend.configured){await request('POST',{slot:'gameplay',snapshot:JSON.parse(value),expires_at:new Date(Date.now()+30*86400000).toISOString()});lastValue=value;return;}
+    if(backend.configured){await request('POST',{slot:'gameplay',snapshot:JSON.parse(value),expires_at:new Date(Date.now()+6*3600000).toISOString()});lastValue=value;return;}
     if(!file)return;
     await fs.mkdir(path.dirname(file),{recursive:true});
     const temp=file+'.tmp';const handle=await fs.open(temp,'w',0o600);
@@ -39,7 +39,7 @@ function createStore({file,url,key,gatewayUrl,gatewayToken,fetchImpl=fetch}={}) 
   function save(snapshot) {
     // At most one write and one newer snapshot are pending. Concurrent polls
     // cannot grow an unbounded database queue or acknowledge unsaved state.
-    const value=JSON.stringify(snapshot,(name,value)=>name==='meetupRoute'?undefined:value);
+    const value=JSON.stringify(snapshot,(name,value)=>name==='meetupRoute'||name==='closing'||name.startsWith('_beta')?undefined:value);
     return new Promise((resolve,reject)=>{
       if(!pending)pending={value,waiters:[]};else pending.value=value;
       pending.waiters.push({resolve,reject});void flush();
