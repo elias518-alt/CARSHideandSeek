@@ -13,6 +13,7 @@
   }
   function closePrivateViews(){
     accountCheck++;
+    window.communityUI?.closePrivateViews();
     stopActivity();
     currentAccount=null;document.getElementById('adminMenuButton')?.setAttribute('hidden','');
     for(const id of ['adminDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog'])document.getElementById(id)?.remove();
@@ -27,7 +28,7 @@
       const previewNotice=document.getElementById('developerPreviewNotice');if(previewNotice)previewNotice.hidden=!account.developerPreview;
       const button=document.getElementById('adminMenuButton');if(button)button.hidden=!currentAccount.admin||currentAccount.banned;
       if(currentAccount.banned){await gate(currentAccount);return false;}
-      if(!currentAccount.developerPreview&&(!currentAccount.legal.ready||!currentAccount.accepted)){await gate(currentAccount);return false;}
+      if(!currentAccount.developerPreview&&(!(currentAccount.legal.canAccept??currentAccount.legal.ready)||!currentAccount.accepted)){await gate(currentAccount);return false;}
       if(account.onboardingRequired){stopActivity();window.betaUI.onboard(account);return false;}
       return true;
     }catch(error){if(valid())await gate({error:error.message});return false;}
@@ -43,7 +44,7 @@
     if(banned){
       output.innerHTML=`<p>${esc(account.ban.reason)}</p><p>${account.ban.until?'Bis '+esc(new Date(account.ban.until).toLocaleString('de-DE')):'Dauerhafte Sperre'}</p><p>Zur Überprüfung deiner Sperre: ${esc(legal?.operator?.email||'Betreiberkontakt im Impressum')}.</p>`;
     }else if(account.error){output.innerHTML=`<p>${esc(account.error)}</p><button type="button" data-account-retry>ERNEUT PRÜFEN</button>`;}
-    else if(!legal.ready){output.innerHTML='<p>Die Betreiberangaben und die rechtliche Freigabe werden noch vervollständigt. Eine Zustimmung ist erst danach möglich.</p><button type="button" data-account-retry>ERNEUT PRÜFEN</button>';}
+    else if(!(legal.canAccept??legal.ready)){output.innerHTML='<p>Die App ist noch nicht für weitere Spieler freigegeben. Der Betreiber muss zuerst die Betreiberangaben vervollständigen und die Rechtstexte freigeben.</p><p>Das liegt nicht an deinem Konto oder deinem Handy. Erneutes Versuchen behebt diese Sperre nicht. Du musst derzeit nichts bestätigen.</p>';}
     else{
       output.innerHTML=`<p>Bitte lies die <a href="/legal/terms" target="_blank" rel="noopener">Nutzungsbedingungen und Sicherheitshinweise</a> sowie die <a href="/legal/privacy" target="_blank" rel="noopener">Datenschutzhinweise</a>. Fassung ${esc(legal.version)}.</p>
       <form data-consent-form><div class="consentChoices">
@@ -52,6 +53,7 @@
       <label><input name="adult" type="checkbox" required><span>Ich bin mindestens 18 Jahre alt.</span></label>
       <label><input name="privacyRead" type="checkbox" required><span>Ich habe die Datenschutzhinweise gelesen, einschließlich Standortanzeige und öffentlicher Bildadressen. Dies ist keine pauschale Einwilligung in Werbung oder Tracking.</span></label>
       </div><button type="submit" class="primaryButton">BESTÄTIGEN UND WEITER</button></form>`;
+      if(legal.betaAccess){const notice=document.createElement('p');notice.setAttribute('role','status');notice.textContent='Vorläufiger Beta-Test: Betreiberangaben und rechtliche Prüfung sind noch nicht abgeschlossen. Die verlinkten Hinweise sind als Entwurf gekennzeichnet. Deine Bestätigung ist keine rechtliche Freigabe der App.';output.prepend(notice);output.querySelector('button[type=submit]').textContent='AKZEPTIEREN UND ZUR BETA';}
       output.querySelector('form').addEventListener('submit',async event=>{
         event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');button.disabled=true;
         try{
@@ -134,5 +136,5 @@
     document.getElementById('adminMenuButton')?.addEventListener('click',()=>void openAdmin());
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
-  window.accountUI={initialize,appearance,openWardrobe,closePrivateViews,handleError:async error=>{if(error.data?.code==='ACCOUNT_BANNED'||error.data?.code==='LEGAL_REQUIRED'||error.data?.code==='ONBOARDING_REQUIRED'){stopActivity();await initialize();}}};
+  window.accountUI={get currentAccount(){return currentAccount;},initialize,appearance,openWardrobe,closePrivateViews,handleError:async error=>{if(error.data?.code==='ACCOUNT_BANNED'||error.data?.code==='LEGAL_REQUIRED'||error.data?.code==='ONBOARDING_REQUIRED'){stopActivity();await initialize();}}};
 })();

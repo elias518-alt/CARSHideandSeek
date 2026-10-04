@@ -397,6 +397,7 @@ function openPage(page) {
     behavior: 'instant'
   });
 
+  window.communityUI?.onPage(page);
   if (page === 'play') {
     setTimeout(() => {
       if (typeof findPublic === 'function') findPublic({ automatic: true });
@@ -779,14 +780,14 @@ function renderAchievements() {
   grid.innerHTML = achievementCatalog.map(item => {
     const unlocked = achievementUnlocked.has(item.id);
     return `
-      <article class="achievementBadge ${unlocked ? 'isUnlocked' : 'isLocked'}">
-        <div class="achievementIcon" aria-hidden="true">${unlocked ? esc(icons[item.id] || '★') : '🔒'}</div>
+      <button type="button" data-achievement="${esc(item.id)}" class="achievementBadge ${unlocked ? 'isUnlocked' : 'isLocked'}">
+        <div class="achievementIcon" aria-hidden="true">${typeof appIcon==='function'?appIcon(unlocked?({FIRST_GAME:'star',FIRST_FIND:'target',HIDE_MASTER:'shield'}[item.id]||'star'):'lock'):(unlocked?esc(icons[item.id]||'★'):'🔒')}</div>
         <div>
           <strong>${esc(item.name)}</strong>
           <p>${esc(item.description)}</p>
           <small>${unlocked ? 'FREIGESCHALTET' : '+' + Number(item.xp_reward || 0) + ' XP'}</small>
         </div>
-      </article>
+      </button>
     `;
   }).join('');
 }
@@ -1015,15 +1016,16 @@ function syncVehicleUI() {
 
 
   const visual = document.querySelector('.activeCarCard .carVisual');
-  if (visual) visual.innerHTML = carPhotoMarkup(car);
+  if (visual) visual.innerHTML = carPhotoMarkup(car,'home-card');
 
   const profileVehicleStage = document.getElementById('profileVehicleStage');
   if (profileVehicleStage) {
-    profileVehicleStage.innerHTML = car ? carPhotoMarkup(car) : '';
+    profileVehicleStage.innerHTML = car ? carPhotoMarkup(car,'profile') : '';
   }
 
   renderGarage();
   window.referenceUI?.renderOwn();
+  window.communityUI?.syncIdentity();
 }
 
 
@@ -1054,7 +1056,7 @@ function renderGarage() {
 
   container.innerHTML =
     localGarage
-      .map(car => `
+      .slice().sort((a,b)=>Number(b.active)-Number(a.active)).map(car => `
         <section class="garageCar ${
           car.active
             ? 'activeVehicle'
@@ -1093,7 +1095,7 @@ function renderGarage() {
           </span>
 
           <h2>
-            ${esc(car.model)}
+            ${esc([car.brand,car.series?.split(' · ')[0],car.model].filter(Boolean).join(' '))}
           </h2>
 
           <div class="vehicleDetails">
@@ -1547,7 +1549,7 @@ async function join(codeOverride) {
       'Bitte einen Lobby-Code eingeben.'
     );
 
-    return;
+    return false;
   }
 
 
@@ -1567,12 +1569,14 @@ async function join(codeOverride) {
 
     saveGameSession(result);
     showGame();
+    return true;
   }
 
   catch (error) {
     toast(
       error.message
     );
+    return false;
   }
 }
 
@@ -2660,6 +2664,8 @@ function fillLobbySettings() {
   const backgroundField=document.getElementById('lobbyBackground');
   if(backgroundField&&!backgroundField.disabled)backgroundField.value=lobbyScene.background(lobby.background);
   const values = {
+    lobbyVisibility:lobby.visibility,
+    lobbyMaxPlayers:settings.maxPlayers||20,
     lobbyRadius: settings.radius,
     lobbyDuration: settings.duration,
     lobbyHeadstart: settings.headstart,
@@ -2693,7 +2699,8 @@ async function saveFreshLobbySettings() {
     await api('settings', gameCredentials({
       revision: Number(lobby.settings.revision || 0),
       lobbyName: lobby.name,
-      visibility: lobby.visibility,
+      visibility:value('lobbyVisibility')||lobby.visibility,
+      maxPlayers:Number(value('lobbyMaxPlayers')||lobby.settings.maxPlayers||20),
       radius: Number(value('lobbyRadius') || lobby.settings.radius),
       duration: Number(value('lobbyDuration') || lobby.settings.duration),
       headstart: Number(value('lobbyHeadstart') || lobby.settings.headstart),
@@ -2753,11 +2760,11 @@ if (document.readyState === 'loading') {
 function safeCarPhoto(value) {
   return typeof value === 'string' && value.length <= 900000 && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
 }
-function carPhotoMarkup(car) {
+function carPhotoMarkup(car,context='garage') {
   const source = vehiclePhotoSource(car?.photo);
   return source
     ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
-    : vehicleIllustration(car);
+    : vehicleIllustration(car,context);
 }
 
 function vehiclePaintFilter(color) {
@@ -2776,10 +2783,15 @@ function vehiclePaintFilter(color) {
   return 'none';
 }
 
-function vehicleIllustration(car) {
+function vehicleIllustration(car,context='vehicle') {
   const template=vehicleCatalog.illustration(car || {});
   const filter=vehiclePaintFilter(car?.color);
-  return '<figure class="vehicleIllustration" style="--vehicle-filter:'+filter+'"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="0 0 384 280" aria-hidden="true" focusable="false"><image href="assets/vehicle-lineup.webp" x="'+(-template.x)+'" y="'+(-template.y)+'" width="1536" height="1024" /></svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Farbe angenähert</figcaption></figure>';
+  const image='<image href="assets/vehicle-lineup.webp" x="'+(-template.x)+'" y="'+(-template.y)+'" width="1536" height="1024" />';
+  const paint=typeof vehiclePaint==='undefined'?'':vehiclePaint.path(template.index);
+  const maskId='paint-'+String(context+'-'+(car?.id||'')+'-'+template.index).replace(/[^a-zA-Z0-9_-]/g,'');
+  const componentPaths=paint.split('Z').filter(p=>p.trim()).map(p=>'<path d="'+p+'Z" fill="black" stroke="black" stroke-width="2" stroke-linejoin="round"/>').join('');
+  const layer=paint&&filter!=='none'?'<defs><mask id="'+maskId+'" maskUnits="userSpaceOnUse" x="0" y="0" width="384" height="280" style="mask-type:luminance"><rect width="384" height="280" fill="white"/>'+componentPaths+'</mask></defs><g mask="url(#'+maskId+')"><g class="vehiclePaintLayer" style="filter:'+filter+'">'+image+'</g></g>':'';
+  return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="0 0 384 280" aria-hidden="true" focusable="false">'+image+layer+'</svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Karosseriefarbe angenähert</figcaption></figure>';
 }
 async function loadImageFromBlob(blob) {
   const url = URL.createObjectURL(blob);
@@ -3546,7 +3558,7 @@ function isLobbyCutout(source) {
   catch { return false; }
 }
 
-function lobbyCarMarkup(player,mine=false){
+function lobbyCarMarkup(player,mine=false,context='lobby'){
   const ownPhoto = mine ? vehiclePhotoSource(activeCar()?.photo) : '';
   const source = ownPhoto || vehiclePhotoSource(player?.photoUrl);
 
@@ -3558,7 +3570,7 @@ function lobbyCarMarkup(player,mine=false){
     return `<img class="lobbyModelCar${rawClass}" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
 
-  return vehicleIllustration({vehicle:player.vehicle,body:player.bodyType,color:player.color});
+  return vehicleIllustration({id:player.id,vehicle:player.vehicle,body:player.bodyType,color:player.color},context);
 }
 
 function lobbyProfileMarkup(player) {
@@ -3659,13 +3671,14 @@ function parkingPlayerMarkup(player,lobby,slot) {
     +'<div class="parkingVehicleStage"><span class="parkingContactShadow" aria-hidden="true"></span>'+lobbyCarMarkup(player,mine)+lobbyCharacterMarkup(player)+'</div></article>';
 }
 function parkingLobbyMarkup(lobby,hostPlayer,others) {
-  const layout=parkingLayout(others);
+  const lead=lobby.players.find(p=>p.id===lobby.me.id)||hostPlayer;
+  const layout=parkingLayout(lobby.players.filter(p=>p.id!==lead?.id));
   const ordered=hostPlayer?[hostPlayer,...others]:lobby.players;
   const waiting=ordered.filter(player=>!player.ready||!player.connected);
   const readiness=(ordered.length-waiting.length)+'/'+ordered.length+' bereit · '+(waiting.length===1?'Warte auf '+esc(waiting[0].name):waiting.length?'Warte auf '+waiting.length+' Spieler':'Crew bereit');
   return '<div class="parkingViewport" tabindex="0" role="region" aria-label="Parkplatz deiner Crew. Weitere Parkplätze seitlich ansehen." style="--parking-pages:'+layout.pages+'"><div class="parkingScene">'
     +layout.slots.map(slot=>parkingPlayerMarkup(slot.player,lobby,slot)).join('')+'</div></div>'
-    +(hostPlayer?'<div class="freshCrewLead">'+parkingPlayerMarkup(hostPlayer,lobby)+'</div>':'')
+    +(lead?'<div class="freshCrewLead">'+parkingPlayerMarkup(lead,lobby)+'</div>':'')
     +'<div class="parkingNavigation" '+(layout.pages===1?'hidden':'')+'><button type="button" data-parking-step="-1" aria-label="Vorherige Parkreihe">‹</button><span data-parking-progress>Parkreihe 1 / '+layout.pages+'</span><button type="button" data-parking-step="1" aria-label="Nächste Parkreihe">›</button></div>'
     +'<div class="parkingCrewStrip" role="group" aria-label="Alle '+ordered.length+' Spieler in der Lobby">'+ordered.map(player=>{
       const owner=player.id===lobby.hostId;
@@ -3700,9 +3713,6 @@ function renderFreshLobby() {
   const mapFold=document.getElementById('freshMapFold');
   if(freshLobbyPhase!==phase){
     if(mapFold)mapFold.open=!waiting||!host;
-    if(waiting&&!host&&mapFold&&typeof requestAnimationFrame==='function'){
-      requestAnimationFrame(()=>mapFold.scrollIntoView({block:'start',behavior:'smooth'}));
-    }
     const feedback=document.getElementById('findFeedback');
     feedback.textContent='Fahrzeug entdeckt? Tippe auf „Fund melden“. GPS und Entfernung werden geprüft.';
     delete feedback.dataset.status;
@@ -3768,6 +3778,7 @@ function renderFreshLobby() {
   if(typeof renderLobbyChat==='function')renderLobbyChat();
   if(typeof syncLobbyInviteButton==='function')syncLobbyInviteButton();
   updateFreshChat();
+  if(typeof window!=='undefined')window.communityUI?.renderLobby(lobby);
 }
 
 function lobbyBackgroundKey() { return 'chsLobbyBackground:'+ (authSession?.user?.id || 'guest'); }

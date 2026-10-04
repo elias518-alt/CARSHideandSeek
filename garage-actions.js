@@ -17,7 +17,7 @@ function refreshVehicleForm() {
     series.value?'Baureihe: '+series.value:brand&&model?'Baureihe kannst du bei Bedarf ergänzen.':'';
   if(!pendingCarPhoto){
     const existing=localGarage.find(car=>car.id===editingVehicleId);
-    $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,body:$('#newCarBody').value,color:$('#newCarColor').value,photo:existing?.photo});
+    $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,body:$('#newCarBody').value,color:$('#newCarColor').value,photo:existing?.photo},'garage-preview');
   }
 }
 
@@ -41,7 +41,7 @@ function editVehicle(id) {
   $('#newCarSeries').dataset.manual=String(!!car.series&&(!inferred||![inferred.label,inferred.name].includes(car.series)));
   refreshVehicleForm();
   $('#newCarColor').dispatchEvent(new Event('input'));
-  $('#newCarPhotoPreview').innerHTML=carPhotoMarkup(car);
+  $('#newCarPhotoPreview').innerHTML=carPhotoMarkup(car,'garage-preview');
 }
 
 function askDeleteVehicle(id) {

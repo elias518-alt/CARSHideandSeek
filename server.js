@@ -6,6 +6,7 @@ const crypto = require('node:crypto');
 const https = require('node:https');
 const lobbyScene = require('./lobby-scene');
 const round = require('./round-engine');
+const adminLab=require('./admin-lab');
 const {createStore}=require('./state-store');
 const wardrobe=require('./wardrobe');
 const {documents}=require('./legal');
@@ -138,7 +139,7 @@ const code = () => {
 function pruneLobbyInvites(now = Date.now()) {
   for (const [id, invite] of lobbyInvites) {
     const lobby = lobbies.get(invite.code);
-    if (!lobby || lobby.state !== 'LOBBY' || lobby.players.length >= MAX_PLAYERS || invite.expiresAt <= now) {
+    if (!lobby || lobby.state !== 'LOBBY' || lobby.players.length >= (lobby.maxPlayers||MAX_PLAYERS) || invite.expiresAt <= now) {
       lobbyInvites.delete(id);
     }
   }
@@ -231,7 +232,7 @@ function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
 }
 function updateGame(lobby, now = Date.now()) {
   round.tick(lobby, now, distance);
-  if(lobby.state==='RESULT'&&lobby.result&&!roundHistory.has(lobby.result.id)){
+  if(!lobby.testMode&&lobby.state==='RESULT'&&lobby.result&&!roundHistory.has(lobby.result.id)){
     for(const record of lobby.result.players||[]){const player=lobby.players.find(p=>p.id===record.id);record.baseXp=lobby.result.aborted||record.eliminated?0:(roundRewardFor(player,lobby.result)?.baseXp||0);}
     const metrics={result_id:lobby.result.id,lobby_code:lobby.code,started_at:new Date(lobby.roundStartedAt||now).toISOString(),ended_at:new Date(lobby.result.endedAt).toISOString(),duration_seconds:Math.max(0,Math.min(21600,Math.round((lobby.result.endedAt-(lobby.roundStartedAt||now))/1000))),player_count:lobby.players.length,visibility:lobby.visibility||'PRIVATE',aborted:lobby.result.aborted,reason:lobby.result.reason};
     const players=lobby.result.players.filter(p=>lobby.players.some(player=>player.id===p.id&&uuid(player.authId))).map(p=>({user_id:lobby.players.find(player=>player.id===p.id).authId,role:p.role,finds:p.finds||0,survival_seconds:Math.min(21600,p.survivalSeconds),won:!p.eliminated&&(p.role==='SEEKER'?lobby.result.seekersWin:!lobby.result.seekersWin&&!p.found)}));
@@ -269,7 +270,7 @@ function resultState(lobby, me) {
   } : null;
   const gameplay = round.stateFor(lobby, me, now, distance);
   const trackedTarget = gameplay.locks.find(lock => lock.seekerId === me.id)?.targetId;
-  const reward = lobby.state === 'RESULT' && lobby.result?.id && !lobby.result.aborted && !me.eliminated
+  const reward = !lobby.testMode && lobby.state === 'RESULT' && lobby.result?.id && !lobby.result.aborted && !me.eliminated
     ? { resultId: lobby.result.id, ...roundRewardFor(me, lobby.result) }
     : null;
   return {
@@ -300,8 +301,8 @@ function resultState(lobby, me) {
     debugAvailable:(process.env.CHS_ADMIN_USER_IDS||'').split(',').map(id=>id.trim()).includes(me.authId),
     lobby: {
       code: lobby.code, name: lobby.name, visibility: lobby.visibility, background: lobbyScene.background(lobby.background),
-      settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, escape: lobby.escape, revision: lobby.settingsRevision || 0, replaceSeekers: lobby.replaceSeekers !== false },
-      state: lobby.state, hostId: lobby.hostId,closed:!!lobby.closed,
+      settings: { radius: lobby.radius, duration: lobby.duration, headstart: lobby.headstart, escape: lobby.escape, maxPlayers:lobby.maxPlayers||MAX_PLAYERS, revision: lobby.settingsRevision || 0, replaceSeekers: lobby.replaceSeekers !== false },
+      state: lobby.state, hostId: lobby.hostId,testMode:!!lobby.testMode,closed:!!lobby.closed,
       players: lobby.players.map(p => publicPlayer(p, now, locationMaxAge)),
       me: publicPlayer(me, now, locationMaxAge), countdownEndsAt: lobby.countdownEndsAt,
       headstartEndsAt: lobby.headstartEndsAt, endsAt: lobby.endsAt, result: lobby.result
@@ -376,11 +377,11 @@ async function route(action, data, authId) {
   if (action === 'public') {
     const position = parsePosition(data, LOBBY_MAX_ACCURACY_M);
     return { lobbies: [...lobbies.values()]
-      .filter(l => !l.players.some(p=>blocked(authId,p.authId)) && l.visibility === 'PUBLIC' && l.state === 'LOBBY' && l.players.length < MAX_PLAYERS && l.origin)
+      .filter(l => !l.players.some(p=>blocked(authId,p.authId)) && l.visibility === 'PUBLIC' && l.state === 'LOBBY' && l.players.length < (l.maxPlayers||MAX_PLAYERS) && l.origin)
       .map(l => ({ lobby: l, meters: distance(position, l.players.find(p => p.id === l.hostId)?.location || l.origin) }))
       .filter(x => x.meters <= PUBLIC_RANGE_M)
       .sort((a, b) => a.meters - b.meters)
-      .map(({ lobby, meters }) => ({ code: lobby.code, name: lobby.name, players: lobby.players.length, maxPlayers: MAX_PLAYERS, distanceKm: Math.max(0.1, Math.round(meters / 100) / 10) })) };
+      .map(({ lobby, meters }) => ({ code: lobby.code, name: lobby.name, players: lobby.players.length, maxPlayers:lobby.maxPlayers||MAX_PLAYERS,radius:lobby.radius,duration:lobby.duration,startAt:lobby.countdownEndsAt||null, distanceKm: Math.max(0.1, Math.round(meters / 100) / 10) })) };
   }
   if (action === 'lobby-info') {
     const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
@@ -388,8 +389,8 @@ async function route(action, data, authId) {
     if(lobby.closing)fail(409,'Diese Lobby wird gerade geschlossen.');
     updateGame(lobby, now);
     if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
-    if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
-    return { code: lobby.code, name: lobby.name, visibility: lobby.visibility, players: lobby.players.length, maxPlayers: MAX_PLAYERS };
+    if (lobby.players.length >= (lobby.maxPlayers||MAX_PLAYERS)) fail(409, 'Lobby ist voll.');
+    return { code: lobby.code, name: lobby.name, visibility: lobby.visibility, players: lobby.players.length, maxPlayers: lobby.maxPlayers||MAX_PLAYERS };
   }
   if (action === 'invites') {
     pruneLobbyInvites(now);
@@ -400,8 +401,8 @@ async function route(action, data, authId) {
       .map(invite => {
         const lobby = lobbies.get(invite.code);
         return {
-          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName, fromAvatarUrl:invite.fromAvatarUrl||'',
-          createdAt: invite.createdAt, expiresAt: invite.expiresAt, players: lobby?.players.length || 0, maxPlayers: MAX_PLAYERS
+          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName, fromAvatarUrl:invite.fromAvatarUrl||'',fromOnline:!!lobby?.players.some(p=>p.authId===invite.fromAuthId&&now-p.lastSeen<30000),
+          createdAt: invite.createdAt, expiresAt: invite.expiresAt, players: lobby?.players.length || 0, maxPlayers: lobby.maxPlayers||MAX_PLAYERS
         };
       });
     return { invites };
@@ -439,7 +440,7 @@ async function route(action, data, authId) {
     const origin = visibility === 'PUBLIC' ? parsePosition(data, LOBBY_MAX_ACCURACY_M) : null;
     if (origin) player.location = { ...origin, at: now };
     const lobby = {
-      code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,
+      code: code(), name: clean(data.lobbyName, 40) || 'NIGHT HUNT', visibility, origin,maxPlayers:20,
       background: lobbyScene.background(data.background),
       hostId: player.id, players: [player], state: 'LOBBY', result: null,
       radius: radiusValue(data.radius),
@@ -456,6 +457,7 @@ async function route(action, data, authId) {
     const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
     if (!lobby) fail(404, 'Lobby nicht gefunden.');
     if(lobby.closing)fail(409,'Diese Lobby wird gerade geschlossen.');
+    if(lobby.testMode&&lobby.testOwnerAuthId!==authId)fail(403,'Diese Lobby ist ein isolierter Admin-Test.');
 
     // A known authenticated participant may rejoin every running phase.
     // New players are still restricted to the waiting lobby.
@@ -470,8 +472,8 @@ async function route(action, data, authId) {
       existing.vehicle = clean(data.vehicle, 70) || existing.vehicle;
       existing.color = clean(data.color, 30) || existing.color;
       existing.bodyType = clean(data.bodyType, 30) || existing.bodyType || '';
-      existing.photoUrl = safePhotoUrl(data.photoUrl) || existing.photoUrl || '';
-      existing.avatarUrl = safePhotoUrl(data.avatarUrl) || existing.avatarUrl || '';
+      if(data.photoUrl!==undefined)existing.photoUrl=safePhotoUrl(data.photoUrl)||'';
+      if(data.avatarUrl!==undefined)existing.avatarUrl=safePhotoUrl(data.avatarUrl)||'';
       if (Number.isFinite(number(data.characterStyle))) {
         existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle))));
       }
@@ -486,7 +488,7 @@ async function route(action, data, authId) {
 
     if (lobby.state !== 'LOBBY') fail(409, 'Diese Runde hat bereits begonnen.');
     if (lobby.players.some(p=>blocked(authId,p.authId)))fail(403,'Beitritt wegen Blockierung nicht möglich.');
-    if (lobby.players.length >= MAX_PLAYERS) fail(409, 'Lobby ist voll.');
+    if (lobby.players.length >= (lobby.maxPlayers||MAX_PLAYERS)) fail(409, 'Lobby ist voll.');
     const player = newPlayer(data, authId);
     if (lobby.visibility === 'PUBLIC') {
       const location = parsePosition(data, LOBBY_MAX_ACCURACY_M);
@@ -550,6 +552,8 @@ async function route(action, data, authId) {
         fail(400, `Ungültiger Wert für ${key} (${min}–${max}).`);
       values[key] = data[key];
     }
+    if(lobby.testMode&&data.visibility!=='PRIVATE')fail(409,'Admin-Tests bleiben privat.');
+    if(data.maxPlayers!==undefined){if(!Number.isInteger(data.maxPlayers)||data.maxPlayers<Math.max(2,lobby.players.length)||data.maxPlayers>20)fail(400,'Spielerlimit muss zwischen aktueller Belegung und 20 liegen.');values.maxPlayers=data.maxPlayers;}
     if (data.visibility === 'PUBLIC' && !lobby.origin) fail(409, 'Für öffentliche Lobbys muss zuerst der GPS-Mittelpunkt feststehen.');
     if (typeof data.replaceSeekers === 'boolean') values.replaceSeekers = data.replaceSeekers;
     const changed = lobby.name !== name || lobby.visibility !== data.visibility || Object.keys(values).some(key => lobby[key] !== values[key]);
@@ -750,8 +754,8 @@ async function handler(req, res) {
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         send(res,200,documents());return;
       }
-      if(['account-status','legal-accept','onboarding','personal-stats','client-error','admin-players','admin-ban','admin-audit','admin-reports','admin-report-update','admin-role','admin-stats','admin-lobbies','admin-lobby-close'].includes(action)) {
-        const method=['legal-accept','onboarding','client-error','admin-ban','admin-report-update','admin-role','admin-lobby-close'].includes(action)?'POST':'GET';
+      if(['account-status','legal-accept','onboarding','personal-stats','client-error','admin-players','admin-ban','admin-audit','admin-reports','admin-report-update','admin-role','admin-stats','admin-lobbies','admin-lobby-close','admin-test'].includes(action)) {
+        const method=['legal-accept','onboarding','client-error','admin-ban','admin-report-update','admin-role','admin-lobby-close','admin-test'].includes(action)?'POST':'GET';
         if(req.method!==method)fail(405,'Methode nicht erlaubt.');
         const authId=await verifyAuth(req,action.startsWith('admin-'));
         rateLimit(authId,action);
@@ -777,6 +781,7 @@ async function handler(req, res) {
           response={...stats,live_players:[...lobbies.values()].reduce((sum,l)=>sum+l.players.filter(p=>!p.left&&now-p.lastSeen<30000).length,0),active_matches:[...lobbies.values()].filter(l=>round.playing(l)).length,public_lobbies:[...lobbies.values()].filter(l=>l.visibility==='PUBLIC'&&l.state==='LOBBY').length,private_lobbies:[...lobbies.values()].filter(l=>l.visibility==='PRIVATE'&&l.state==='LOBBY').length};
         }
         if(action==='admin-lobbies'){await accounts.requirePermission(authId,'lobbies');const summaries=[...lobbies.values()].map(l=>moderation.lobbySummary(l));const regions=await accounts.coarseRegions(summaries.flatMap(l=>l.participants.map(p=>p.profileId)));for(const l of summaries)for(const p of l.participants){const r=regions.find(r=>r.user_id===p.profileId);p.region=r?{country:r.country,region:r.region,source:'optional_self_report'}:null;}response={lobbies:summaries};}
+        if(action==='admin-test'){const role=await accounts.requirePermission(authId,'lab');const {lobby,me}=getSession(data,authId);response=adminLab.operate(lobby,me,data.command,role,Date.now(),data.testRole||'SEEKER');await persist();}
         if(action==='admin-lobby-close')response=await closeLobby(authId,data);
         if(action==='admin-ban'){
           response=await accounts.ban(authId,data);
@@ -798,7 +803,7 @@ async function handler(req, res) {
       if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route','activity','checkpoint','kick','abort-vote','rejoin-lookup','debug','block','report'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state','lobby-info','invites','meetup-route','rejoin-lookup','debug'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
-      await accounts.requireAccess(authId,{consent:action!=='leave',cached:['state','location','activity'].includes(action),onboarding:action!=='leave'});
+      const account=await accounts.requireAccess(authId,{consent:action!=='leave',cached:['state','location','activity'].includes(action),onboarding:action!=='leave'});
       void accounts.markActive(authId).catch(()=>monitor.record('BACKEND','ACTIVITY_WRITE_FAILED'));
       const data = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readBody(req);
       // URL coordinates are strings by transport; POST payloads remain strictly typed.
@@ -806,6 +811,7 @@ async function handler(req, res) {
         if(typeof data[key]==='string' && data[key].trim())data[key]=Number(data[key]);
       }
       const response=await route(action,data,authId);
+      if(response.lobby)response.adminTestAvailable=account.permissions?.includes('lab')&&response.lobby.hostId===response.lobby.me?.id;
       if(response.reward)await accounts.attest(authId,response.reward);
       if(req.method==='POST' && !['location','activity'].includes(action))await persist();
       send(res,200,response);
@@ -816,14 +822,14 @@ async function handler(req, res) {
       const legal=documents(),escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       const kind=url.pathname.split('/').pop(),title={terms:'Nutzungsbedingungen und Sicherheit',privacy:'Datenschutzhinweise',imprint:'Impressum'}[kind];
       const sections=kind==='imprint'?[['Anbieter',legal.operator.name],['Anschrift',legal.operator.address||'Noch nicht eingetragen'],['Kontakt',legal.operator.email||'Noch nicht eingetragen']]:legal[kind==='terms'?'terms':'privacy'];
-      const html=`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · CAR HIDE & SEEK</title><link rel="stylesheet" href="/account-ui.css"><main class="legalDocument"><a href="/">Zur App</a><nav><a href="/legal/terms">Nutzungsbedingungen</a> · <a href="/legal/privacy">Datenschutz</a> · <a href="/legal/imprint">Impressum</a></nav><h1>${title}</h1><p>Fassung ${escape(legal.version)}</p>${legal.ready?'':'<p role="status">Entwurf · Betreiberangaben und rechtliche Prüfung noch offen. Noch nicht zur Zustimmung freigegeben.</p>'}${sections.map(([heading,text])=>`<section><h2>${escape(heading)}</h2><p>${escape(text)}</p></section>`).join('')}</main></html>`;
+      const html=`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · CAR HIDE & SEEK</title><link rel="stylesheet" href="/account-ui.css"><main class="legalDocument"><a href="/">Zur App</a><nav><a href="/legal/terms">Nutzungsbedingungen</a> · <a href="/legal/privacy">Datenschutz</a> · <a href="/legal/imprint">Impressum</a></nav><h1>${title}</h1><p>Fassung ${escape(legal.version)}</p>${legal.ready?'':legal.betaAccess?'<p role="status">Vorläufiger Beta-Test · Betreiberangaben und rechtliche Prüfung noch offen. Die Bestätigung dieser Hinweise ist keine rechtliche Freigabe der App.</p>':'<p role="status">Entwurf · Betreiberangaben und rechtliche Prüfung noch offen. Noch nicht zur Zustimmung freigegeben.</p>'}${sections.map(([heading,text])=>`<section><h2>${escape(heading)}</h2><p>${escape(text)}</p></section>`).join('')}</main></html>`;
       res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:html);return;
     }
     const requestPath = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
-    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
+    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
