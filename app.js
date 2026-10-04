@@ -48,6 +48,7 @@ let garageSyncBusy = false;
 const legacyCutoutAttempts = new Set();
 let connectionLost = false;
 let rejoinBusy = false;
+let sessionEpoch = 0;
 let gpsPhase = '';
 let lastGpsRequestAt = 0;
 let achievementCatalog = [];
@@ -767,6 +768,12 @@ async function loadAchievements() {
   }
 }
 
+function achievementProgressMarkup(id,unlocked){
+ const field={FIRST_GAME:'rounds_played',FIRST_FIND:'finds',HIDE_MASTER:'survived_rounds'}[id];
+ if(!field)return '<small>'+ (unlocked?'Erreicht':'Bedingung noch nicht erreicht')+'</small>';
+ const progress=Math.min(1,Math.max(0,Number(dbProfile?.[field])||0));
+ return '<span class="badgeProgress"><progress max="1" value="'+progress+'" aria-label="Fortschritt"></progress><span>'+progress+' / 1</span></span>';
+}
 function renderAchievements() {
   const grid = document.getElementById('achievementGrid');
   if (!grid || !achievementCatalog.length) return;
@@ -781,10 +788,11 @@ function renderAchievements() {
     const unlocked = achievementUnlocked.has(item.id);
     return `
       <button type="button" data-achievement="${esc(item.id)}" class="achievementBadge ${unlocked ? 'isUnlocked' : 'isLocked'}">
-        <div class="achievementIcon" aria-hidden="true">${typeof appIcon==='function'?appIcon(unlocked?({FIRST_GAME:'star',FIRST_FIND:'target',HIDE_MASTER:'shield'}[item.id]||'star'):'lock'):(unlocked?esc(icons[item.id]||'★'):'🔒')}</div>
+        <div class="achievementIcon" aria-hidden="true">${typeof appIcon==='function'?appIcon({FIRST_GAME:'star',FIRST_FIND:'target',HIDE_MASTER:'shield'}[item.id]||'star'):(unlocked?esc(icons[item.id]||'★'):'🔒')}</div>
         <div>
           <strong>${esc(item.name)}</strong>
           <p>${esc(item.description)}</p>
+          ${achievementProgressMarkup(item.id,unlocked)}
           <small>${unlocked ? 'FREIGESCHALTET' : '+' + Number(item.xp_reward || 0) + ' XP'}</small>
         </div>
       </button>
@@ -887,11 +895,12 @@ async function initializeAuth() {
     await loadAchievements();
     await migrateLegacyProfileAvatar();
     await loadCloudGarage();
-
+    if(gameSession&&hasPendingLeave(gameSession.code))resetGame();
+    await flushPendingLeaves();
 
     if (!gameSession) {
       try { const recovered=await api('rejoin-lookup',{},'GET');
-        if(recovered.code){gameSession={code:recovered.code,userId:recovered.userId};localStorage.setItem('chs',JSON.stringify(gameSession));}
+        if(recovered.code&&!hasPendingLeave(recovered.code)){gameSession={code:recovered.code,userId:recovered.userId};localStorage.setItem('chs',JSON.stringify(gameSession));}
       }catch(error){console.error('Rundensuche:',error.message);}
     }
     if (gameSession) {
@@ -1554,6 +1563,8 @@ async function join(codeOverride) {
 
 
   try {
+    await flushPendingLeaves();
+    if(hasPendingLeave(lobbyCode))throw new Error('Das Verlassen wird noch synchronisiert. Bitte erneut versuchen, sobald du verbunden bist.');
     const info = await api('lobby-info', { code: lobbyCode }, 'GET');
     const location = info.visibility === 'PUBLIC' ? await currentPosition() : {};
     const result =
@@ -1582,6 +1593,7 @@ async function join(codeOverride) {
 
 
 function saveGameSession(result) {
+  sessionEpoch += 1;
   gameSession = {
     code:
       result.lobby.code,
@@ -1639,6 +1651,7 @@ function hideRejoin() {
 
 async function rejoinGame() {
   if (rejoinBusy || !gameSession || !authSession?.user) return;
+  const epoch = sessionEpoch, credentials = gameCredentials();
   rejoinBusy = true;
   const banner = ensureRejoinBanner();
   const button = banner.querySelector('[data-rejoin]');
@@ -1646,7 +1659,9 @@ async function rejoinGame() {
 
   try {
     try {
-      state = await api('state', gameCredentials(), 'GET');
+      const nextState = await api('state', credentials, 'GET');
+      if(epoch!==sessionEpoch||!gameSession)return;
+      state = nextState;
       hideRejoin();
       openPage('game');
       renderGame();
@@ -1654,15 +1669,19 @@ async function rejoinGame() {
       toast('Wieder verbunden ✓');
       return;
     } catch (stateError) {
+      if(epoch!==sessionEpoch||!gameSession)return;
       // A server-side player session can be recreated by authenticated identity.
-      let payload = { ...playerData(), code: gameSession.code };
+      let payload = { ...playerData(), code: gameSession.code, rejoin:true };
       try {
         const result = await api('join', payload);
+        if(epoch!==sessionEpoch||!gameSession)return;
         saveGameSession(result);
       } catch (joinError) {
         if (/GPS|Position|Standort/i.test(joinError.message || '')) {
           payload = { ...payload, ...(await currentPosition()) };
+          if(epoch!==sessionEpoch||!gameSession)return;
           const result = await api('join', payload);
+          if(epoch!==sessionEpoch||!gameSession)return;
           saveGameSession(result);
         } else {
           throw joinError;
@@ -1674,6 +1693,7 @@ async function rejoinGame() {
       toast('Wieder in der Runde ✓');
     }
   } catch (error) {
+    if(epoch!==sessionEpoch||!gameSession)return;
     showRejoin(error.status === 404
       ? 'Die Runde ist auf dem Server nicht mehr vorhanden. Du kannst es erneut versuchen oder die Lobby bewusst verlassen.'
       : 'Rejoin fehlgeschlagen. Deine lokale Session bleibt gespeichert.');
@@ -1694,6 +1714,7 @@ function showGame() {
 
 async function poll() {
   clearTimeout(pollTimer);
+  const epoch = sessionEpoch;
 
 
   if (!gameSession) {
@@ -1702,19 +1723,21 @@ async function poll() {
 
 
   try {
-    state =
+    const nextState =
       await api(
         'state',
         gameCredentials(),
         'GET'
       );
-
+    if(epoch!==sessionEpoch||!gameSession)return;
+    state = nextState;
     lobbyMissingPolls = 0;
     hideRejoin();
     renderGame();
   }
 
   catch (error) {
+    if(epoch!==sessionEpoch||!gameSession)return;
     console.error(error);
 
     if (['ACCOUNT_BANNED','LEGAL_REQUIRED'].includes(error.data?.code)) return;
@@ -1740,6 +1763,7 @@ async function poll() {
   }
 
 
+  if(epoch!==sessionEpoch||!gameSession)return;
   const pollDelay =
     state?.lobby?.state === 'LOBBY'
       ? 3000
@@ -2377,30 +2401,34 @@ async function rematch() {
 
 
 let leaveBusy = false;
+let leaveRetryTimer = null;
+function pendingLeaves(){try{const rows=JSON.parse(localStorage.getItem('chsPendingLeaves')||'[]');return Array.isArray(rows)?rows.filter(p=>p&&typeof p.code==='string'&&typeof p.userId==='string'&&typeof p.authId==='string'):[];}catch{return [];}}
+function hasPendingLeave(code){return pendingLeaves().some(p=>p.authId===authSession?.user?.id&&p.code===code);}
+async function flushPendingLeaves(){
+  if(leaveBusy||!authSession?.user)return;
+  leaveBusy=true;clearTimeout(leaveRetryTimer);
+  try{for(const entry of pendingLeaves().filter(p=>p.authId===authSession.user.id)){
+    try{await api('leave',{code:entry.code,userId:entry.userId},'POST',AbortSignal.timeout(10000));}
+    catch(error){if(![403,404].includes(error.status))continue;}
+    localStorage.setItem('chsPendingLeaves',JSON.stringify(pendingLeaves().filter(p=>!(p.authId===entry.authId&&p.code===entry.code&&p.userId===entry.userId))));
+  }}finally{leaveBusy=false;if(pendingLeaves().some(p=>p.authId===authSession?.user?.id))leaveRetryTimer=setTimeout(flushPendingLeaves,5000);}
+}
+if(typeof window!=='undefined')window.addEventListener('online',()=>void flushPendingLeaves());
 
 async function leave() {
-  if (leaveBusy || !gameSession) return;
-  leaveBusy = true;
-
-  const credentials = gameCredentials();
-
-  /*
-    Die Lobby wird lokal sofort verlassen. So fühlt sich das X auch bei
-    langsamer Mobilfunk-/Render-Verbindung unmittelbar an. Der Server wird
-    danach im Hintergrund aufgeräumt.
-  */
+  if (!gameSession) return;
+  const entry={...gameCredentials(),authId:authSession?.user?.id};
+  const entries=pendingLeaves().filter(p=>!(p.authId===entry.authId&&p.code===entry.code));
+  localStorage.setItem('chsPendingLeaves',JSON.stringify([...entries,entry]));
   resetGame();
-  leaveBusy = false;
-
-  try {
-    await api('leave', credentials);
-  } catch (error) {
-    console.error('Lobby konnte serverseitig nicht sofort verlassen werden:', error);
-  }
+  await flushPendingLeaves();
 }
 
 
 function resetGame() {
+  sessionEpoch += 1;
+  window.communityUI?.cancelIdentitySync?.();
+  document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
   const inviteDialog = document.getElementById('lobbyInviteDialog');
   const settingsDialog = document.getElementById('freshSettingsDialog');
   if (inviteDialog?.open) inviteDialog.close();
@@ -2641,7 +2669,7 @@ function renderLobbySettings() {
   if (settings) fillLobbySettings();
 
   const key = `${lobby.code}:${settings?.revision || 0}:${lobby.hostId}`;
-  if (lobbySettingsKey && lobbySettingsKey !== key && dialog.open) {
+  if (lobbySettingsKey && lobbySettingsKey !== key && dialog.open && !lobbySettingsSaving) {
     dialog.close();
     toast('Lobby-Einstellungen aktualisiert.');
   }
@@ -2715,6 +2743,7 @@ async function saveFreshLobbySettings() {
   } finally {
     lobbySettingsSaving = false;
     if (button) button.disabled = false;
+    window.mobileDesign?.syncSettings();
   }
 }
 
@@ -3212,7 +3241,13 @@ function openProfileEditor() {
         if (authSession?.user?.id !== userId) return;
         // Keep an already running lobby profile in sync without leaving the game.
         if (gameSession) {
-          try { await api('join', { ...playerData(), code: gameSession.code }); }
+          const currentSession={...gameSession};
+          try {
+            await api('identity', { ...playerData(), ...currentSession });
+            if(gameSession?.userId===currentSession.userId&&state?.lobby?.hostId===currentSession.userId&&state?.lobby?.state==='LOBBY'&&state.lobby.background!==background){
+              await api('background',{...currentSession,background});await poll();
+            }
+          }
           catch (syncError) { console.error('Lobby-Profil konnte nicht sofort aktualisiert werden:', syncError); }
         }
 
@@ -3657,7 +3692,7 @@ function parkingLayout(players) {
 }
 function parkingAvatarMarkup(player) {
   const source=profileImageSource(player?.avatarUrl);
-  return source ? '<img src="'+esc(source)+'" alt="" loading="lazy" decoding="async">' : esc(initials(player?.name || 'Spieler'));
+  return source ? '<img src="'+esc(source)+'" alt="" loading="lazy" decoding="async">' : player?.vehicle||player?.photoUrl ? '<span class="vehicleAvatar">'+lobbyCarMarkup(player,false,'avatar')+'</span>' : esc(initials(player?.name || 'Spieler'));
 }
 function parkingStatus(player) {
   return !player.connected?'Verbindung…':player.ready?'Bereit':'Wartet';
@@ -3671,7 +3706,7 @@ function parkingPlayerMarkup(player,lobby,slot) {
     +'<div class="parkingVehicleStage"><span class="parkingContactShadow" aria-hidden="true"></span>'+lobbyCarMarkup(player,mine)+lobbyCharacterMarkup(player)+'</div></article>';
 }
 function parkingLobbyMarkup(lobby,hostPlayer,others) {
-  const lead=lobby.players.find(p=>p.id===lobby.me.id)||hostPlayer;
+  const lead=hostPlayer||lobby.players.find(p=>p.id===lobby.me.id);
   const layout=parkingLayout(lobby.players.filter(p=>p.id!==lead?.id));
   const ordered=hostPlayer?[hostPlayer,...others]:lobby.players;
   const waiting=ordered.filter(player=>!player.ready||!player.connected);
@@ -3737,6 +3772,8 @@ function renderFreshLobby() {
   const crew=document.getElementById('players');
   crew.dataset.formation=lobby.players.length===1?'solo':lobby.players.length===2?'pair':'crew';
   crew.dataset.background=lobbyScene.background(lobby.background);
+  game.dataset.background=crew.dataset.background;
+  game.style?.setProperty('--lobby-background','url("'+lobbyScene.backgrounds.find(b=>b.id===crew.dataset.background).image+'")');
   const sameLobby=crew.dataset.lobbyCode===lobby.code;
   if(!sameLobby){crew.dataset.lobbyCode=lobby.code;delete crew.dataset.selectedPlayer;}
   const renderPlayer=player=>{
@@ -3798,5 +3835,5 @@ async function changeLobbyBackground(event) {
     await poll();
     toast('Hintergrund für die Crew geändert.');
   } catch(error) { toast(error.message); }
-  finally { field.disabled=false;fillLobbySettings(); }
+  finally { field.disabled=false;fillLobbySettings();window.mobileDesign?.syncSettings(); }
 }

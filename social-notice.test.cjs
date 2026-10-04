@@ -7,6 +7,8 @@ function fixture(rpc){
   const make=()=>({dataset:{},setAttribute(){},addEventListener(){},remove(){nodes.delete(this.id);}});
   const friends={classList:{contains:()=>false}},list={textContent:''};
   const context=vm.createContext({authSession:{user:{id:'account-a'}},supabaseClient:{rpc},socialAction(){},
+    vehiclePhotoUrl:path=>'https://storage.example/'+path,
+    parkingAvatarMarkup:player=>'<span data-vehicle="'+String(player.vehicle).replace(/"/g,'&quot;')+'">'+player.color+'</span>',
     $:selector=>selector==='#friends'?friends:list,
     document:{getElementById:id=>nodes.get(id),createElement:make,body:{append(node){nodes.set(node.id,node);}}},
     profileImageSource:value=>typeof value==='string'&&value.startsWith('https://')?value:'',
@@ -46,4 +48,14 @@ test('notification counts combine only incoming requests and received unread mes
 test('request avatars accept safe image URLs and always escape names and identifiers',async()=>{
  const f=fixture(async()=>({data:[{username:'Lea <script>',request_id:'r"1',incoming:true,status:'pending',avatar_url:'https://example.com/avatar.webp'},{username:'Ben',request_id:'r2',incoming:true,status:'pending',avatar_url:'javascript:alert(1)'}]}));await f.load();const html=f.nodes.get('incomingFriendNotice').innerHTML;
  assert.match(html,/avatar\.webp/);assert.match(html,/Lea &lt;script&gt;/);assert.match(html,/r&quot;1/);assert.doesNotMatch(html,/javascript:|<script>/);
+});
+
+test('crew uses the shared active garage vehicle only when no profile photo exists',()=>{
+ const f=fixture(async()=>({data:[],error:null}));
+ f.context.row={username:'Ben',active_vehicle:{brand:'BMW',model:'328i',body_type:'Coupé',color:'Violett'}};
+ assert.match(vm.runInContext('socialAvatarMarkup(row)',f.context),/BMW 328i/);
+ f.context.row.avatar_url='https://example.com/profile.webp';
+ const avatar=vm.runInContext('socialAvatarMarkup(row)',f.context);assert.match(avatar,/profile.webp/);assert.doesNotMatch(avatar,/data-vehicle/);
+ delete f.context.row.avatar_url;delete f.context.row.active_vehicle;
+ assert.match(vm.runInContext('socialAvatarMarkup(row)',f.context),/BE/);
 });

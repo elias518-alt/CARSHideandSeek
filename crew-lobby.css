@@ -2,7 +2,7 @@
 .vehicleRender--template{background:none;aspect-ratio:384/280;border-radius:0;}
 .vehicleRender--template svg{display:block;width:100%;height:100%;overflow:hidden;}
 #game.freshLobby.active.freshWaiting{
-  --chs-lime:#b5ff32;--chs-lime-2:#93e817;--orange:#b5ff32;--orange2:#93e817;
+  --chs-lime:#ff5a12;--chs-lime-2:#ff7a21;--orange:#ff5a12;--orange2:#ff7a21;
   background:#0b1018; padding-bottom:110px;
 }
 #game.freshWaiting .freshCrewBoard{margin:14px 0 22px;overflow:visible;}
@@ -55,8 +55,8 @@
 .parkingHostBadge{font-size:10px;color:var(--chs-lime);white-space:nowrap;}
 .parkingYouBadge{font-size:8px;color:#bac5d6;}
 .parkingReadyDot{display:block;flex:none;width:7px;height:7px;border-radius:50%;background:#a4adba;}
-.isReady .parkingReadyDot{background:var(--chs-lime);box-shadow:0 0 7px #b5ff3233;}
-.parkingPlayer.isHost .parkingNameplate{top:12px;min-height:35px;border-color:#b5ff3280;font-size:14px;}
+.isReady .parkingReadyDot{background:var(--chs-lime);box-shadow:0 0 7px #ff5a1233;}
+.parkingPlayer.isHost .parkingNameplate{top:12px;min-height:35px;border-color:#ff5a1280;font-size:14px;}
 .parkingPlayer.isSelected .parkingNameplate{outline:2px solid var(--chs-lime);outline-offset:3px;}
 .parkingVehicleStage .vehicleIllustration{
   position:absolute;left:50%;bottom:0;width:100%;margin:0;
@@ -104,7 +104,7 @@
   min-width:0;min-height:93px;padding:7px 3px;border:1px solid #ffffff20;
   border-radius:10px;background:#141c28;color:#fff;font-size:10px;
 }
-.parkingCrewMember.isHost{border-color:#b5ff3270;}
+.parkingCrewMember.isHost{border-color:#ff5a1270;}
 .parkingCrewMember[aria-pressed="true"]{background:#263425;border-color:var(--chs-lime);}
 .parkingCrewMember strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
 .parkingCrewMember small{font-size:9px;color:#acb7c7;}
@@ -113,10 +113,10 @@
 .parkingStripAvatar{display:grid;place-items:center;width:38px;height:38px;
   border:1px solid #c1cbdc;border-radius:50%;overflow:hidden;background:#283347;font-size:12px;}
 .parkingInvite{width:calc(100% - 20px);margin:0 10px 12px;min-height:42px;background:#1a2632;
-  color:var(--chs-lime);border:1px dashed #b5ff3270;border-radius:10px;font-size:12px;}
-#game.freshWaiting #start{border-color:#b5ff3266!important;}
-#game.freshWaiting #ready{border-color:#b5ff3266!important;box-shadow:none!important;}
-#game.freshWaiting .freshPlayerCard.isReady .freshPlayerStatus{border-color:#b5ff3270!important;background:#b5ff3214!important;}
+  color:var(--chs-lime);border:1px dashed #ff5a1270;border-radius:10px;font-size:12px;}
+#game.freshWaiting #start{border-color:#ff5a1266!important;}
+#game.freshWaiting #ready{border-color:#ff5a1266!important;box-shadow:none!important;}
+#game.freshWaiting .freshPlayerCard.isReady .freshPlayerStatus{border-color:#ff5a1270!important;background:#ff5a1214!important;}
 #game.freshWaiting .freshRoomHeader{margin:10px 0;background:#101822!important;}
 #game.freshWaiting .freshRoomHeader .sectionEyebrow,
 #game.freshWaiting .freshRoomHeader .gameStats{display:none;}
@@ -126,7 +126,7 @@
 #game.freshWaiting .codeBox>div>span{font-size:7px;letter-spacing:.03em;}
 #game.freshWaiting .codeBox strong{font-size:12px;letter-spacing:.14em;}
 #game.freshWaiting .freshCopyButton{font-size:8px;min-height:32px;padding:6px;background:#26332a!important;color:var(--chs-lime);}
-#game.freshWaiting .freshRoomLabel i,#game.freshWaiting .freshLiveDot{box-shadow:0 0 12px #b5ff3244!important;}
+#game.freshWaiting .freshRoomLabel i,#game.freshWaiting .freshLiveDot{box-shadow:0 0 12px #ff5a1244!important;}
 @media(min-width:760px){
   #game.freshWaiting .freshCrewBoard{max-width:760px;margin:18px auto 24px;}
   .parkingViewport{height:570px;}
@@ -195,9 +195,9 @@
 .lobbyBackgroundChoice select{width:100%;}
 @media(min-width:760px){#game.freshWaiting #players[data-formation="solo"] .freshCrewLead{top:170px;}#players[data-formation="pair"] .parkingPlayer{height:230px;}#players[data-formation="pair"] .parkingPlayer .lobbyCrewCharacter{height:184px;width:122.67px;}}
 
-.friendRequestNotice{position:fixed;z-index:140;left:50%;bottom:90px;transform:translateX(-50%);width:min(92vw,420px);max-height:30vh;overflow:auto;padding:12px;border:1px solid #b5ff3266;border-radius:14px;background:#101925f5;box-shadow:0 8px 30px #0009;color:white;font-size:13px;}
+.friendRequestNotice{position:fixed;z-index:140;left:50%;bottom:90px;transform:translateX(-50%);width:min(92vw,420px);max-height:30vh;overflow:auto;padding:12px;border:1px solid #ff5a1266;border-radius:14px;background:#101925f5;box-shadow:0 8px 30px #0009;color:white;font-size:13px;}
 .friendRequestNotice>div+div{border-top:1px solid #ffffff22;margin-top:12px;padding-top:12px;}
-.friendRequestNotice button{margin:8px 8px 0 0;padding:8px 12px;border-radius:8px;background:#b5ff32;color:#121b0b;}
+.friendRequestNotice button{margin:8px 8px 0 0;padding:8px 12px;border-radius:8px;background:#ff5a12;color:#121b0b;}
 .friendRequestNotice button[data-decline]{background:#293649;color:white;}
-.mapMeetup{background:#b5ff32;color:#132007;border:3px solid white;border-radius:50%;font-size:22px;line-height:32px;width:38px;height:38px;text-align:center;box-shadow:0 3px 12px #0008;}
+.mapMeetup{background:#ff5a12;color:#132007;border:3px solid white;border-radius:50%;font-size:22px;line-height:32px;width:38px;height:38px;text-align:center;box-shadow:0 3px 12px #0008;}
 .mapMeetup.isStale{opacity:.55;}

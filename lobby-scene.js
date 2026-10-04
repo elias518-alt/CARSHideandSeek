@@ -5,7 +5,7 @@
   else root.lobbyScene = scene;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   const backgrounds = Object.freeze([
-    { id: 'violet', name: 'Violettes Parkdeck', image: 'assets/lobby-meetup.webp' },
+    { id: 'violet', name: 'Violettes Parkdeck', image: 'assets/lobby-rooftop-violet.webp' },
     { id: 'wet', name: 'Nasses Parkdeck', image: 'assets/lobby-meetup.webp' },
     { id: 'garage', name: 'Neon-Halle', image: 'lobby-bg.png' }
   ]);

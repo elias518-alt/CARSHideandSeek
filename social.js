@@ -214,8 +214,11 @@ async function loadFriends() {
 
 function friendDisplayName(row) { return row.username?.trim() || row.player_tag || 'Spieler'; }
 function socialAvatarMarkup(row){
- const name=friendDisplayName(row),src=profileImageSource(row.avatar_url);
- return '<span class="socialAvatar" aria-hidden="true">'+(src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">':'<span>'+esc(name.slice(0,2).toUpperCase())+'</span>')+'</span>';
+ const name=friendDisplayName(row),v=row.active_vehicle;
+ const player={name,avatarUrl:row.avatar_url,vehicle:v?[v.brand,v.model].filter(Boolean).join(' '):'',bodyType:v?.body_type,color:v?.color,photoUrl:v?.photo_path?vehiclePhotoUrl(v.photo_path):v?.photoUrl};
+ const src=profileImageSource(row.avatar_url);
+ const content=src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async">':v?parkingAvatarMarkup(player):'<span>'+esc(name.slice(0,2).toUpperCase())+'</span>';
+ return '<span class="socialAvatar" aria-hidden="true">'+content+'</span>';
 }
 function socialCounts(rows=socialRows){return {requests:rows.filter(r=>r.status==='pending'&&r.incoming).length,messages:rows.filter(r=>r.status==='accepted').reduce((sum,r)=>sum+Math.max(0,Math.trunc(Number(r.unread_count)||0)),0)};}
 function renderSocialBadges(){
@@ -446,7 +449,7 @@ function renderIncomingLobbyInvite(invites) {
   incomingInviteSignature = signature;
   card.hidden = false;
   card.innerHTML = `
-    ${socialAvatarMarkup({username:invite.fromName,avatar_url:invite.fromAvatarUrl})}
+    ${socialAvatarMarkup({username:invite.fromName,avatar_url:invite.fromAvatarUrl,active_vehicle:invite.fromVehicle})}
     <div class="incomingInviteText">
       <span>LOBBY-EINLADUNG</span>
       <strong>${esc(invite.fromName)} lädt dich ein</strong>

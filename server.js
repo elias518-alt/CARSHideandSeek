@@ -400,8 +400,9 @@ async function route(action, data, authId) {
       .slice(0, 10)
       .map(invite => {
         const lobby = lobbies.get(invite.code);
+        const sender=lobby?.players.find(p=>p.authId===invite.fromAuthId);
         return {
-          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName, fromAvatarUrl:invite.fromAvatarUrl||'',fromOnline:!!lobby?.players.some(p=>p.authId===invite.fromAuthId&&now-p.lastSeen<30000),
+          id: invite.id, code: invite.code, lobbyName: invite.lobbyName, fromName: invite.fromName, fromAvatarUrl:sender?.avatarUrl||invite.fromAvatarUrl||'',fromVehicle:sender?{model:sender.vehicle,body_type:sender.bodyType,color:sender.color,photoUrl:sender.photoUrl}:invite.fromVehicle,fromOnline:!!lobby?.players.some(p=>p.authId===invite.fromAuthId&&now-p.lastSeen<30000),
           createdAt: invite.createdAt, expiresAt: invite.expiresAt, players: lobby?.players.length || 0, maxPlayers: lobby.maxPlayers||MAX_PLAYERS
         };
       });
@@ -428,7 +429,7 @@ async function route(action, data, authId) {
       if (invite.targetAuthId === targetAuthId && invite.code === lobby.code) lobbyInvites.delete(id);
     }
     const invite = {
-      id: crypto.randomUUID(), targetAuthId, fromAuthId: authId, fromName: me.name,fromAvatarUrl:me.avatarUrl,
+      id: crypto.randomUUID(), targetAuthId, fromAuthId: authId, fromName: me.name,fromAvatarUrl:me.avatarUrl,fromVehicle:{model:me.vehicle,body_type:me.bodyType,color:me.color,photoUrl:me.photoUrl},
       code: lobby.code, lobbyName: lobby.name, createdAt: now, expiresAt: now + 10 * 60 * 1000
     };
     lobbyInvites.set(invite.id, invite);
@@ -453,10 +454,11 @@ async function route(action, data, authId) {
     lobbies.set(lobby.code, lobby);
     return { userId: player.id, lobby: resultState(lobby, player).lobby };
   }
-  if (action === 'join') {
+  if (action === 'join' || action === 'identity') {
     const lobby = lobbies.get(clean(data.code, 5).toUpperCase());
     if (!lobby) fail(404, 'Lobby nicht gefunden.');
     if(lobby.closing)fail(409,'Diese Lobby wird gerade geschlossen.');
+    if(data.rejoin&&(lobby.departedAuthIds||[]).includes(authId))fail(409,'Du hast diese Lobby bewusst verlassen.');
     if(lobby.testMode&&lobby.testOwnerAuthId!==authId)fail(403,'Diese Lobby ist ein isolierter Admin-Test.');
 
     // A known authenticated participant may rejoin every running phase.
@@ -465,6 +467,7 @@ async function route(action, data, authId) {
     if((lobby.kickedAuthIds||[]).includes(authId))fail(403,'Du wurdest aus dieser Lobby entfernt.');
     if(lobby.players.some(p=>p.authId!==authId&&blocked(authId,p.authId)))fail(403,'Beitritt wegen Blockierung nicht möglich.');
     const existing = lobby.players.find(p => p.authId === authId);
+    if(action==='identity'&&(!existing||existing.left||existing.id!==data.userId))fail(404,'Session nicht gefunden.');
     if (existing) {
       if (existing.left) fail(409,'Du hast diese Runde verlassen. Ein erneuter Einstieg ist erst nach dem Rematch möglich.');
       if(data.mode==='PASSENGER' && existing.mode==='DRIVER' && round.driverBlocked(existing))fail(409,'Für einen Rollenwechsel erst sicher anhalten und GPS bestätigen lassen.');
@@ -496,6 +499,7 @@ async function route(action, data, authId) {
       player.location = { ...location, at: now };
     }
     lobby.players.push(player);
+    lobby.departedAuthIds=(lobby.departedAuthIds||[]).filter(id=>id!==authId);
     clearLobbyInvitesFor(authId, lobby.code);
     return { userId: player.id, lobby: resultState(lobby, player).lobby };
   }
@@ -659,6 +663,7 @@ async function route(action, data, authId) {
     return { ok: true };
   }
   if (action === 'leave') {
+    lobby.departedAuthIds=[...new Set([...(lobby.departedAuthIds||[]),authId])];
     if (round.playing(lobby)) { round.eliminate(lobby,me,'LEFT',now); me.left=true; updateGame(lobby,now); return {ok:true}; }
     lobby.players = lobby.players.filter(p => p.id !== me.id);
     if (!lobby.players.length) { lobbies.delete(lobby.code); clearLobbyInvitesForCode(lobby.code); }
@@ -800,7 +805,7 @@ async function handler(req, res) {
         return;
       }
 
-      if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route','activity','checkpoint','kick','abort-vote','rejoin-lookup','debug','block','report'].includes(action)) fail(404, 'Unbekannte Funktion.');
+      if (!['public','lobby-info','invites','invite','invite-dismiss','create','join','identity','state','location','ready','start','found','rematch','leave','chat','settings','background','meetup-route','activity','checkpoint','kick','abort-vote','rejoin-lookup','debug','block','report'].includes(action)) fail(404, 'Unbekannte Funktion.');
       if (req.method !== (['public','state','lobby-info','invites','meetup-route','rejoin-lookup','debug'].includes(action) ? 'GET' : 'POST')) fail(405, 'Methode nicht erlaubt.');
       const authId = await verifyAuth(req);
       const account=await accounts.requireAccess(authId,{consent:action!=='leave',cached:['state','location','activity'].includes(action),onboarding:action!=='leave'});
