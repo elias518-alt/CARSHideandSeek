@@ -1,0 +1,64 @@
+/* Additional user prompt, 1 October 2026: connected mobile composition and neon actions. */
+:root,body,#game.freshLobby.active.freshWaiting{--chs-lime:#b5ff32;--chs-lime-2:#d2ff79;--orange:#b5ff32;--orange2:#93e817}
+body{background:#090e15}
+body[data-chs-page=profile] .appHeader,body[data-chs-page=game].communityWaiting .appHeader{display:none}
+#home .homeStage{height:285px!important;border-radius:18px 18px 0 0!important;overflow:hidden}
+#home .referenceGreeting{top:18px;gap:12px}
+#home .referenceGreeting .parkingStripAvatar{width:60px;height:60px;border:2px solid #d7e3f0}
+#home .referenceGreeting h1{font-size:25px}
+#home .referenceGreeting p{font-size:12px;line-height:1.5}
+#home .referenceHeroScene{inset:90px 2% -24px}
+#home .referenceHeroScene .lobbyCrewCharacter{height:175px;width:117px;left:78%}
+#home .referenceHeroScene .vehicleIllustration{width:92%}
+#homeSocialFeed{position:relative;z-index:6;display:flow-root}
+.communityFeatured{display:flex;align-items:center;gap:11px;position:relative;min-height:82px;margin:-26px 9px 13px;padding:13px;background:linear-gradient(120deg,#1e2938,#111923);border:1px solid #8b9cb255;border-radius:14px;box-shadow:0 9px 25px #0007}
+.communityFeatured>div{flex:1;min-width:0}.communityFeatured strong{display:block;font-size:14px;line-height:1.5;overflow-wrap:anywhere}.communityFeatured small{display:block;color:#b9c6d6;font-size:11px;line-height:1.6}.communityFeatured>button{flex:none;width:42px;height:42px;border-radius:50%;background:var(--chs-lime);color:#112007;border:0}
+.communityFeaturedIcon,.communityNoticeIcon{display:grid;place-items:center;background:#b5ff3219;color:var(--chs-lime);border-radius:13px;width:44px;height:44px;flex:none}
+.communityOnline{display:inline-block;width:7px;height:7px;background:#b5ff32;border-radius:50%;margin-left:7px}
+#home #incomingLobbyInvite{display:none!important}
+#home>.homeActions{display:grid!important;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+#home #openPlay{grid-column:1/-1;min-height:66px;background:linear-gradient(100deg,#d1ff75,#aaff20)!important;color:#142207!important;box-shadow:0 4px 22px #aaff202b;border-color:#d1ff75!important}
+#home #openPlay .actionCopy strong{font-size:17px;color:#142207!important}
+#home #openPlay .actionCopy small{display:block;color:#23380d!important}
+#home .homeAction:not(#openPlay){background:#17212d!important;border:1px solid #65778b55;color:#fff}
+#home .homeAction:not(#openPlay) .actionCopy strong{font-size:12px;color:white}
+#home .homeAction:not(#openPlay) .actionSymbol{color:var(--chs-lime);width:27px;flex:none}
+#home .homeAction:not(#openPlay) .actionChevron{display:none}
+.communityBrand{font-size:15px;letter-spacing:-1px;border:2px solid currentColor;border-radius:9px;display:grid;place-items:center;width:42px;height:36px;transform:skew(-6deg)}
+#home>#homeSeasonSummary{display:flex!important;align-items:center;justify-content:space-between;padding:14px;margin-top:15px;background:#111923;border-radius:12px;border:1px solid #5c6c8138;gap:8px}
+#homeSeasonSummary span,#homeSeasonSummary small{display:block;font-size:11px;line-height:1.7;color:#adbbce}#homeSeasonSummary strong{font-size:14px;display:block;color:#fff}#homeSeasonSummary button{width:42px;height:42px;flex:none;background:transparent;border:1px solid #536274;border-radius:50%;color:#d8e9ba}#homeRecentResult{font-size:11px;color:#b4c3d6}
+.communityEmpty{font-size:13px;line-height:1.6;color:#acbbce}
+#game.freshLobby.active.freshWaiting{background:linear-gradient(180deg,#080b1344 0%,#0b101899 52%,#0b1018 85%),url('assets/lobby-meetup.webp') center top/auto 680px no-repeat!important;min-height:100dvh;padding-top:max(16px,env(safe-area-inset-top))!important}
+#game.freshWaiting .freshRoomHeader{margin-top:0!important;background:#09111ba6!important;border:1px solid #71809644;border-radius:14px}
+#communityVisibility{display:inline-flex;align-items:center;gap:6px;min-height:32px;font-size:11px;padding:6px 10px;border:1px solid #77915d70;border-radius:99px;background:#102012;color:#cdf799;margin-top:8px;opacity:1}
+#communityVisibility .uiIcon{width:15px;height:15px}
+#game.freshWaiting #players{background:transparent;border:0;overflow:visible}
+#game.freshWaiting .parkingViewport{height:450px!important}
+#game.freshWaiting .parkingScene::before{background:none!important}#game.freshWaiting .parkingScene::after{background:none}
+#game.freshWaiting #players .freshCrewLead{top:166px!important;width:98%!important;max-width:560px;height:280px!important}
+#game.freshWaiting #players[data-formation=solo] .freshCrewLead{top:95px!important;height:345px!important}
+#game.freshWaiting #players .freshCrewLead .parkingPlayer{left:auto!important;transform:none!important;height:100%;width:100%;position:relative;bottom:auto}
+#game.freshWaiting #players .freshCrewLead .parkingNameplate{top:78px;font-size:14px;max-width:90%;min-height:38px;background:#0a111cee;border-color:#b5ff3270}
+#game.freshWaiting #players .freshCrewLead .lobbyCrewCharacter{height:230px!important;width:154px!important;left:77%!important}
+#game.freshWaiting #players[data-formation=solo] .freshCrewLead .lobbyCrewCharacter{height:255px!important;width:170px!important}
+#game.freshWaiting .parkingCrewStrip{background:#0c151ee6;border-radius:12px;border:1px solid #68809544}
+#game.freshWaiting .parkingReadiness{color:#d5dfeb}
+#communityLobbyMeta{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 14px;padding:8px;background:#101a25;border:1px solid #6a7d9244;border-radius:12px}
+#communityLobbyMeta button{display:flex;position:relative;align-items:center;justify-content:center;gap:5px;flex:1 0 auto;min-height:40px;font-size:11px;background:#1d2936;border:0;border-radius:8px;color:#e2edfa;padding:8px}
+#communityLobbyMeta button:disabled{opacity:.85;color:#b2c2d2}#communityLobbyMeta .uiIcon{width:17px;height:17px;color:#b5ff32}
+#game.freshWaiting .freshToolButtons{display:none!important}
+.communitySettingFields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.communitySettingFields label{display:grid;gap:8px;font-size:11px}.communitySettingFields input,.communitySettingFields select{width:100%}
+.communityAdminLab{padding:13px;margin:10px 0;border:1px solid #98ca5555;border-radius:12px;background:#102013}.communityAdminLab strong{display:flex;gap:7px;align-items:center;font-size:13px;color:#d2ff9b}.communityAdminLab p{font-size:12px;line-height:1.5;color:#bccdb6}.communityAdminLab label{display:grid;gap:5px;font-size:12px}.communityAdminLab button{margin:8px 6px 0 0;min-height:40px;padding:9px;font-size:12px}.communityAdminLab[hidden],#communityLobbyMeta[hidden],.notificationBadge[hidden]{display:none!important}
+#garage .garageCar{display:flex;flex-direction:column}#garage .garageCarTop{order:0}#garage .garageVehicleVisual{order:1}#garage .garageCar>h2{order:2;margin:14px 0 8px;font-size:23px}#garage .vehicleDetails{order:3}#garage .vehicleSeries{order:4}#garage .garageCar>label{order:5;font-size:10px;color:#a0b3c9}#garage .garageCar>.manufacturer{display:none}#garage .garageCar>.textButton{order:6}#garage .garageActions{order:7}#garage .activateVehicle{order:8}#garage .garageVehicleVisual{min-height:235px!important}#garage .garageVehicleVisual img{max-height:280px!important}
+.vehicleRender--template{filter:none!important}
+#profile{padding-top:0!important}#profile .profileHero{margin-inline:-12px;border-radius:0;min-height:400px!important;padding-top:max(25px,env(safe-area-inset-top));border:0;background:linear-gradient(180deg,#0b101822 15%,#090e15 96%),url('assets/lobby-meetup.webp') center top/cover!important;overflow:hidden}
+#profile .profileAvatar{width:86px;height:86px;font-size:28px;border:3px solid #d6e4f0}#profile .profileHero #profileName{font-size:29px!important;max-width:78%;line-height:1.25}#profile .profileHero #profileTag{font-size:12px;max-width:75%}#profile .profileVehicleStage{height:200px;bottom:51px;width:91%;right:-5%}#profile .profileProgress{z-index:5;position:relative;background:#0a111ccc;border-radius:10px;padding:10px;margin-top:auto}#profile .settingsButton{z-index:10;background:#172432c9;border:1px solid #8092a966;width:44px;height:44px;border-radius:50%}
+#profileCrewPeople{display:grid;gap:8px;overflow:visible}.communityCrewRow{display:flex;align-items:center;gap:8px;padding:9px;border-radius:12px;background:#131e2a;border:1px solid #6c82913a}.communityCrewRow>button:first-child{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left;background:none;border:0;color:white;padding:0}.communityCrewRow .socialAvatar{width:46px;height:46px}.communityCrewRow strong{display:block;font-size:14px;overflow-wrap:anywhere}.communityCrewRow small{display:block;color:#a6b7ca;font-size:11px;margin-top:5px}.communityCrewRow>button:last-child{position:relative;width:44px;height:44px;flex:none;color:#b5ff32;border:1px solid #91b56255;background:#162622;border-radius:12px}
+.communityShareFriends{display:flex;justify-content:center;align-items:center;gap:9px;width:100%;min-height:46px;margin:6px 0 16px;border:1px solid #a1db5955;background:#172b1a;color:#c5fa8e;border-radius:12px;font-size:13px}
+.communityDialog{max-width:480px;width:calc(100% - 24px);max-height:85dvh;box-sizing:border-box;padding:22px 18px;border:1px solid #74899b55;border-radius:20px;background:#101924;color:#eef5fd}.communityDialog h2{font-size:22px;padding-right:28px}.communityDialog p{font-size:13px;line-height:1.6;color:#b5c3d6}.communityDialog button:not(.dialogClose){min-height:44px;border-radius:9px;font-size:12px;padding:10px 13px;background:#b5ff32;color:#162208;border:0}.communityDialog .dialogClose{color:#f1f6fd;background:#1e2c3c;width:36px;height:36px}.communityNotice{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #53677844}.communityNotice>div{min-width:0}.communityNotice strong{font-size:14px;overflow-wrap:anywhere}.communityNotice .socialAvatar{width:43px;height:43px}.communityNotice p{margin:5px 0 10px}.communityFriendProfile{text-align:center;display:grid;justify-items:center;gap:12px}.communityFriendProfile .socialAvatar{width:92px;height:92px}.communityFriendProfile strong{font-size:22px}.communityShareActions{display:flex;gap:8px;margin-top:16px}.communityShareActions button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}.communityDialog input{width:100%;box-sizing:border-box;margin-top:8px;font-size:12px}
+#profile .achievementGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}#profile .achievementBadge{display:flex;flex-direction:column;align-items:center;text-align:center;min-height:166px;padding:12px 6px;background:linear-gradient(140deg,#4d361f,#151e28 70%);border:1px solid #ba995c90;border-radius:15px;color:#eee;cursor:pointer}#profile .achievementBadge:nth-child(2){background:linear-gradient(140deg,#214263,#151e28 70%);border-color:#639aba90}#profile .achievementBadge:nth-child(3){background:linear-gradient(140deg,#3f2953,#151e28 70%);border-color:#9e72be90}#profile .achievementIcon,.communityBadgeDetail .achievementIcon{display:grid;place-items:center;width:58px;height:64px;clip-path:polygon(50% 0,100% 22%,100% 72%,50% 100%,0 72%,0 22%);background:linear-gradient(120deg,#fff5bd,#ab751e 45%,#ffe8a7 72%,#a16f27);color:#292112;box-shadow:inset 0 0 0 4px #dbc883}#profile .achievementBadge:nth-child(2) .achievementIcon{background:linear-gradient(120deg,#daf9ff,#4e90b0,#bbf2ff);color:#11324c}#profile .achievementBadge:nth-child(3) .achievementIcon{background:linear-gradient(120deg,#eedcff,#9861c4,#e7c9ff);color:#332345}#profile .achievementBadge strong{font-size:12px;margin:9px 0 5px}#profile .achievementBadge p{font-size:10px;line-height:1.5}#profile .achievementBadge.isLocked{filter:saturate(.2);opacity:.65}.communityBadgeDetail{display:grid;justify-items:center;text-align:center;gap:12px}
+@media(min-width:760px){#home .homeStage{height:340px!important}#home .referenceHeroScene{inset:90px 10% -20px}#home .referenceHeroScene .lobbyCrewCharacter{height:230px;width:154px}#game.freshWaiting .parkingViewport{height:540px!important}#game.freshWaiting #players .freshCrewLead{top:225px!important;height:310px!important}#profile .profileHero{margin-inline:0;border-radius:0 0 20px 20px}}
+@media(prefers-reduced-motion:no-preference){.communityFeatured>button:active,.communityShareFriends:active,#home .homeAction:active{transform:scale(.98);transition:transform .1s ease}}
+
+#home #homeCreateLobby{order:1}#home #homeCodeJoin{order:2}#home #openPlay{order:0}
+#garage .garageCar.activeVehicle{border-color:#b5ff3270!important}#garage .activeTag,#profile .profileLevelBadge,#profile #levelBadge{border-color:#b5ff3270!important}

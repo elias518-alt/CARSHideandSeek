@@ -1,6 +1,6 @@
 'use strict';
 const ROLES=['user','moderator','admin','super_admin'];
-const PERMISSIONS={user:[],moderator:['reports'],admin:['reports','players','bans','lobbies','stats','audit'],super_admin:['reports','players','bans','lobbies','stats','audit','roles']};
+const PERMISSIONS={user:[],moderator:['reports'],admin:['lab','reports','players','bans','lobbies','stats','audit'],super_admin:['lab','reports','players','bans','lobbies','stats','audit','roles']};
 const CATEGORIES={dangerous_driving:'Gefährliches Fahren',harassment:'Belästigung',cheating:'Manipulation / falscher Standort',privacy:'Verletzung der Privatsphäre',other:'Sonstiger Regelverstoß'};
 const STATUSES=['open','in_review','resolved','dismissed'];
 const ONBOARDING_VERSION='beta-2026-10-01';

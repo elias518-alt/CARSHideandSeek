@@ -50,7 +50,7 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     if(cached)accessCache.set(id,{account,until:entry?.account===account?entry.until:Date.now()+2000});
     if(accessCache.size>2000)accessCache.delete(accessCache.keys().next().value);
     if(account.banned)throw error(403,'Dein Konto ist gesperrt.',{code:'ACCOUNT_BANNED',ban:account.ban});
-    if(consent&&!account.developerPreview&&(!account.legal.ready||!account.accepted))throw error(428,account.legal.ready?'Bitte zuerst Nutzungsbedingungen und Sicherheitshinweise bestätigen.':'Die Freigabe der Rechtstexte steht noch aus.',{code:'LEGAL_REQUIRED'});
+    if(consent&&!account.developerPreview&&(!account.legal.canAccept||!account.accepted))throw error(428,account.legal.canAccept?'Bitte zuerst Nutzungsbedingungen und Sicherheitshinweise bestätigen.':'Die Freigabe der Rechtstexte steht noch aus.',{code:'LEGAL_REQUIRED'});
     if(onboarding&&account.onboardingRequired)throw error(428,'Bitte zuerst die Spielregeln bestätigen.',{code:'ONBOARDING_REQUIRED'});
     return account;
   }
@@ -63,10 +63,11 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
   async function requireAdmin(id){return requirePermission(id,'players');}
   async function accept(id,data){
     const account=await requireAccess(id,{consent:false}),legal=account.legal;
-    if(!legal.ready)throw error(503,'Die Rechtstexte sind noch nicht freigegeben.');
+    if(!legal.canAccept)throw error(503,'Die Rechtstexte sind noch nicht freigegeben.');
     if(data.version!==legal.version||data.hash!==legal.hash)throw error(409,'Die Rechtstexte wurden aktualisiert. Bitte erneut lesen.');
     if(data.terms!==true||data.safety!==true||data.adult!==true||data.privacyRead!==true)throw error(400,'Bitte alle erforderlichen Erklärungen selbst bestätigen.');
-    await request('chs_legal_acceptances?on_conflict=user_id,version,document_hash',{method:'POST',ignoreDuplicates:true,body:{user_id:id,version:legal.version,document_hash:legal.hash,document_snapshot:{operator:legal.operator,terms:legal.terms,privacy:legal.privacy,safety:legal.safety},accepted_at:new Date().toISOString(),terms:true,safety:true,adult:true,privacy_read:true}});
+    await request('chs_legal_acceptances?on_conflict=user_id,version,document_hash',{method:'POST',ignoreDuplicates:true,body:{user_id:id,version:legal.version,document_hash:legal.hash,document_snapshot:{operator:legal.operator,terms:legal.terms,privacy:legal.privacy,safety:legal.safety,betaAccess:legal.betaAccess},accepted_at:new Date().toISOString(),terms:true,safety:true,adult:true,privacy_read:true}});
+    accessCache.delete(id);
     return {ok:true};
   }
   async function players(actor,{q='',page=0}={}){

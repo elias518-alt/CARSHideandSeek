@@ -67,7 +67,7 @@ function startRound(lobby,now){
 function finish(lobby,seekersWin,reason='TIME',now=Date.now()){
   if(lobby.state==='RESULT')return;
   initialize(lobby,now);lobby.state='RESULT';lobby.locks={};
-  const aborted=['ABORT_VOTE','TOO_FEW_PLAYERS','NO_PLAYERS','ADMIN_CLOSED'].includes(reason);
+  const aborted=!!lobby.testMode||['ABORT_VOTE','TOO_FEW_PLAYERS','NO_PLAYERS','ADMIN_CLOSED'].includes(reason);
   event(lobby,'END',aborted?'Runde abgebrochen.':seekersWin?'Sucher gewinnen.':'Verstecker gewinnen.',{reason},now);
   const players=lobby.players.map(p=>{
     if(p.outsideSince)p.stats.outsideMs+=Math.max(0,now-p.outsideSince);
@@ -176,6 +176,7 @@ function tick(lobby,now,distance,random=Math.random){
     event(lobby,'ACTIVE','Suchphase beginnt.',{},now);
   }
   if(lobby.state==='ACTIVE')resolveLocks(lobby,now,distance);
+  if(lobby.testMode){if(lobby.state==='ACTIVE'&&now>=lobby.endsAt)finish(lobby,false,'ADMIN_TEST',now);return;}
   const seekers=lobby.players.filter(p=>p.role==='SEEKER'&&active(p)),hiders=lobby.players.filter(p=>p.role==='HIDER'&&active(p));
   if(!seekers.length&&hiders.length)replacement(lobby,now,random);
   const currentSeekers=lobby.players.filter(p=>p.role==='SEEKER'&&active(p));

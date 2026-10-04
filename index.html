@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="beta-ui.css?v=20261001-moderation-2">
 <link rel="stylesheet" href="account-ui.css?v=20261001-realistic-v2">
 <link rel="stylesheet" href="reference-ui.css?v=20261001-reference-3">
+<link rel="stylesheet" href="community-ui.css?v=20261001-community-4">
 </head>
 
 
@@ -172,7 +173,7 @@
 
 
     <section class="homeStage">
-      <div class="referenceGreeting"><span id="homeGreetingAvatar" class="parkingStripAvatar"></span><div><h1 id="homeGreeting">Hey Spieler</h1><p id="homeGreetingCar">Dein Fahrzeug ist bereit</p></div><button id="homeNotificationButton" type="button" data-reference-crew aria-label="Crew und Nachrichten"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9Z"/><path d="M10 20h4"/></svg></button></div>
+      <div class="referenceGreeting"><span id="homeGreetingAvatar" class="parkingStripAvatar"></span><div><h1 id="homeGreeting">Hey Spieler</h1><p id="homeGreetingCar">Dein Fahrzeug ist bereit</p></div><button id="homeNotificationButton" type="button" aria-label="Benachrichtigungen"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9Z"/><path d="M10 20h4"/></svg></button></div>
       <div id="homeOwnScene" class="referenceHeroScene"></div>
 
       <div class="homeStageTop">
@@ -233,6 +234,7 @@
       class="homeActions"
       aria-label="Schnellzugriff">
 <button id="homeCreateLobby" class="homeAction referenceCreateLobby" type="button"><span class="actionSymbol">＋</span><span class="actionCopy"><strong>LOBBY ERSTELLEN</strong><small>Deine eigene Runde</small></span><span class="actionChevron">›</span></button>
+<button id="homeCodeJoin" class="homeAction communityCodeJoin" type="button"><span class="actionSymbol"></span><span class="actionCopy"><strong>MIT CODE BEITRETEN</strong><small>Du hast schon einen Lobbycode?</small></span><span class="actionChevron">›</span></button>
 
 
       <button
@@ -2664,20 +2666,22 @@
   src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 </script>
 
+<script src="vehicle-paint.js?v=20261001-community-4"></script>
 <script src="vehicle-catalog.js?v=20260930-gameplay"></script>
 <script src="vehicle-search.js?v=20260930-22"></script>
 <script src="lobby-scene.js?v=20261001-reference-3"></script>
 <script src="gameplay-ui.js?v=20261001-reference-3"></script>
 <script src="wardrobe.js?v=20261001-realistic-v2"></script>
 <script src="beta-ui.js?v=20261001-moderation-2"></script>
-<script src="account-ui.js?v=20261001-moderation-2"></script>
-<script src="reference-ui.js?v=20261001-reference-3"></script>
-<script src="app.js?v=20261001-reference-3"></script>
+<script src="account-ui.js?v=20261001-community-4"></script>
+<script src="reference-ui.js?v=20261001-community-4"></script>
+<script src="app.js?v=20261001-community-4"></script>
 
-<script src="garage-actions.js?v=20260930-22"></script>
-<script src="social.js?v=20261001-reference-3"></script>
-<script src="ui-icons.js?v=20260930-22"></script>
+<script src="garage-actions.js?v=20261004-community-4"></script>
+<script src="social.js?v=20261001-community-4"></script>
+<script src="ui-icons.js?v=20261001-community-4"></script>
 
+<script src="community-ui.js?v=20261001-community-4"></script>
 <script
   type="module"
   src="map.js?v=20260930-gameplay">

@@ -224,7 +224,7 @@ function renderSocialBadges(){
  (document.querySelectorAll?.('#bottomNav [data-page="friends"], [data-reference-crew]')||[]).forEach(b=>paint(b,counts.requests+counts.messages,'Crew'));
  const tabs=document.querySelectorAll?.('.friendsTabs button')||[];paint(tabs[0],counts.messages,'Chats');paint(tabs[1],counts.requests,'Freundschaftsanfragen');
 }
-function renderReferenceCrew(){if(typeof window!=='undefined')window.referenceUI?.renderCrew?.(socialRows);}
+function renderReferenceCrew(){if(typeof window!=='undefined'){window.referenceUI?.renderCrew?.(socialRows);window.communityUI?.watchSocial();}}
 function renderFriendNotice() {
   let notice=document.getElementById('incomingFriendNotice');
   const incoming=authSession ? socialRows.filter(row=>row.status==='pending'&&row.incoming) : [];
@@ -431,6 +431,7 @@ async function dismissLobbyInvite(inviteId) {
 }
 
 function renderIncomingLobbyInvite(invites) {
+  window.communityUI?.watchInvites(invites);
   const card = ensureIncomingInviteCard();
   if (gameSession || !invites?.length) {
     card.hidden = true;
@@ -480,18 +481,13 @@ async function handleIncomingLobbyInvite(event) {
   button.disabled = true;
   const inviteId = accept?.dataset.acceptLobbyInvite || dismiss?.dataset.dismissLobbyInvite;
 
-  if (dismiss) {
-    await dismissLobbyInvite(inviteId);
-    incomingInviteSignature = '';
-    renderIncomingLobbyInvite([]);
-    return;
-  }
-
-  const code = accept.dataset.inviteCode;
-  await dismissLobbyInvite(inviteId);
-  incomingInviteSignature = '';
-  renderIncomingLobbyInvite([]);
-  await join(code);
+  try {
+    if (dismiss || await join(accept.dataset.inviteCode)) {
+      await dismissLobbyInvite(inviteId);
+      incomingInviteSignature = '';
+      await loadIncomingLobbyInvites();
+    }
+  } finally { button.disabled = false; }
 }
 function setupSocial() {
   setupVehicleSearch();

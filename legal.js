@@ -1,11 +1,12 @@
 'use strict';
 const crypto=require('node:crypto');
-const VERSION='2026-10-01.2';
+const VERSION='2026-10-04.1';
 function documents(env=process.env){
   // Personal operator details belong in deployment configuration, not in this
   // public repository. Missing values keep the legal release gate closed.
   const operator={name:env.CHS_OPERATOR_NAME||'',address:env.CHS_OPERATOR_ADDRESS||'',email:env.CHS_OPERATOR_EMAIL||''};
   const ready=!!(operator.name.trim()&&operator.address.trim()&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(operator.email)&&env.CHS_LEGAL_REVIEWED==='true');
+  const betaAccess=!ready&&env.CHS_BETA_ACCESS==='true';
   const terms=[
     ['Anbieter und Teilnahme',`CAR HIDE & SEEK wird von ${operator.name} angeboten. Teilnahme ab 18 Jahren. Gegenstand ist ein freiwilliges, ortsbezogenes Spiel; die App ist kein Verkehrsleitsystem, keine Sicherheitsausrüstung und kein Notrufdienst. Diese Fassung regelt die kostenlose Spielversion. Kostenpflichtige Leistungen werden erst mit gesonderten transparenten Bedingungen angeboten.`],
     ['Sicherheit hat Vorrang','Keine Rennen, riskanten Fahrmanöver, Verfolgungsfahrten oder Regelverstöße. Straßenverkehrsrecht, Eigentumsrechte und örtliche Verbote gelten immer. Nur sichere, legal zugängliche Orte verwenden. Der Host muss einen geeigneten Treffpunkt wählen; Karten und Spielradien bestätigen weder Zugänglichkeit noch Sicherheit eines Ortes. Nicht während der Fahrt tippen oder suchen. Fahrer bedienen die App ausschließlich nach sicherem Parken; während der Fahrt bedient ein tatsächlicher Beifahrer. Die Auswahl „Beifahrer“ ist keine Erlaubnis für den Fahrer. Ein Spielziel oder Zeitlimit rechtfertigt nie einen Verkehrsverstoß. Wenn eine Spielsituation unsicher ist: Spiel unterbrechen oder verlassen, auch bei Punktverlust.'],
@@ -26,7 +27,7 @@ function documents(env=process.env){
     ['Gerätespeicher und optionale Funktionen','Technisch erforderlicher Gerätespeicher hält Sitzung, laufende Lobby und Gerätevoreinstellungen vor. Es sind in dieser Fassung keine Werbe- oder Analyse-Tracker eingebaut. Freiwillige Töne/Vibration sind separat wählbar. Künftige Werbung, Tracking oder kostenpflichtige Funktionen werden nicht durch diese Erklärung pauschal genehmigt; erforderliche freiwillige Einwilligungen müssen separat und widerrufbar eingeholt werden.'],
     ['Deine Rechte','Unter den gesetzlichen Voraussetzungen hast du Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit sowie Widerspruch gegen Verarbeitungen nach Art. 6 Abs. 1 lit. f DSGVO. Soweit eine Verarbeitung auf Einwilligung beruht, kann sie jederzeit mit Wirkung für die Zukunft widerrufen werden. Du kannst dich bei einer Datenschutzaufsichtsbehörde beschweren, insbesondere der Landesbeauftragten für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (ldi.nrw.de). Die Datenschutzhinweise werden zur Kenntnis genommen; ihre Kenntnisnahme ist keine pauschale Einwilligung in sämtliche Datenverarbeitung.']
   ];
-  const content={version:VERSION,operator,terms,privacy,safety:terms[1][1]};
-  return {...content,ready,hash:crypto.createHash('sha256').update(JSON.stringify(content)).digest('hex')};
+  const content={version:VERSION,operator,terms,privacy,safety:terms[1][1],betaAccess};
+  return {...content,ready,canAccept:ready||betaAccess,hash:crypto.createHash('sha256').update(JSON.stringify(content)).digest('hex')};
 }
 module.exports={VERSION,documents};
