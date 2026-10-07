@@ -13,9 +13,10 @@
   renderPhotoPreview();
  }
  function renderCrew(rows=crewRows){
-  crewRows=rows;const friends=rows.filter(r=>r.status==='accepted'),html=friends.slice(0,6).map(r=>'<button type="button" class="referenceCrewPerson" data-dm="'+esc(r.peer_id)+'" data-reference-peer><span class="referenceCrewPortrait">'+socialAvatarMarkup(r)+(r.online?'<i class="referenceOnline" aria-label="Vor kurzem aktiv"></i>':'')+'</span><strong>'+esc(friendDisplayName(r))+'</strong>'+(Number(r.unread_count)>0?'<span class="notificationBadge">'+esc(Math.min(99,Number(r.unread_count)))+'</span>':'')+'</button>').join('');
+  crewRows=rows;const friends=rows.filter(r=>r.status==='accepted'),html=friends.slice(0,6).map(r=>'<button type="button" class="referenceCrewPerson" data-dm="'+esc(r.peer_id)+'" data-reference-peer><span class="referenceCrewPortrait">'+socialAvatarMarkup(r)+(r.online?'<i class="referenceOnline" aria-label="Vor kurzem aktiv"></i>':'')+'</span><strong>'+esc(friendDisplayName(r))+'</strong><small>'+(r.online?'Online':'Offline')+'</small>'+(Number(r.unread_count)>0?'<span class="notificationBadge">'+esc(Math.min(99,Number(r.unread_count)))+'</span>':'')+'</button>').join('');
   const home=document.getElementById('homeCrewPeople');if(home){const markup=html||'<p class="muted">Deine Crew beginnt mit einer Freundschaftsanfrage.</p>';if(home.dataset.markup!==markup){home.innerHTML=markup;home.dataset.markup=markup;}}
   const profile=document.getElementById('profileCrewPeople');if(profile){const markup=friends.slice(0,6).map(r=>'<article class="communityCrewRow"><button type="button" data-crew-profile="'+esc(r.peer_id)+'">'+socialAvatarMarkup(r)+'<span><strong>'+esc(friendDisplayName(r))+'</strong><small><i class="'+(r.online?'communityOnline':'communityOffline')+'"></i>'+(r.online?'Online':'Offline')+'</small></span></button><button type="button" data-reference-peer data-dm="'+esc(r.peer_id)+'" aria-label="Chat mit '+esc(friendDisplayName(r))+'">'+(typeof appIcon==='function'?appIcon('chat'):'CHAT')+'</button></article>').join('')||'<p class="communityEmpty">Deine Crew beginnt mit einer Einladung.</p>';if(profile.dataset.markup!==markup){profile.innerHTML=markup;profile.dataset.markup=markup;}}
+  window.crewUI?.renderHomeCrew();
  }
  function renderPhotoPreview(){
   const box=document.getElementById('photoLobbyPreview');if(!box)return;

@@ -224,7 +224,7 @@ function socialCounts(rows=socialRows){return {requests:rows.filter(r=>r.status=
 function renderSocialBadges(){
  const counts=authSession?socialCounts():{requests:0,messages:0};
  const paint=(button,count,label)=>{if(!button)return;let badge=button.querySelector('[data-count-badge]');if(!count){badge?.remove();button.setAttribute('aria-label',label);return;}if(!badge){badge=document.createElement('span');badge.className='notificationBadge';badge.dataset.countBadge='';button.append(badge);}badge.textContent=count>99?'99+':String(count);button.setAttribute('aria-label',label+' · '+count+' ungelesen');};
- (document.querySelectorAll?.('#bottomNav [data-page="friends"], [data-reference-crew]')||[]).forEach(b=>paint(b,counts.requests+counts.messages,'Crew'));
+ (document.querySelectorAll?.('#bottomNav [data-page="friends"], #bottomNav [data-page="crew"], [data-reference-crew]')||[]).forEach(b=>paint(b,counts.requests+counts.messages,'Crew'));
  const tabs=document.querySelectorAll?.('.friendsTabs button')||[];paint(tabs[0],counts.messages,'Chats');paint(tabs[1],counts.requests,'Freundschaftsanfragen');
 }
 function renderReferenceCrew(){if(typeof window!=='undefined'){window.referenceUI?.renderCrew?.(socialRows);window.communityUI?.watchSocial();}}

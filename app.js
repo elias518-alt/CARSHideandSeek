@@ -399,6 +399,7 @@ function openPage(page) {
   });
 
   window.communityUI?.onPage(page);
+  window.crewUI?.onPage(page);
   if (page === 'play') {
     setTimeout(() => {
       if (typeof findPublic === 'function') findPublic({ automatic: true });
@@ -739,6 +740,7 @@ function renderProfile() {
   paintProfileAvatars();
   syncVehicleUI();
   renderAchievements();
+  window.crewUI?.onProfile();
 }
 
 async function loadAchievements() {

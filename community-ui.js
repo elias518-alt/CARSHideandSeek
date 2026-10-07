@@ -37,7 +37,7 @@
   let summary=node('homeSeasonSummary');if(!summary){summary=document.createElement('section');summary.id='homeSeasonSummary';node('homeActionsAnchor')?.after(summary)||document.querySelector('#home .homeActions')?.after(summary);}
   cache(summary,dbProfile?'<div><span>DEIN FORTSCHRITT</span><strong>Level '+Number(dbProfile.level||1)+' · '+Number(dbProfile.xp||0).toLocaleString('de-DE')+' XP</strong><small>'+Number(dbProfile.rounds_played||0)+' Runden · '+Number(dbProfile.wins||0)+' Siege</small></div><button type="button" data-page="profile" aria-label="Profil öffnen">'+icon('arrow')+'</button>':'<p class="communityEmpty">Melde dich an, um deine Crew und deinen Fortschritt zu sehen.</p>');
   const recent=state?.history?.at(-1);if(recent){let result=node('homeRecentResult');if(!result){result=document.createElement('p');result.id='homeRecentResult';summary.append(result);}result.textContent='Letzte Runde: '+(recent.aborted?'abgebrochen':recent.seekersWin?'Sucher gewinnen':'Verstecker gewinnen');}
-  paintNotifications();
+  paintNotifications();window.crewUI?.miniProgress();
  }
  async function refreshNearby(explicit=false){
   if(!authSession||gameSession||nearbyBusy||(!explicit&&Date.now()-nearbyAt<60000))return;
@@ -111,7 +111,7 @@
   onPage(document.querySelector('.page.active')?.id||'home');void offerFriendInvite();
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&node('home')?.classList.contains('active')){renderHome();void refreshNearby();}});
  }
- function closePrivateViews(){clearTimeout(identityTimer);invites=[];nearby=[];nearbyAt=0;lastIdentity='';inviteShown='';for(const id of ['notificationsDialog','crewProfileDialog','shareFriendsDialog','personalFriendInviteDialog','badgeDetailsDialog'])node(id)?.remove();if(node('communityAdminLab'))node('communityAdminLab').hidden=true;}
+ function closePrivateViews(){window.crewUI?.reset();clearTimeout(identityTimer);invites=[];nearby=[];nearbyAt=0;lastIdentity='';inviteShown='';for(const id of ['notificationsDialog','crewProfileDialog','shareFriendsDialog','personalFriendInviteDialog','badgeDetailsDialog'])node(id)?.remove();if(node('communityAdminLab'))node('communityAdminLab').hidden=true;}
  window.communityUI={cancelIdentitySync(){clearTimeout(identityTimer);lastIdentity='';},closePrivateViews,renderHome,renderLobby,watchInvites,watchSocial,onPage,syncIdentity};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
 })();

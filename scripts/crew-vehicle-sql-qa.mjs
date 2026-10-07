@@ -16,7 +16,7 @@ insert into profiles values('${a}','Elias','EP',12,null,now(),null),('${b}','Lea
 insert into chs_friendships(requester,addressee,status) values('${a}','${b}','accepted'),('${c}','${a}','pending');
 insert into vehicles values('${car1}','${b}','BMW','328i','E36','Coupé','Violett','${b}/car.cutout.webp',true,now()),('${car2}','${b}','Audi','A3',null,'Compact','Blau',null,false,now()),('${otherCar}','${outsider}','Private','Not owned',null,null,null,null,true,now());`);
 await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261001121528_social_notifications_avatars.sql',import.meta.url),'utf8'));
-await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261004120726_crew_vehicle_identity.sql',import.meta.url),'utf8'));
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261004160642_crew_vehicle_identity.sql',import.meta.url),'utf8'));
 await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${a}',false);`);
 const overview=async()=> (await db.query('select chs_social_overview_v2() as data')).rows[0].data;
 let rows=await overview(),lea=rows.find(r=>r.peer_id===b);check(lea.active_vehicle.model==='328i','Active vehicle');check(lea.avatar_url.includes('lea.png'),'Avatar preserved');check(!JSON.stringify(rows).includes('Not owned'),'Other garage leaked');check(rows.find(r=>r.peer_id===c).active_vehicle===null,'No invented fallback');check(Object.keys(lea.active_vehicle).sort().join(',')==='body_type,brand,color,model,photo_path,series','Only display fields');

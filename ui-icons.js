@@ -1,6 +1,8 @@
 'use strict';
 /* Small local icon set; no network dependency or emoji rendering differences. */
 const appIconPaths={
+  crown:'<path d="m3 6 5 4 4-7 4 7 5-4-2 13H5Z"/>',
+  bolt:'<path d="m13 2-9 12h7l-1 8 10-13h-7Z"/>',
   bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
   sparkles:'<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM3 3v3m-1-1h3"/>',
   arrow:'<path d="M4 12h16m-7-7 7 7-7 7"/>',
