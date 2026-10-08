@@ -58,3 +58,11 @@
 @media(prefers-reduced-motion:reduce){.hubSheet,.hubButton{animation:none!important;transition:none!important}}
 
 #home #openPlay{order:-1!important}#crew{padding-top:32px!important}#home .referenceCrewPortrait .hubAvatar{padding:0;border-width:2px}#home .referenceCrewPortrait .hubAvatar .socialAvatar{width:72px!important;height:72px!important}
+
+/* Keep each action title at the actual button center, with its icon beside it. */
+#home #openPlay,#home #homeCreateLobby,#home #homeCodeJoin{display:grid!important;grid-template-columns:minmax(24px,1fr) max-content minmax(24px,1fr)!important;column-gap:7px!important;row-gap:0!important;align-content:center!important;align-items:center!important;justify-content:normal!important;padding:8px 12px!important;text-align:center!important}
+#home #openPlay .actionCopy,#home #homeCreateLobby .actionCopy,#home #homeCodeJoin .actionCopy{display:contents!important}
+#home #openPlay .actionSymbol,#home #homeCreateLobby .actionSymbol,#home #homeCodeJoin .actionSymbol{position:static!important;grid-column:1;grid-row:1;justify-self:end;display:grid!important;place-items:center;width:22px!important;height:22px!important;margin:0!important}
+#home #openPlay .actionCopy strong,#home #homeCreateLobby .actionCopy strong,#home #homeCodeJoin .actionCopy strong{grid-column:2;grid-row:1;justify-self:center;text-align:center!important;margin:0!important;white-space:nowrap}
+#home #homeCreateLobby .actionCopy small,#home #homeCodeJoin .actionCopy small{grid-column:1/-1;grid-row:2;text-align:center!important;justify-self:center;margin:0!important;font-size:10px!important;line-height:13px!important}
+#home #openPlay .actionChevron,#home #homeCreateLobby .actionChevron,#home #homeCodeJoin .actionChevron{display:none!important}
