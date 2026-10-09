@@ -834,6 +834,8 @@ async function claimGameProgress(reward) {
 
     renderProfile();
     await loadAchievements();
+    await window.crewUI?.refreshProgress?.();
+    window.crewUI?.renderRoundProgress?.();
 
     if (!data.already_claimed) {
       const unlocked = Array.isArray(data.unlocked) ? data.unlocked.length : 0;
@@ -2119,8 +2121,9 @@ function renderGame() {
   positionGameplayDetails();
   syncGpsForLobbyState();
 
+  window.roundExperience?.render();
   const mapFold = document.getElementById('freshMapFold');
-  if(mapFold)mapFold.hidden=lobby.state==='RESULT'||me.eliminated||me.found;
+  if(mapFold)mapFold.hidden=lobby.state==='RESULT';
   if (lobby.state !== 'LOBBY' || mapFold?.open) {
     window.chsMapUpdate?.(state);
   }

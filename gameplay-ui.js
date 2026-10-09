@@ -93,7 +93,7 @@ function renderGameplayDetails() {
     details.addEventListener('toggle',async()=>{if(!details.open)return;try{const data=await api('debug',gameCredentials(),'GET');pre.textContent=JSON.stringify(data,null,2);}catch(error){pre.textContent=error.message;}});output.append(details);
   }
   const tutorialKey='chsRulesSeen:'+String(lobby.me.profileId||lobby.me.id);
-  if(playing&&!localStorage.getItem(tutorialKey)){
+  if(waiting&&!localStorage.getItem(tutorialKey)){
     const dialog=document.createElement('dialog');const info=document.createElement('p');info.textContent='Verstecker dürfen sich im Spielradius bewegen und einmal entkommen. Sucher warten zuerst am Treffpunkt. Ein Fund startet nur mit bestätigtem GPS innerhalb von 8 m und läuft 10–15 Sekunden auf dasselbe Ziel. Fahrer bedienen die Fundfunktion erst im Stillstand.';
     const button=document.createElement('button');button.textContent='Verstanden';button.addEventListener('click',()=>{localStorage.setItem(tutorialKey,'true');dialog.close();dialog.remove();});dialog.append(info,button);document.body.append(dialog);localStorage.setItem(tutorialKey,'shown');dialog.showModal();
   }
