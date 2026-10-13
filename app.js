@@ -400,6 +400,7 @@ function openPage(page) {
 
   window.communityUI?.onPage(page);
   window.crewUI?.onPage(page);
+  window.socialMap?.onPage();
   if (page === 'play') {
     setTimeout(() => {
       if (typeof findPublic === 'function') findPublic({ automatic: true });
@@ -939,6 +940,8 @@ async function initializeAuth() {
 
 supabaseClient.auth.onAuthStateChange(
   (event, newSession) => {
+
+    if (authSession?.user?.id !== newSession?.user?.id) window.socialMap?.reset();
 
     authSession =
       newSession;
@@ -1800,6 +1803,7 @@ function formatTime(seconds) {
 
 
 function renderGame() {
+  window.socialMap?.gameChanged();
   if (
     !state ||
     !state.lobby
