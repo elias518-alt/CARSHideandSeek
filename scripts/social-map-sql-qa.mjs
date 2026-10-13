@@ -1,0 +1,66 @@
+// Executes the actual migrations with PostgreSQL semantics, without live accounts.
+import fs from 'node:fs';
+import {pathToFileURL} from 'node:url';
+const {PGlite}=await import(process.argv[2]?pathToFileURL(process.argv[2]).href:'@electric-sql/pglite');
+const db=new PGlite();let checks=0;
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const check=(value,message)=>{if(!value)throw Error(message);checks++;};
+const deny=async(fn,message)=>{let error;try{await fn();}catch(e){error=e;}check(!!error,message);};
+try{
+ await db.exec(`create role anon;create role authenticated;create schema auth;create schema chs_private;
+ create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+ create table profiles(id uuid primary key,username text,player_tag text,avatar_url text,level int default 1,xp int default 0,rounds_played int default 0,wins int default 0,finds int default 0,survived_rounds int default 0,active_vehicle_id uuid,last_seen_at timestamptz default now());
+ create table vehicles(id uuid primary key,user_id uuid,brand text,model text,body_type text,color text,photo_path text,is_active boolean,updated_at timestamptz);
+ create table chs_friendships(requester uuid,addressee uuid,status text);
+ create table chs_player_blocks(user_id uuid,target_id uuid);
+ create table chs_account_bans(user_id uuid,revoked_at timestamptz,until_at timestamptz);
+ create table game_results(user_id uuid,won boolean,role text);
+ create table chs_daily_activity(user_id uuid,day date,last_at timestamptz);
+ create table chs_server_state(slot text primary key,snapshot jsonb,expires_at timestamptz);
+ create function chs_private.account_allowed() returns boolean language sql security definer set search_path='' as $$ select auth.uid() is not null and not exists(select 1 from public.chs_account_bans where user_id=auth.uid() and revoked_at is null and (until_at is null or until_at>now())) $$;
+ insert into profiles(id,username,player_tag) select ('00000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'Player '||n,'P'||n from generate_series(1,6)n;
+ insert into chs_friendships values('${id(1)}','${id(2)}','accepted'),('${id(1)}','${id(4)}','accepted'),('${id(1)}','${id(5)}','pending');`);
+ for(const file of ['20261007171454_crew_progression.sql','20261013080000_social_location_sharing.sql'])await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ await db.exec(`insert into chs_crews(id,name,tag) values('${id(99)}','Our Crew','CREW');insert into chs_crew_members(user_id,crew_id) values('${id(1)}','${id(99)}'),('${id(3)}','${id(99)}');`);
+ const as=async n=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[n?id(n):'']);};
+ const admin=async(sql,args=[])=>{await db.exec('reset role');return db.query(sql,args);};
+ const read=async(scope='friends')=>(await db.query('select chs_social_map_read($1) d',[scope])).rows[0].d;
+ const act=async(action,payload={})=>(await db.query('select chs_social_map_action($1,$2) d',[action,JSON.stringify(payload)])).rows[0].d;
+ const settings=(mode,recipients=[])=>act('settings',{mode,recipients,consent:true});
+ const position=revision=>({revision,lat:52.52,lng:13.405,accuracy:25,measured_at:new Date(Date.now()-5000).toISOString()});
+ let revision;
+ await as(1);check((await read()).settings.mode==='off','Default must be off');check((await read()).players.length===0,'No unsolicited coordinates');check((await read()).contacts.length===3,'Only accepted friends and own crew');
+ await deny(()=>act('settings',{mode:'friends'}),'Consent required');await deny(()=>settings('public'),'No public sharing');await deny(()=>settings('selected',[id(5)]),'Pending friend denied');await deny(()=>settings('selected',[id(6)]),'Stranger denied');await deny(()=>settings('selected',[]),'Empty selection denied');await deny(()=>settings('selected',[id(1)]),'Cannot select self');
+ for(const table of ['chs_location_settings','chs_location_recipients','chs_social_locations']){
+  await deny(()=>db.query('select * from '+table),'No direct reads '+table);
+  await deny(()=>db.query('delete from '+table),'No direct deletes '+table);
+ }
+ await deny(()=>db.query('select chs_private.location_contacts($1)',[id(2)]),'Private helper cannot enumerate others');
+ await deny(()=>db.query('select chs_private.location_playing($1)',[id(2)]),'Game presence helper is private');
+ revision=(await settings('selected',[id(2)])).revision;
+ await act('publish',position(revision));check((await read()).own.lat===52.52,'Own valid fix');
+ await as(2);check((await read()).players[0].user_id===id(1),'Selected recipient sees owner');check((await read()).players[0].last_active_at,'Last active supplied');
+ await as(4);check((await read()).players.length===0,'Other friend cannot see selected-only fix');
+ await as(3);check((await read('crew')).players.length===0,'Unselected crew cannot see fix');
+ await as(6);check((await read()).players.length===0&&(await read()).contacts.length===0,'Stranger sees nothing');
+ await as(1);const oldRevision=revision;revision=(await settings('contacts')).revision;check((await read()).own===null,'Audience change clears old fix');await deny(()=>act('publish',position(oldRevision)),'Old in-flight GPS rejected');
+ await act('publish',position(revision));await as(2);check((await read()).players.length===1,'All contacts includes friend');check((await read('crew')).players.length===0,'Scope limited to own crew');await as(3);check((await read('crew')).players.length===1,'All contacts includes crew');
+ await as(1);revision=(await settings('friends')).revision;await act('publish',position(revision));await as(3);check((await read('crew')).players.length===0,'Friends-only excludes unrelated crew member');
+ await as(1);revision=(await settings('crew')).revision;await act('publish',position(revision));await as(2);check((await read()).players.length===0,'Crew-only excludes friend outside crew');await as(3);check((await read('crew')).players.length===1,'Crew-only includes crew member');
+ await as(1);revision=(await settings('contacts')).revision;await act('publish',{...position(revision),user_id:id(6)});check((await read()).own.user_id===id(1),'Forged owner field cannot publish for another account');
+ await admin('insert into chs_player_blocks values($1,$2)',[id(2),id(1)]);await as(2);check((await read()).players.length===0,'Viewer block hides owner');
+ await admin('delete from chs_player_blocks');await admin('insert into chs_player_blocks values($1,$2)',[id(1),id(2)]);await as(2);check((await read()).players.length===0,'Owner block hides owner');
+ await admin('delete from chs_player_blocks');await admin('update chs_friendships set status=$1 where addressee=$2',['pending',id(2)]);await as(2);check((await read()).players.length===0,'Unfriending revokes access');
+ await admin('update chs_friendships set status=$1 where addressee=$2',['accepted',id(2)]);await admin('delete from chs_crew_members where user_id=$1',[id(3)]);await as(3);check((await read('crew')).players.length===0,'Leaving crew revokes access');
+ await admin('insert into chs_account_bans(user_id) values($1)',[id(1)]);await as(2);check((await read()).players.length===0,'Banned owner hidden');await as(1);await deny(()=>read(),'Banned reader denied');await deny(()=>act('heartbeat',{revision}),'Banned writer denied');await admin('delete from chs_account_bans');
+ await as(1);await deny(()=>act('publish',{...position(revision),lat:'52.52'}),'Reject string coordinate');await deny(()=>act('publish',{...position(revision),lng:181}),'Reject invalid longitude');await deny(()=>act('publish',{...position(revision),accuracy:1001}),'Reject inaccurate fix');await deny(()=>act('publish',{...position(revision),measured_at:new Date(Date.now()-180000).toISOString()}),'Reject old fix');await deny(()=>act('publish',{...position(revision),measured_at:new Date(Date.now()+60000).toISOString()}),'Reject future fix');
+ const before=(await read()).own;await act('heartbeat',{revision});const after=(await read()).own;check(before.expires_at===after.expires_at&&before.measured_at===after.measured_at,'Heartbeat does not refresh position age or retention');
+ await act('publish',{...position(revision),lat:0,measured_at:new Date(Date.parse(before.measured_at)-1000).toISOString()});check((await read()).own.lat===52.52,'Out of order fix cannot replace newer location');
+ const snapshot=JSON.stringify({lobbies:[{state:'HEADSTART',players:[{authId:id(1)}]}]});await admin("insert into chs_server_state values('gameplay',$1,now()+interval '6 hours')",[snapshot]);
+ const count=await admin('select count(*)::int n from chs_social_locations');check(count.rows[0].n===0,'Authoritative round snapshot purges social fix');await as(1);check((await act('publish',position(revision))).paused===true,'Round blocks direct RPC publication');check((await read()).paused===true,'Round pauses social map');await as(2);check((await read()).players.length===0,'Round player cannot be tracked');
+ await admin("update chs_server_state set snapshot='{"+'"lobbies":[]'+"}'");await as(1);await act('publish',position(revision));await settings('off');check((await read()).own===null,'Off deletes position');await deny(()=>act('publish',position(revision)),'Disable wins over delayed publish');await as(2);check((await read()).players.length===0,'Off hides owner immediately');
+ await as(1);revision=(await settings('friends')).revision;await act('publish',position(revision));await admin("update chs_social_locations set expires_at=now()-interval '1 second'");await as(2);check((await read()).players.length===0,'Expired coordinate unreadable without cron');await as(1);check((await read()).own===null,'Own expired coordinate unreadable');await admin('select chs_private.prune_social_locations()');check((await admin('select count(*)::int n from chs_social_locations')).rows[0].n===0,'Retention physically deletes old point');
+ await as(1);revision=(await settings('friends')).revision;await act('publish',position(revision));await admin('delete from profiles where id=$1',[id(1)]);check((await admin('select count(*)::int n from chs_social_locations')).rows[0].n===0,'Account deletion removes point');check((await admin('select count(*)::int n from chs_location_settings')).rows[0].n===0,'Account deletion removes settings');
+ await as(null);await deny(()=>read(),'Missing identity rejected');await db.exec('reset role;set role anon');await deny(()=>read(),'Anonymous read rejected');await deny(()=>settings('off'),'Anonymous write rejected');
+ console.log(JSON.stringify({checks,status:'passed',scope:'Actual SQL in PGlite; real auth.uid/roles, no live user data or cron execution'}));
+}finally{await db.close();}

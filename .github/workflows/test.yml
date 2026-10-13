@@ -20,3 +20,7 @@ jobs:
         with:
           node-version: 20
       - run: npm test
+      - name: Install isolated SQL test runner
+        run: npm install --prefix /tmp/chs-sql-qa --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - name: Verify social location permissions with PostgreSQL
+        run: node scripts/social-map-sql-qa.mjs /tmp/chs-sql-qa/node_modules/@electric-sql/pglite/dist/index.js
