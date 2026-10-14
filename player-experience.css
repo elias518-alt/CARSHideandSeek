@@ -50,3 +50,11 @@
 :root[data-player-accent] .hubButton.primary,:root[data-player-accent] .plusCard>button {background:var(--player-accent);color:#131923}
 :root[data-player-accent] .hubTabs [aria-selected=true],:root[data-player-accent] .hubTabs button.active {color:var(--player-accent);border-color:var(--player-accent)}
 :root[data-player-accent] .hubProgressHero>span,:root[data-player-accent] .hubEmpty>svg,:root[data-player-accent] .isMe>div>strong {color:var(--player-accent)}
+.adRewardCard {margin:24px 0;padding:22px;border:1px solid #ffffff1c;border-radius:20px;background:linear-gradient(145deg,#243044,#141b27);display:grid;gap:14px}
+.adRewardCard h3 {margin:7px 0;font-size:21px}.adRewardCard p {color:#b8c5d6;line-height:1.6;margin:0}.adRewardCard small {color:#9baabc;line-height:1.5}
+.adRewardCard button:disabled {opacity:.5;cursor:default}
+#garage[data-ad-look=neon] {background:radial-gradient(ellipse at 0 20%,#b164ff20,transparent 65%),radial-gradient(ellipse at 100% 70%,#66e4ff1c,transparent 65%)}
+#garage[data-ad-look=neon] .garageCard {box-shadow:0 0 20px #b164ff18;border-color:#bda0ef55}
+#adOffer [type=checkbox] {display:inline-block;width:20px;min-height:20px;margin-right:10px;vertical-align:middle}
+#adOffer [hidden] {display:none!important}
+.adRewardCard label {font-size:12px;color:#bdc8d8}.adRewardCard progress {width:100%;height:8px;accent-color:var(--player-accent,#ff985f)}

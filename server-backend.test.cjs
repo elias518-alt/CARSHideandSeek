@@ -31,6 +31,9 @@ test('the gateway allows only required tables, columns, methods and retention de
   assert.equal((await f.invoke({resource:'chs_admin_audit',method:'DELETE'})).status,403);
   assert.equal((await f.invoke({resource:'chs_admin_audit?created_at=lt.2099-01-01T00:00:00Z',method:'DELETE'})).status,403);
   assert.equal((await f.invoke({resource:'profiles?select=id,username'})).status,200);
+  assert.equal((await f.invoke({resource:'chs_ad_ledger?select=user_id,record'})).status,200);
+  assert.equal((await f.invoke({resource:'chs_ad_ledger',method:'POST',body:{record:{rewardPermanent:true}}})).status,403);
+  assert.equal((await f.invoke({resource:'rpc/chs_store_ad_ledger',method:'POST',body:{records:{}}})).status,200);
   assert.equal(f.calls.at(-1).options.headers.apikey,'sb_secret_internal');assert.equal(f.calls.at(-1).options.headers.Authorization,undefined);
 });
 test('persistent state works through the gateway and failed writes are never acknowledged',async()=>{

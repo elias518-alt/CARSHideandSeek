@@ -35,9 +35,13 @@ const authCache = new Map();
 const blocks = new Map();
 const reports = [];
 const roundHistory = new Map();
+const adStore=require('./ad-store').createAdStore({url:SUPABASE_URL,key:process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY,gatewayUrl:process.env.CHS_BACKEND_GATEWAY_URL,gatewayToken:process.env.CHS_BACKEND_TOKEN,file:process.env.CHS_AD_STATE_FILE||(!process.env.RENDER?path.join(ROOT,'.state','ads.json'):null)});
+let adStoreReady=false,adStoreLoading=null;
+async function ensureAdStore(){if(adStoreReady)return;if(!adStoreLoading)adStoreLoading=(async()=>{ads.restore(await adStore.load());await ads.prune();adStoreReady=true;})().finally(()=>adStoreLoading=null);try{await adStoreLoading;}catch{fail(503,'Werbeeinrichtung noch nicht verfügbar.');}}
+const ads=require('./ad-service').createAdService({history:()=>[...roundHistory.values()],unsafe:id=>[...lobbies.values()].some(l=>l.players.some(p=>p.authId===id&&!p.left)),persist:()=>adStore.save(ads.snapshot())});
 const rateWindows=new Map();
 function rateLimit(authId,action,now=Date.now()) {
-  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000],'client-error':[10,60000]};
+  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000],'client-error':[10,60000],'ads-status':[20,60000],'ads-begin':[5,60000],'ads-complete':[5,60000],'ads-cancel':[10,60000]};
   const policy=policies[action]||(action.startsWith('admin-')?[60,60000]:null);if(!policy)return;
   const key=authId+':'+action;let window=rateWindows.get(key);
   if(!window||now>=window.until){window={count:0,until:now+policy[1]};rateWindows.set(key,window);}
@@ -758,6 +762,13 @@ async function handler(req, res) {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
       action = url.pathname.slice(5);
+      if(['ads-status','ads-begin','ads-complete','ads-cancel'].includes(action)){
+        const expected=action==='ads-status'?'GET':'POST';if(req.method!==expected)fail(405,'Methode nicht erlaubt.');
+        const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,action);await ensureAdStore();
+        const payload=expected==='GET'?{}:await readBody(req);
+        const result=action==='ads-status'?ads.status(actor):action==='ads-begin'?await ads.begin(actor,payload):action==='ads-complete'?await ads.complete(actor,payload):await ads.cancel(actor);
+        send(res,200,result);return;
+      }
       if(action==='legal') {
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         send(res,200,documents());return;
@@ -837,7 +848,7 @@ async function handler(req, res) {
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
-    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
+    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','ad-service.js','ad-store.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -863,6 +874,7 @@ setInterval(() => {
   for(let index=reports.length-1;index>=0;index--)if(now-reports[index].at>=30*86400000)reports.splice(index,1);
   void checkpoint(now).catch(error=>{monitor.record('BACKEND','STATE_WRITE_FAILED');console.error('State storage failed:',error.message);});
 }, 1000).unref();
+setInterval(()=>{if(adStoreReady)void ads.prune().catch(()=>monitor.record('BACKEND','AD_RETENTION_FAILED'));},30*60*1000).unref();
 setInterval(()=>void accounts.prune().catch(error=>console.error('Moderation retention:',error.message)),30*60*1000).unref();
 if (require.main === module) {
   const key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;

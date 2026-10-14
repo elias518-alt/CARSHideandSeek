@@ -401,6 +401,7 @@ function openPage(page) {
   window.communityUI?.onPage(page);
   window.crewUI?.onPage(page);
   window.socialMap?.onPage();
+  window.adsUI?.onPage(page);
   if (page === 'play') {
     setTimeout(() => {
       if (typeof findPublic === 'function') findPublic({ automatic: true });
@@ -1805,6 +1806,7 @@ function formatTime(seconds) {
 
 function renderGame() {
   window.socialMap?.gameChanged();
+  window.adsUI?.gameChanged();
   if (
     !state ||
     !state.lobby
@@ -2427,11 +2429,15 @@ if(typeof window!=='undefined')window.addEventListener('online',()=>void flushPe
 
 async function leave() {
   if (!gameSession) return;
+  const adResult=state?.lobby?.state==='RESULT'?state.lobby.result:null;
+  const adActor=authSession?.user?.id;
+  const wasDriver=state?.lobby?.me?.mode==='DRIVER';
   const entry={...gameCredentials(),authId:authSession?.user?.id};
   const entries=pendingLeaves().filter(p=>!(p.authId===entry.authId&&p.code===entry.code));
   localStorage.setItem('chsPendingLeaves',JSON.stringify([...entries,entry]));
   resetGame();
   await flushPendingLeaves();
+  if(adResult&&!wasDriver&&authSession?.user?.id===adActor&&!gameSession&&!hasPendingLeave(entry.code))void window.adsUI?.afterRound(adResult);
 }
 
 

@@ -6,6 +6,7 @@ Object.assign(methods,{chs_staff_roles:['GET','POST'],chs_player_blocks:['GET','
 for(const name of ['chs_admin_set_role','chs_admin_update_report','chs_admin_log_close','chs_admin_beta_stats','chs_record_match','chs_beta_retention','chs_personal_beta_stats'])methods['rpc/'+name]=['POST'];
 Object.assign(columns,{chs_staff_roles:['user_id','role'],chs_player_blocks:['user_id','target_id'],chs_player_reports:['id','reporter_id','target_id','lobby_code','category','comment','status','resolution','created_at','updated_at'],chs_onboarding:['version'],chs_user_regions:['user_id','country','region'],chs_player_round_stats:['role','finds','survival_seconds','won']});
 columns.chs_admin_audit.push('context');
+methods.chs_ad_ledger=['GET'];columns.chs_ad_ledger=['user_id','record'];methods['rpc/chs_store_ad_ledger']=['POST'];
 const json=(status,error)=>Response.json({error},{status,headers:{'Cache-Control':'no-store'}});
 async function readJson(req){
   const reader=req.body?.getReader();if(!reader)throw Error('Missing body');
