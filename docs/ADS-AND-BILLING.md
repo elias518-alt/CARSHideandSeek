@@ -8,8 +8,8 @@ Zunächst freiwillige Werbung nur außerhalb einer Runde erproben. Die App kann 
 
 | Format | Geeigneter Platz | Erlös und Nutzung |
 | --- | --- | --- |
-| Banner | Optional unten in Garage/Profil, mit reserviertem Platz und Abstand zu Navigation | Meist geringer Erlös pro Impression; Sichtbarkeit und Klickqualität zählen. Keine Layoutsprünge oder absichtliche Fehlklicks. |
-| Interstitial | Frühestens nach abgeschlossener Runde und ausdrücklich gewählter Rückkehr ins Menü | Häufig höherer Erlös pro Impression, aber starke Unterbrechung. Für die erste Version weglassen; später höchstens alle drei abgeschlossenen Runden, mindestens zehn Minuten Abstand und maximal drei pro Tag als Ausgangspunkt testen. |
+| Banner | Nicht vorgesehen | Der Nutzer hat Vollbildanzeigen und freiwillige Videos gewählt. |
+| Interstitial | Frühestens nach abgeschlossener Runde und ausdrücklich gewählter Rückkehr ins Menü | Häufig höherer Erlös pro Impression, aber starke Unterbrechung. Frühestens nach drei abgeschlossenen Runden, mindestens zehn Minuten Abstand und höchstens drei pro rollierenden 24 Stunden. Ziel 5–15 Sekunden; Anzeigen ohne zugesicherte Höchstdauer werden nicht ausgegeben. |
 | Freiwillige Rewarded Ad | Eigener Button in der Garage: vorab klar benannte kosmetische Belohnung | Häufig höherer Erlös pro abgeschlossener Impression, weil Nutzer sich bewusst entscheiden. Kein Vorteil bei Sichtbarkeit, Radius, Finden, Geschwindigkeit, XP oder Ranglisten. |
 
 Eine PLUS-Werbefreiheit ist noch keine zugesagte Leistung. Erst Produktentscheidung treffen, bevor sie beworben wird. Ein Werbeversprechen oder eine kosmetische Belohnung wird erst angezeigt, wenn ein Anbieter die Gelegenheit tatsächlich liefern kann. Bei fehlender Werbung keine Strafe, Endlosschleife oder blockierte Navigation.
@@ -24,11 +24,11 @@ Rechenweg: ausgelieferte Impressionen / 1.000 × beobachteter eCPM. Rein hypothe
 
 ## Web-App und native App
 
-Die aktuelle App ist eine Web-App. Ein natives Mobile-SDK wie AdMob lässt sich nicht einfach als Script einbauen. Für Web ist ein ausdrücklich für diese Nutzung zugelassenes Web-Produkt nötig; Rewarded-Inventar hängt von Anbieter, Freischaltung und Browser ab. Eine spätere native App oder ein Wrapper benötigt eine eigene SDK-/Plattformprüfung. Keine Integration nur aufgrund eines vermeintlich höheren eCPMs wählen.
+Die aktuelle App ist eine Web-App. Ein natives Mobile-SDK wie AdMob lässt sich nicht einfach als Script einbauen. Für Web ist ein ausdrücklich für diese Nutzung zugelassenes Web-Produkt nötig; Rewarded-Inventar hängt von Anbieter, Freischaltung und Browser ab. Eine spätere native App oder ein Wrapper benötigt eine eigene SDK-/Plattformprüfung. Keine Integration nur aufgrund eines vermeintlich höheren eCPMs wählen. Als Kandidat kann Google Ad Manager mit Web-Interstitial-/Rewarded-Unterstützung geprüft werden; Freischaltung, Inventar und eine belastbare serverseitige Reward-Bestätigung müssen zuvor nachgewiesen sein. Eine bloße Browser-Abschlussmeldung reicht nicht.
 
 ## Technische Vorbereitung
 
-`monetization-policy.js` definiert unveränderliche, deaktivierte Fähigkeiten, einen gesperrten Checkout-Vertrag und die Sicherheitskontexte für Werbung. Es lädt keinen Anbieter. SQL lehnt nicht unterstützte PLUS-Aktionen einschließlich Checkout ab. Entitlements entstehen aktuell ausschließlich über Administratoren mit Datenbankrollen `admin` oder `super_admin`.
+`ad-service.js` und `ads-ui.js` bereiten die gewählten Werbeplätze vor, siehe `ADS-SETUP-20261014.md`. Die serverseitige Anbieteranbindung bleibt `null`; ein einfacher Environment-Schalter kann keine echte Auslieferung aktivieren. `monetization-policy.js` definiert unveränderliche, deaktivierte Fähigkeiten, einen gesperrten Checkout-Vertrag und die Sicherheitskontexte für Werbung. Es lädt keinen Anbieter. SQL lehnt nicht unterstützte PLUS-Aktionen einschließlich Checkout ab. Entitlements entstehen aktuell ausschließlich über Administratoren mit Datenbankrollen `admin` oder `super_admin`.
 
 Spätere Zahlungsintegration benötigt:
 

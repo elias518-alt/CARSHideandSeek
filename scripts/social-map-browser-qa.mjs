@@ -38,14 +38,27 @@ function fixture(){
 try{
  browser=await chromium.launch({executablePath:process.env.CHS_QA_CHROMIUM||undefined,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  for(const width of [390,360,430,1000]){
-  const page=await browser.newPage({viewport:{width,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await browser.newPage({viewport:{width,height:844}}),errors=[];let adPermanent=false;page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://qa.invalid/portrait.svg',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="160" height="320"><rect width="160" height="320" fill="#508caf"/><circle cx="80" cy="130" r="44" fill="#f5c7a2"/><path d="M0 310Q80 140 160 310" fill="#17293a"/></svg>'}));
   await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:'('+fixture.toString()+')()'}));
   await page.route('**/maplibre-gl@5.6.0/dist/maplibre-gl.js',r=>r.fulfill({contentType:'text/javascript',body:fs.readFileSync(maplibre)}));
   await page.route('**/maplibre-gl@5.6.0/dist/maplibre-gl.css',r=>r.fulfill({contentType:'text/css',body:fs.readFileSync(maplibre.replace(/\.js$/,'.css'))}));
   await page.route('https://tiles.openfreemap.org/**',r=>r.fulfill({json:{version:8,sources:{},layers:[{id:'qa-background',type:'background',paint:{'background-color':'#25303a'}}]}}));
-  await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();return r.fulfill({json:action==='account-status'?{accepted:true,banned:false,admin:false,onboardingRequired:false,legal:{ready:true}}:action==='invites'?{invites:[]}:action==='rejoin-lookup'?{code:null}:action==='personal-stats'?{}:{ok:true}});});
+  await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();return r.fulfill({json:action==='ads-status'?{enabled:false,provider:null,interstitialEligible:false,reward:{id:'neon-garage',permanent:adPermanent,progress:adPermanent?10:0,target:10,expiresAt:null}}:action==='account-status'?{accepted:true,banned:false,admin:false,onboardingRequired:false,legal:{ready:true}}:action==='invites'?{invites:[]}:action==='rejoin-lookup'?{code:null}:action==='personal-stats'?{}:{ok:true}});});
   await page.goto(base,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.accountUI?.currentAccount?.accepted&&window.socialMap&&window.qa);
+  await page.evaluate(()=>openPage('garage'));
+  check(await page.locator('#rewardAdButton').isDisabled(),'No provider: rewarded ad unavailable');
+  check((await page.locator('#rewardAdStatus').textContent()).includes('noch nicht verfügbar'),'Unavailable ads explained');
+  await page.screenshot({animations:'disabled',path:output+'/reward-ad-'+width+'.png'});
+  await page.evaluate(()=>adsUI.afterRound({id:'synthetic-round'}));
+  check(await page.locator('#adOffer').count()===0,'No fake fullscreen ad without provider');
+  adPermanent=true;await page.evaluate(()=>adsUI.onPage('garage'));await page.waitForFunction(()=>document.getElementById('garage').dataset.adLook==='neon');
+  check((await page.locator('#rewardAdProgressLabel').textContent()).includes('Dauerhaft'),'Permanent ownership shown without expiry');
+  check(await page.locator('#rewardAdButton').isDisabled(),'No further rewarded ads once look owned');
+  check(await page.locator('#rewardAdProgress').getAttribute('max')==='10','Ten-video goal shown');
+  await page.locator('.adRewardCard').screenshot({animations:'disabled',path:output+'/reward-permanent-'+width+'.png'});
+  adPermanent=false;await page.evaluate(()=>adsUI.onPage('garage'));await page.waitForFunction(()=>!document.getElementById('garage').hasAttribute('data-ad-look'));
+
   await page.evaluate(()=>openPage('profile'));
   for(const selector of ['#profileAvatar','#headerAvatar','#homeGreetingAvatar']) {
    check(await page.locator(selector).evaluate(el=>{const s=getComputedStyle(el);return Math.abs(parseFloat(s.width)-parseFloat(s.height))<1;}),'Square avatar geometry '+selector+' at '+width);

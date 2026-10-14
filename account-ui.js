@@ -3,7 +3,7 @@
    always fetched from the authenticated server, never from localStorage. */
 (function(){
   let currentAccount=null,accountCheck=0;
-  function stopActivity(){clearTimeout(pollTimer);clearInterval(gpsHeartbeat);gpsHeartbeat=null;gpsPhase='STOPPED';window.socialMap?.reset();window.plusUI?.reset();}
+  function stopActivity(){clearTimeout(pollTimer);clearInterval(gpsHeartbeat);gpsHeartbeat=null;gpsPhase='STOPPED';window.socialMap?.reset();window.plusUI?.reset();window.adsUI?.reset();}
   const appearance=()=>wardrobe.normalize(authSession?.user?.user_metadata?.chs_appearance||{classic:getCharacterStyle()});
   function accountDialog(id,title){
     let dialog=document.getElementById(id);

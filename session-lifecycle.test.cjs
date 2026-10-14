@@ -53,7 +53,7 @@ test('an old failed poll cannot display a rejoin overlay after leave',async()=>{
 });
 test('failed leave stays account-bound and retries successfully without recovering the old lobby',async()=>{
  const saved=new Map();let fails=true,calls=0;
- const c=vm.createContext({authSession:{user:{id:'account-a'}},AbortSignal,gameSession:{code:'ABCDE',userId:'p'},gameCredentials:()=>({code:'ABCDE',userId:'p'}),
+ const c=vm.createContext({state:null,window:{addEventListener(){}},authSession:{user:{id:'account-a'}},AbortSignal,gameSession:{code:'ABCDE',userId:'p'},gameCredentials:()=>({code:'ABCDE',userId:'p'}),
   localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},clearTimeout(){},setTimeout(){return 1;},
   resetGame(){c.gameSession=null;},api:async()=>{calls++;if(fails)throw new Error('offline');}});
  vm.runInContext(source.slice(source.indexOf('let leaveBusy ='),source.indexOf('function resetGame()')),c);

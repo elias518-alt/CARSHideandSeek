@@ -7,7 +7,7 @@ const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const check=(value,message)=>{if(!value)throw Error(message);checks++;};
 const deny=async(fn,message)=>{let error;try{await fn();}catch(e){error=e;}check(!!error,message);};
 try{
- await db.exec(`create role anon;create role authenticated;create schema auth;create schema chs_private;
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema chs_private;
  create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  create table profiles(id uuid primary key,username text,player_tag text,avatar_url text,level int default 1,xp int default 0,rounds_played int default 0,wins int default 0,finds int default 0,survived_rounds int default 0,active_vehicle_id uuid,last_seen_at timestamptz default now());
  create table vehicles(id uuid primary key,user_id uuid,brand text,model text,body_type text,color text,photo_path text,is_active boolean,updated_at timestamptz);
@@ -21,7 +21,7 @@ try{
  create function chs_private.account_allowed() returns boolean language sql security definer set search_path='' as $$ select auth.uid() is not null and not exists(select 1 from public.chs_account_bans where user_id=auth.uid() and revoked_at is null and (until_at is null or until_at>now())) $$;
  insert into profiles(id,username,player_tag) select ('00000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'Player '||n,'P'||n from generate_series(1,6)n;
  insert into chs_friendships values('${id(1)}','${id(2)}','accepted'),('${id(1)}','${id(4)}','accepted'),('${id(1)}','${id(5)}','pending');`);
- for(const file of ['20261007171454_crew_progression.sql','20261013080000_social_location_sharing.sql','20261014090000_friend_presence.sql','20261014100000_plus_entitlements.sql'])await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['20261007171454_crew_progression.sql','20261013080000_social_location_sharing.sql','20261014090000_friend_presence.sql','20261014100000_plus_entitlements.sql','20261014130000_ad_ledger.sql'])await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  await db.exec(`insert into chs_crews(id,name,tag) values('${id(99)}','Our Crew','CREW');insert into chs_crew_members(user_id,crew_id) values('${id(1)}','${id(99)}'),('${id(3)}','${id(99)}');`);
  const as=async n=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[n?id(n):'']);};
  const admin=async(sql,args=[])=>{await db.exec('reset role');return db.query(sql,args);};
@@ -58,6 +58,12 @@ try{
  check((await admin('select count(*)::int n from chs_plus_audit')).rows[0].n===3,'Every administrative mutation audited');
  await as(null);await deny(()=>plusRead(),'PLUS requires actual identity');
  await db.exec('reset role;set role anon');await deny(()=>plusRead(),'No anonymous PLUS access');
+
+ await as(1);await deny(()=>db.query('select * from chs_ad_ledger'),'Players cannot read ad ledger');
+ await deny(()=>db.query('select chs_store_ad_ledger($1)',[JSON.stringify({[id(1)]:{rewardPermanent:true}})]),'Players cannot forge permanent reward');
+ await db.exec('reset role;set role service_role');await db.query('select chs_store_ad_ledger($1)',[JSON.stringify({[id(1)]:{rewardPermanent:true}})]);
+ check((await db.query('select record from chs_ad_ledger')).rows[0].record.rewardPermanent,'Server stores permanent ownership without gameplay expiration');
+ await db.exec('reset role;set role anon');await deny(()=>db.query('select * from chs_ad_ledger'),'Anonymous ledger access denied');
  let revision;
  await as(1);let presence=(await db.query('select chs_friend_presence() d')).rows[0].d;
  check(presence.length===2&&presence.every(p=>p.last_active_at),'Presence only confirmed friends with real timestamp');
@@ -95,7 +101,7 @@ try{
  const count=await admin('select count(*)::int n from chs_social_locations');check(count.rows[0].n===0,'Authoritative round snapshot purges social fix');await as(1);check((await act('publish',position(revision))).paused===true,'Round blocks direct RPC publication');check((await read()).paused===true,'Round pauses social map');await as(2);check((await read()).players.length===0,'Round player cannot be tracked');
  await admin("update chs_server_state set snapshot='{"+'"lobbies":[]'+"}'");await as(1);await act('publish',position(revision));await settings('off');check((await read()).own===null,'Off deletes position');await deny(()=>act('publish',position(revision)),'Disable wins over delayed publish');await as(2);check((await read()).players.length===0,'Off hides owner immediately');
  await as(1);revision=(await settings('friends')).revision;await act('publish',position(revision));await admin("update chs_social_locations set expires_at=now()-interval '1 second'");await as(2);check((await read()).players.length===0,'Expired coordinate unreadable without cron');await as(1);check((await read()).own===null,'Own expired coordinate unreadable');await admin('select chs_private.prune_social_locations()');check((await admin('select count(*)::int n from chs_social_locations')).rows[0].n===0,'Retention physically deletes old point');
- await as(1);revision=(await settings('friends')).revision;await act('publish',position(revision));await admin('delete from profiles where id=$1',[id(1)]);check((await admin('select count(*)::int n from chs_social_locations')).rows[0].n===0,'Account deletion removes point');check((await admin('select count(*)::int n from chs_location_settings')).rows[0].n===0,'Account deletion removes settings');
+ await as(1);revision=(await settings('friends')).revision;await act('publish',position(revision));await admin('delete from profiles where id=$1',[id(1)]);check((await admin('select count(*)::int n from chs_social_locations')).rows[0].n===0,'Account deletion removes point');check((await admin('select count(*)::int n from chs_location_settings')).rows[0].n===0,'Account deletion removes settings');check((await admin('select count(*)::int n from chs_ad_ledger')).rows[0].n===0,'Account deletion removes permanent cosmetic ownership');
  await as(null);await deny(()=>read(),'Missing identity rejected');await db.exec('reset role;set role anon');await deny(()=>read(),'Anonymous read rejected');await deny(()=>settings('off'),'Anonymous write rejected');
  console.log(JSON.stringify({checks,status:'passed',scope:'Actual SQL in PGlite; real auth.uid/roles, no live user data or cron execution'}));
 }finally{await db.close();}
