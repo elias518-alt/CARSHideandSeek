@@ -211,8 +211,8 @@ input:focus,select:focus,textarea:focus{
 .profileHero .settingsButton{z-index:5;background:rgba(10,14,19,.68);border:1px solid #44505d;color:#fff;}
 #profileAvatar{
   z-index:4;
-  width:104px!important;height:104px!important;min-height:104px!important;flex-basis:104px!important;
-  line-height:98px!important;
+  width:104px;height:104px;min-height:104px;flex-basis:104px;
+  line-height:98px;
   margin:4px 0 14px!important;
   background:rgba(16,22,30,.82)!important;
   border:2px solid #8994a2!important;
@@ -453,8 +453,8 @@ input:focus,select:focus,textarea:focus{
     align-items:flex-start!important;
   }
   #profileAvatar{
-    width:82px!important;height:82px!important;min-height:82px!important;flex-basis:82px!important;
-    line-height:76px!important;margin-bottom:10px!important;
+    width:82px;height:82px;min-height:82px;flex-basis:82px;
+    line-height:76px;margin-bottom:10px!important;
   }
   #profileName{font-size:26px!important;}
   .profileVehicleStage{

@@ -13,6 +13,7 @@ try{
  create table vehicles(id uuid primary key,user_id uuid,brand text,model text,body_type text,color text,photo_path text,is_active boolean,updated_at timestamptz);
  create table chs_friendships(requester uuid,addressee uuid,status text);
  create table chs_player_blocks(user_id uuid,target_id uuid);
+ create table chs_staff_roles(user_id uuid primary key,role text);
  create table chs_account_bans(user_id uuid,revoked_at timestamptz,until_at timestamptz);
  create table game_results(user_id uuid,won boolean,role text);
  create table chs_daily_activity(user_id uuid,day date,last_at timestamptz);
@@ -20,7 +21,7 @@ try{
  create function chs_private.account_allowed() returns boolean language sql security definer set search_path='' as $$ select auth.uid() is not null and not exists(select 1 from public.chs_account_bans where user_id=auth.uid() and revoked_at is null and (until_at is null or until_at>now())) $$;
  insert into profiles(id,username,player_tag) select ('00000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,'Player '||n,'P'||n from generate_series(1,6)n;
  insert into chs_friendships values('${id(1)}','${id(2)}','accepted'),('${id(1)}','${id(4)}','accepted'),('${id(1)}','${id(5)}','pending');`);
- for(const file of ['20261007171454_crew_progression.sql','20261013080000_social_location_sharing.sql'])await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['20261007171454_crew_progression.sql','20261013080000_social_location_sharing.sql','20261014090000_friend_presence.sql','20261014100000_plus_entitlements.sql'])await db.exec(fs.readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  await db.exec(`insert into chs_crews(id,name,tag) values('${id(99)}','Our Crew','CREW');insert into chs_crew_members(user_id,crew_id) values('${id(1)}','${id(99)}'),('${id(3)}','${id(99)}');`);
  const as=async n=>{await db.exec('reset role;set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[n?id(n):'']);};
  const admin=async(sql,args=[])=>{await db.exec('reset role');return db.query(sql,args);};
@@ -28,7 +29,41 @@ try{
  const act=async(action,payload={})=>(await db.query('select chs_social_map_action($1,$2) d',[action,JSON.stringify(payload)])).rows[0].d;
  const settings=(mode,recipients=[])=>act('settings',{mode,recipients,consent:true});
  const position=revision=>({revision,lat:52.52,lng:13.405,accuracy:25,measured_at:new Date(Date.now()-5000).toISOString()});
+
+ const plusRead=async()=>(await db.query('select chs_plus_read() d')).rows[0].d;
+ const plusAct=async(action,payload={})=>(await db.query('select chs_plus_action($1,$2) d',[action,JSON.stringify(payload)])).rows[0].d;
+ await as(1);check(!(await plusRead()).active&&!(await plusRead()).purchases_enabled,'PLUS and purchases default off');
+ await deny(()=>plusAct('grant',{target:id(1),reason:'Forged grant'}),'Ordinary member cannot grant PLUS');
+ await deny(()=>plusAct('accent',{accent:'pink',active:true}),'Forged active flag cannot unlock palette');
+ for(const table of ['chs_plus_entitlements','chs_player_preferences','chs_plus_audit']){
+  await deny(()=>db.query('select * from '+table),'Private PLUS table '+table);
+  await deny(()=>db.query('delete from '+table),'No direct deletion '+table);
+ }
+ await admin("insert into chs_staff_roles values($1,'admin'),($2,'moderator')",[id(3),id(4)]);
+ await as(4);await deny(()=>plusAct('grant',{target:id(1),reason:'Moderator attempt'}),'Moderator cannot grant');
+ await as(3);check((await plusRead()).can_manage,'Database admin recognized');
+ await deny(()=>plusAct('grant',{target:id(1),reason:'Valid',expires_at:'2020-01-01'}),'Past expiry rejected');
+ await deny(()=>plusAct('grant',{target:id(1),reason:'Valid',expires_at:'infinity'}),'Infinite timestamp rejected');
+ await plusAct('grant',{target:id(1),reason:'QA manual grant'});
+ await as(1);check((await plusRead()).active,'Manual grant active');
+ await plusAct('accent',{accent:'pink',user_id:id(6)});check((await plusRead()).accent==='pink','Own saved preference');
+ await as(6);check((await plusRead()).accent==='orange','Cannot modify another account preference');
+ await as(1);await deny(()=>plusAct('accent',{accent:'black'}),'Unsupported color rejected');
+ await deny(()=>plusAct('checkout',{price:0}),'Checkout always disabled');
+ await admin("update chs_plus_entitlements set expires_at=now()-interval '1 second' where user_id=$1",[id(1)]);
+ await as(1);check(!(await plusRead()).active&&(await plusRead()).accent==='orange','Expiry resets effective accent');
+ await deny(()=>plusAct('accent',{accent:'white'}),'Expired account cannot save premium accent');
+ await as(3);await plusAct('grant',{target:id(1),reason:'QA renewal'});await plusAct('revoke',{target:id(1),reason:'QA revoke'});
+ await as(1);check(!(await plusRead()).active,'Revocation immediate on server');
+ check((await admin('select count(*)::int n from chs_plus_audit')).rows[0].n===3,'Every administrative mutation audited');
+ await as(null);await deny(()=>plusRead(),'PLUS requires actual identity');
+ await db.exec('reset role;set role anon');await deny(()=>plusRead(),'No anonymous PLUS access');
  let revision;
+ await as(1);let presence=(await db.query('select chs_friend_presence() d')).rows[0].d;
+ check(presence.length===2&&presence.every(p=>p.last_active_at),'Presence only confirmed friends with real timestamp');
+ await admin('insert into chs_player_blocks values($1,$2)',[id(2),id(1)]);await as(1);
+ check((await db.query('select chs_friend_presence() d')).rows[0].d.length===1,'Blocked friend activity hidden');
+ await admin('delete from chs_player_blocks');await as(6);check((await db.query('select chs_friend_presence() d')).rows[0].d.length===0,'Stranger activity inaccessible');
  await as(1);check((await read()).settings.mode==='off','Default must be off');check((await read()).players.length===0,'No unsolicited coordinates');check((await read()).contacts.length===3,'Only accepted friends and own crew');
  await deny(()=>act('settings',{mode:'friends'}),'Consent required');await deny(()=>settings('public'),'No public sharing');await deny(()=>settings('selected',[id(5)]),'Pending friend denied');await deny(()=>settings('selected',[id(6)]),'Stranger denied');await deny(()=>settings('selected',[]),'Empty selection denied');await deny(()=>settings('selected',[id(1)]),'Cannot select self');
  for(const table of ['chs_location_settings','chs_location_recipients','chs_social_locations']){

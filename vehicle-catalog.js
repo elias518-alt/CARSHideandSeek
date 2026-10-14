@@ -4,7 +4,18 @@
   const generations = {
     'ford|focus': [['I',1998,2004],['II',2004,2011],['III',2011,2018],['IV',2018,null]],
     'volkswagen|golf': [['VI',2008,2012],['VII',2012,2019],['VIII',2019,null]],
-    'bmw|3er': [['E36',1990,2000],['E46',1997,2006]],
+    'bmw|3er': [['E36',1990,2000],['E46',1997,2006],['E90',2005,2013],['F30',2011,2019],['G20',2019,null]],
+    'bmw|m2': [['F87',2016,2021],['G87',2023,null]],
+    'bmw|m3': [['E46',2000,2006],['E90/E92',2007,2013],['F80',2014,2018],['G80',2021,null]],
+    'bmw|m4': [['F82',2014,2020],['G82',2021,null]],
+    'bmw|2er': [['F22',2014,2021],['G42',2021,null]],
+    'bmw|1er': [['E87',2004,2011],['F20',2011,2019],['F40',2019,2024],['F70',2024,null]],
+    'audi|a3': [['8P',2003,2013],['8V',2012,2020],['8Y',2020,null]],
+    'audi|tt': [['8N',1998,2006],['8J',2006,2014],['8S',2014,2023]],
+    'volkswagen|polo': [['IV',2001,2009],['V',2009,2017],['VI',2017,null]],
+    'mercedes-benz|a-klasse': [['W176',2012,2018],['W177',2018,null]],
+    'toyota|supra': [['A80',1993,2002],['A90',2019,null]],
+    'mazda|mx-5': [['NA',1989,1998],['NB',1998,2005],['NC',2005,2015],['ND',2015,null]],
     'bmw|e36': [['E36',1990,2000]],
     'bmw|e46': [['E46',1997,2006]]
   };
@@ -26,7 +37,7 @@
     if (/touring|variant|turnier|avant|kombi|\bv[69]0\b/.test(name)) return 'wagon';
     if (/transit|caddy|transporter|touran|zafira|berlingo|v-klasse|ducato/.test(name)) return 'van';
     if (/\bx[1-7]\b|\bq[2-8]\b|suv|tiguan|touareg|kuga|puma|tucson|sportage|qashqai|duster|xc[469]0|range rover|defender|model [xy]|gl[abces]|rav4|kodiaq|karoq|captur|juke|t-roc|kamiq|crossover/.test(name)) return 'suv';
-    if (/911|cayman|boxster|mustang|\btt\b|\bz[34]\b|mx-5|supra|coupe|cabrio/.test(name)) return 'coupe';
+    if (/\bm[24]\b|911|cayman|boxster|mustang|\btt\b|\bz[34]\b|mx-5|supra|coupe|cabrio/.test(name)) return 'coupe';
     if (/focus|fiesta|golf|polo|corsa|astra|a[13]\b|1er|clio|megane|i[123]0|yaris|civic|cooper|leon|ibiza|fabia|208|308|500|sandero|id.3|smart|twingo|aygo|\bup\b/.test(name)) return 'hatch';
     return 'sedan';
   }

@@ -6,7 +6,7 @@ function fixture(rpc){
   const nodes=new Map();
   const make=()=>({dataset:{},setAttribute(){},addEventListener(){},remove(){nodes.delete(this.id);}});
   const friends={classList:{contains:()=>false}},list={textContent:''};
-  const context=vm.createContext({authSession:{user:{id:'account-a'}},supabaseClient:{rpc},socialAction(){},
+  const context=vm.createContext({authSession:{user:{id:'account-a'}},supabaseClient:{rpc:(name,args)=>name==='chs_friend_presence'?Promise.resolve({data:[],error:null}):rpc(name,args)},socialAction(){},
     vehiclePhotoUrl:path=>'https://storage.example/'+path,
     parkingAvatarMarkup:player=>'<span data-vehicle="'+String(player.vehicle).replace(/"/g,'&quot;')+'">'+player.color+'</span>',
     $:selector=>selector==='#friends'?friends:list,

@@ -3,7 +3,7 @@
    always fetched from the authenticated server, never from localStorage. */
 (function(){
   let currentAccount=null,accountCheck=0;
-  function stopActivity(){clearTimeout(pollTimer);clearInterval(gpsHeartbeat);gpsHeartbeat=null;gpsPhase='STOPPED';window.socialMap?.reset();}
+  function stopActivity(){clearTimeout(pollTimer);clearInterval(gpsHeartbeat);gpsHeartbeat=null;gpsPhase='STOPPED';window.socialMap?.reset();window.plusUI?.reset();}
   const appearance=()=>wardrobe.normalize(authSession?.user?.user_metadata?.chs_appearance||{classic:getCharacterStyle()});
   function accountDialog(id,title){
     let dialog=document.getElementById(id);
@@ -30,7 +30,7 @@
       if(currentAccount.banned){await gate(currentAccount);return false;}
       if(!currentAccount.developerPreview&&(!(currentAccount.legal.canAccept??currentAccount.legal.ready)||!currentAccount.accepted)){await gate(currentAccount);return false;}
       if(account.onboardingRequired){stopActivity();window.betaUI.onboard(account);return false;}
-      window.socialMap?.onPage();
+      window.socialMap?.onPage();window.plusUI?.refresh();
       return true;
     }catch(error){if(valid())await gate({error:error.message});return false;}
   }

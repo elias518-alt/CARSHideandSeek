@@ -7,9 +7,9 @@
   'use strict';
 const brands = `Abarth|Acura|Alfa Romeo|Aston Martin|Audi|Bentley|BMW|Buick|BYD|Cadillac|Chevrolet|Chrysler|Citroën|Cupra|Dacia|Daewoo|Daihatsu|Dodge|DS|Ferrari|Fiat|Ford|Genesis|GMC|Honda|Hyundai|Infiniti|Isuzu|Jaguar|Jeep|Kia|Lada|Lamborghini|Lancia|Land Rover|Lexus|Lincoln|Lotus|Maserati|Mazda|McLaren|Mercedes-Benz|MG|Mini|Mitsubishi|Nissan|Opel|Peugeot|Polestar|Porsche|Ram|Renault|Rolls-Royce|Saab|Seat|Škoda|Smart|Subaru|Suzuki|Tesla|Toyota|Volkswagen|Volvo`.split('|');
 const models = {
-  'Audi':['A1','A3','A4','A5','A6','A7','A8','Q2','Q3','Q5','Q7','Q8','TT','e-tron'],
-  'BMW':['1er','116i','118i','120i','128ti','2er','218i','220i','230i','M2','3er','318i','320i','320d','330i','330d','340i','M3','4er','420i','420d','430i','430d','440i','M4','5er','520d','530i','530d','540i','M5','6er','7er','740i','750i','8er','840i','E30','E36','E46','E90','F30','G20','G31','X1','X2','X3','X4','X5','X6','X7','Z3','Z4'],
-  'Mercedes-Benz':['A-Klasse','B-Klasse','C-Klasse','E-Klasse','S-Klasse','CLA','CLS','GLA','GLB','GLC','GLE','GLS','G-Klasse','V-Klasse','AMG GT'],
+  'Audi':['A1','A3','A4','A5','A6','A7','A8','Q2','Q3','Q5','Q7','Q8','TT','S3','RS3','RS4','RS6','Q4 e-tron','e-tron'],
+  'BMW':['1er','116i','118i','120i','128ti','2er','218i','220i','230i','M2','3er','318i','320i','320d','330i','330d','340i','M3','4er','420i','420d','430i','430d','440i','M4','5er','520d','530i','530d','540i','M5','6er','7er','740i','750i','8er','840i','E30','E36','E46','E90','F30','G20','G31','X1','X2','X3','X4','X5','X6','X7','Z3','Z4','i3','i4','i5','i7','iX','iX1','iX3'],
+  'Mercedes-Benz':['A-Klasse','B-Klasse','C-Klasse','E-Klasse','S-Klasse','CLA','CLS','GLA','GLB','GLC','GLE','GLS','G-Klasse','V-Klasse','AMG GT','CLE','EQA','EQB','EQE','EQS'],
   'Volkswagen':['up!','Polo','Golf','Passat','Arteon','T-Cross','T-Roc','Tiguan','Touareg','Touran','Caddy','Transporter','ID.3','ID.4','ID.5','ID.7'],
   'Porsche':['911','718 Cayman','718 Boxster','Panamera','Macan','Cayenne','Taycan'],
   'Opel':['Corsa','Astra','Insignia','Mokka','Crossland','Grandland','Zafira'],
@@ -44,6 +44,9 @@ const models = {
     'BMW|520d':'Limousine','BMW|530i':'Limousine','BMW|530d':'Limousine','BMW|540i':'Limousine','BMW|M5':'Limousine',
     'BMW|740i':'Limousine','BMW|750i':'Limousine','BMW|840i':'Coupé',
     'BMW|X1':'SUV','BMW|X2':'SUV','BMW|X3':'SUV','BMW|X4':'SUV','BMW|X5':'SUV','BMW|X6':'SUV','BMW|X7':'SUV',
+    'BMW|i3':'Compact','BMW|i4':'Limousine','BMW|i5':'Limousine','BMW|i7':'Limousine','BMW|iX':'SUV','BMW|iX1':'SUV','BMW|iX3':'SUV',
+    'Audi|S3':'Compact','Audi|RS3':'Compact','Audi|RS4':'Touring','Audi|RS6':'Touring','Audi|Q4 e-tron':'SUV',
+    'Mercedes-Benz|CLE':'Coupé','Mercedes-Benz|EQA':'SUV','Mercedes-Benz|EQB':'SUV','Mercedes-Benz|EQE':'Limousine','Mercedes-Benz|EQS':'Limousine',
     'BMW|Z3':'Roadster','BMW|Z4':'Roadster',
     'Audi|A1':'Compact','Audi|A3':'Compact','Audi|A4':'Limousine','Audi|A5':'Coupé','Audi|A6':'Limousine','Audi|A7':'Limousine','Audi|A8':'Limousine',
     'Audi|Q2':'SUV','Audi|Q3':'SUV','Audi|Q5':'SUV','Audi|Q7':'SUV','Audi|Q8':'SUV','Audi|TT':'Coupé',

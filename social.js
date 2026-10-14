@@ -202,7 +202,9 @@ async function loadFriends() {
   const accountId=authSession.user.id;
   socialBusy = true;
   try {
-    const rows=await socialRpc('chs_social_overview_v2') || [];
+    const [rows,presence]=await Promise.all([socialRpc('chs_social_overview_v2'),socialRpc('chs_friend_presence').catch(()=>[])]);
+    const activity=new Map((presence||[]).map(p=>[p.user_id,p.last_active_at]));
+    for(const row of rows||[])row.last_active_at=activity.get(row.peer_id)||null;
     if(authSession?.user?.id!==accountId)return;
     socialRows=rows;
     renderFriendNotice();renderSocialBadges();renderReferenceCrew();
@@ -212,6 +214,13 @@ async function loadFriends() {
   } finally { socialBusy = false; }
 }
 
+function friendIsOnline(row) { const at=Date.parse(row.last_active_at);return Number.isFinite(at)?Date.now()-at<120000:row.online===true; }
+function friendActivityLabel(row) {
+ if(friendIsOnline(row))return 'Gerade aktiv';
+ const at=Date.parse(row.last_active_at);if(!Number.isFinite(at))return 'Aktivität unbekannt';
+ const minutes=Math.max(0,Math.floor((Date.now()-at)/60000));
+ return 'Zuletzt aktiv '+(minutes<60?'vor '+minutes+' Min.':minutes<1440?'vor '+Math.floor(minutes/60)+' Std.':'am '+new Date(at).toLocaleDateString('de-DE'));
+}
 function friendDisplayName(row) { return row.username?.trim() || row.player_tag || 'Spieler'; }
 function socialAvatarMarkup(row){
  const name=friendDisplayName(row),v=row.active_vehicle;
@@ -248,12 +257,13 @@ function renderFriends() {
   const markup = rows.length ? rows.map(row => `
     <div class="socialRow">
       ${socialAvatarMarkup(row)}
-      <div class="socialPerson"><strong>${esc(friendDisplayName(row))}</strong><small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}${row.status === 'pending' ? (row.incoming ? ' · Anfrage erhalten' : ' · Anfrage gesendet') : ''}</small></div>
+      <div class="socialPerson"><strong>${esc(friendDisplayName(row))}</strong><small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}${row.status === 'pending' ? (row.incoming ? ' · Anfrage erhalten' : ' · Anfrage gesendet') : ''}</small>${row.status==='accepted'?'<small class="friendPresence '+(friendIsOnline(row)?'isOnline':'')+'">'+esc(friendActivityLabel(row))+'</small><small data-friend-location="'+esc(row.peer_id)+'"></small>':''}</div>
       <div class="socialActions">
         ${row.status === 'accepted' ? `<button data-dm="${esc(row.peer_id)}">CHAT${Number(row.unread_count)>0?'<span class="notificationBadge">'+esc(Math.min(99,Number(row.unread_count)))+'</span>':''}</button><button data-remove="${row.request_id}" aria-label="Freund entfernen">×</button>` : row.incoming ? `<button data-accept="${row.request_id}">ANNEHMEN</button><button data-decline="${row.request_id}" aria-label="Ablehnen">×</button>` : `<button data-remove="${row.request_id}">ZURÜCKZIEHEN</button>`}
       </div>
     </div>`).join('') : `<div class="emptyState">${socialTab === 'friends' ? 'Noch keine Freunde. Suche oben nach einem Spielernamen.' : 'Keine offenen Anfragen.'}</div>`;
   if(list.dataset.markup!==markup){list.innerHTML=markup;list.dataset.markup=markup;}
+  window.socialMap?.decorateFriends();
 }
 async function searchPlayers() {
   const q = $('#friendSearch').value.trim(), box = $('#friendSearchResults');
