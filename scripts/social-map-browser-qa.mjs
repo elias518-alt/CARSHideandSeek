@@ -89,6 +89,20 @@ try{
   check(await page.locator('#qaGarage .vehicleRender--original').count()===2,'Both M2 generations rendered');
   check(await page.locator('#qaGarage .vehicleRender--original').first().evaluate(el=>getComputedStyle(el).backgroundImage==='none'),'No generic background behind generation artwork');
   await page.screenshot({animations:'disabled',path:output+'/garage-'+width+'.png'});await page.evaluate(()=>document.getElementById('qaGarage').remove());
+  await page.evaluate(()=>{window.qaOldGarage=localGarage;localGarage=[{id:'studio-qa',brand:'BMW',model:'320d',year:2022,color:'Grün',body:'Limousine',active:true}];renderGarage();openPage('garage');});
+  check(await page.locator('#garageCars [data-studio-generation="G20"]').count()===1,'Engine variant renders matching studio car in real garage');
+  check(await page.locator('#garageCars [data-paint="#276548"]').count()===1,'German green color reaches studio material');
+  check(await page.locator('#garageCars svg').evaluate(el=>getComputedStyle(el).overflow==='hidden'),'Atlas clipped inside actual garage');
+  await page.locator('#garageCars').screenshot({animations:'disabled',path:output+'/studio-garage-'+width+'.png'});
+  await page.evaluate(()=>{localGarage=qaOldGarage;delete window.qaOldGarage;renderGarage();window.qaOldState=state;const players=[{id:'p0',name:'Elias',vehicle:'BMW 320d',vehicleYear:2022,color:'Grün',bodyType:'Limousine',ready:true,connected:true,hasLocation:true},{id:'p1',name:'Lea',vehicle:'Mercedes-Benz C200',vehicleYear:2017,color:'Weiß',bodyType:'Limousine',ready:true,connected:true,hasLocation:true}];state={serverTime:Date.now(),lobby:{code:'STUDIO',name:'Studio QA',hostId:'p0',players,me:players[0],state:'LOBBY',background:'skyline',radius:500,settings:{radius:500,duration:900,headstart:120,escape:10}},chat:[],blocksForMe:[]};openPage('game');renderGame();clearTimeout(pollTimer);});
+  const tutorial=page.getByRole('button',{name:'Verstanden',exact:true});if(await tutorial.isVisible())await tutorial.click();
+  for(const scene of ['skyline','alpine','hangar']){
+   await page.evaluate(scene=>{state.lobby.background=scene;renderFreshLobby();},scene);
+   check(await page.locator('#game').evaluate((el,scene)=>getComputedStyle(el).backgroundImage.includes('/scenes/'+scene+'.webp'),scene),'Selected scene visible '+scene);
+   check(await page.locator('#players [data-studio-generation]').count()>=2,'Studio cars visible in lobby '+scene);
+   if(width===390)await page.screenshot({animations:'disabled',path:output+'/scene-'+scene+'-'+width+'.png'});
+  }
+  await page.evaluate(()=>{state=qaOldState;delete window.qaOldState;});
   await page.evaluate(()=>openPage('friends'));await page.waitForFunction(()=>document.querySelector('.friendPresence')?.textContent==='Zuletzt aktiv vor 15 Min.');
   await page.locator('[data-open-social-map="friends"]').click();
   await page.locator('.socialMapMarker').first().waitFor();

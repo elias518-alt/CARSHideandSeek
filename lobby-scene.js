@@ -7,7 +7,10 @@
   const backgrounds = Object.freeze([
     { id: 'violet', name: 'Violettes Parkdeck', image: 'assets/rooftop-city-hd.png' },
     { id: 'wet', name: 'Nasses Parkdeck', image: 'assets/lobby-meetup.webp' },
-    { id: 'garage', name: 'Neon-Halle', image: 'lobby-bg.png' }
+    { id: 'garage', name: 'Neon-Halle', image: 'lobby-bg.png' },
+    { id: 'skyline', name: 'Skyline bei Nacht', image: 'assets/scenes/skyline.webp' },
+    { id: 'alpine', name: 'Alpen · Golden Hour', image: 'assets/scenes/alpine.webp' },
+    { id: 'hangar', name: 'Industriehalle · Amber', image: 'assets/scenes/hangar.webp' }
   ]);
   const validBackground = value => backgrounds.some(background => background.id === value);
   const background = value => validBackground(value) ? value : 'violet';

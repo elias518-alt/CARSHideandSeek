@@ -7,9 +7,9 @@
   'use strict';
 const brands = `Abarth|Acura|Alfa Romeo|Aston Martin|Audi|Bentley|BMW|Buick|BYD|Cadillac|Chevrolet|Chrysler|Citroën|Cupra|Dacia|Daewoo|Daihatsu|Dodge|DS|Ferrari|Fiat|Ford|Genesis|GMC|Honda|Hyundai|Infiniti|Isuzu|Jaguar|Jeep|Kia|Lada|Lamborghini|Lancia|Land Rover|Lexus|Lincoln|Lotus|Maserati|Mazda|McLaren|Mercedes-Benz|MG|Mini|Mitsubishi|Nissan|Opel|Peugeot|Polestar|Porsche|Ram|Renault|Rolls-Royce|Saab|Seat|Škoda|Smart|Subaru|Suzuki|Tesla|Toyota|Volkswagen|Volvo`.split('|');
 const models = {
-  'Audi':['A1','A3','A4','A5','A6','A7','A8','Q2','Q3','Q5','Q7','Q8','TT','S3','RS3','RS4','RS6','Q4 e-tron','e-tron'],
-  'BMW':['1er','116i','118i','120i','128ti','2er','218i','220i','230i','M2','3er','318i','320i','320d','330i','330d','340i','M3','4er','420i','420d','430i','430d','440i','M4','5er','520d','530i','530d','540i','M5','6er','7er','740i','750i','8er','840i','E30','E36','E46','E90','F30','G20','G31','X1','X2','X3','X4','X5','X6','X7','Z3','Z4','i3','i4','i5','i7','iX','iX1','iX3'],
-  'Mercedes-Benz':['A-Klasse','B-Klasse','C-Klasse','E-Klasse','S-Klasse','CLA','CLS','GLA','GLB','GLC','GLE','GLS','G-Klasse','V-Klasse','AMG GT','CLE','EQA','EQB','EQE','EQS'],
+  'Audi':['80','A1','A3','A4','A5','A6','A7','A8','Q2','Q3','Q5','Q7','Q8','TT','S3','RS3','RS4','RS6','Q4 e-tron','e-tron'],
+  'BMW':['1er','116i','118i','120i','128ti','2er','218i','220i','230i','M2','3er','318i','320i','320d','330i','330d','340i','M3','4er','420i','420d','430i','430d','440i','M4','5er','520d','530i','530d','540i','M5','6er','7er','740i','750i','8er','840i','E21','E30','E36','E46','E90','F30','G20','E12','E28','E34','E39','E60','F10','G30','G60','G31','X1','X2','X3','X4','X5','X6','X7','Z3','Z4','i3','i4','i5','i7','iX','iX1','iX3'],
+  'Mercedes-Benz':['190','190E','C180','C200','C220d','C300','A-Klasse','B-Klasse','C-Klasse','E-Klasse','S-Klasse','CLA','CLS','GLA','GLB','GLC','GLE','GLS','G-Klasse','V-Klasse','AMG GT','CLE','EQA','EQB','EQE','EQS'],
   'Volkswagen':['up!','Polo','Golf','Passat','Arteon','T-Cross','T-Roc','Tiguan','Touareg','Touran','Caddy','Transporter','ID.3','ID.4','ID.5','ID.7'],
   'Porsche':['911','718 Cayman','718 Boxster','Panamera','Macan','Cayenne','Taycan'],
   'Opel':['Corsa','Astra','Insignia','Mokka','Crossland','Grandland','Zafira'],
@@ -37,6 +37,8 @@ const models = {
   // Simplified default body styles for the picker. They are UI defaults only:
   // users can still correct an ambiguous derivative under "Fahrzeugdetails".
   const modelBodies = {
+    'BMW|3er':'Limousine','BMW|5er':'Limousine','BMW|E21':'Coupé','BMW|G31':'Touring',
+    'Mercedes-Benz|190':'Limousine','Mercedes-Benz|190E':'Limousine','Mercedes-Benz|C180':'Limousine','Mercedes-Benz|C200':'Limousine','Mercedes-Benz|C220d':'Limousine','Mercedes-Benz|C300':'Limousine','Audi|80':'Limousine',
     'BMW|116i':'Compact','BMW|118i':'Compact','BMW|120i':'Compact','BMW|128ti':'Compact',
     'BMW|218i':'Coupé','BMW|220i':'Coupé','BMW|230i':'Coupé','BMW|M2':'Coupé',
     'BMW|318i':'Limousine','BMW|320i':'Limousine','BMW|320d':'Limousine','BMW|330i':'Limousine','BMW|330d':'Limousine','BMW|340i':'Limousine','BMW|M3':'Limousine',
@@ -63,7 +65,7 @@ const models = {
   const normalize=value=>String(value||'').trim().toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const compact=value=>normalize(value).replace(/[^a-z0-9]/g,'');
   const brandAliases={'vw':'Volkswagen','mercedes':'Mercedes-Benz','skoda':'Škoda'};
-  const bmwSeries={'E30':'3er','E36':'3er','E46':'3er','E90':'3er','F30':'3er','G20':'3er','G31':'5er'};
+  const bmwSeries={'E21':'3er','E12':'5er','E28':'5er','E34':'5er','E39':'5er','E60':'5er','F10':'5er','G30':'5er','G60':'5er','E30':'3er','E36':'3er','E46':'3er','E90':'3er','F30':'3er','G20':'3er','G31':'5er'};
   function canonicalBrand(value) {
     const raw=String(value||'').trim();
     const alias=brandAliases[normalize(raw)];
@@ -84,7 +86,7 @@ const models = {
         brand,
         model:normalizedModel,
         series,
-        body:modelBodies[brand+'|'+normalizedModel]||modelBodies[brand+'|'+model]||'',
+        body:modelBodies[brand+'|'+model]||modelBodies[brand+'|'+normalizedModel]||'',
         label:series ? normalizedModel+' · '+series : normalizedModel,
         exact:true,
         manual:false
@@ -113,7 +115,7 @@ const models = {
         if(query&&!candidate.includes(named?modelQuery:query)&&!(series&&modelQuery===compact(series)))continue;
         const key=brand+'|'+model+'|'+(series||'');
         if(seen.has(key))continue;seen.add(key);
-        output.push({brand,model,year,series:series||'',body:modelBodies[brand+'|'+model]||modelBodies[brand+'|'+entry]||'',exact:!!modelQuery&&(modelQuery===compact(entry)||(!named&&query===compact(model))),
+        output.push({brand,model,year,series:series||'',body:modelBodies[brand+'|'+entry]||modelBodies[brand+'|'+model]||'',exact:!!modelQuery&&(modelQuery===compact(entry)||(!named&&query===compact(model))),
           label:brand+' '+model+(series?' · '+series:''),manual:false});
       }
     }
@@ -124,7 +126,7 @@ const models = {
           if(compact(model)!==query)continue;
           const series=brand==='BMW'&&bmwSeries[model]?model:'';
           const resolved=series?bmwSeries[model]:model;
-          output.push({brand,model:resolved,year,series,body:modelBodies[brand+'|'+resolved]||modelBodies[brand+'|'+model]||'',exact:true,label:brand+' '+(series?bmwSeries[model]+' · '+series:model),manual:false});
+          output.push({brand,model:resolved,year,series,body:modelBodies[brand+'|'+model]||modelBodies[brand+'|'+resolved]||'',exact:true,label:brand+' '+(series?bmwSeries[model]+' · '+series:model),manual:false});
         }
       }
     }

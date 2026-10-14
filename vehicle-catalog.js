@@ -1,6 +1,7 @@
 /* European model generations. Sources and regional limits: DESIGN-NOTES.md. */
 (function(root) {
   'use strict';
+  const expanded=typeof module!=='undefined'&&module.exports?require('./vehicle-generations'):root.vehicleGenerations;
   const generations = {
     'ford|focus': [['I',1998,2004],['II',2004,2011],['III',2011,2018],['IV',2018,null]],
     'volkswagen|golf': [['VI',2008,2012],['VII',2012,2019],['VIII',2019,null]],
@@ -21,6 +22,7 @@
   };
   const normalize = value => String(value || '').trim().toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   function ranges(brand, model) {
+    const extra=expanded?.ranges({brand,model});if(extra?.length)return extra;
     return (generations[normalize(brand)+'|'+normalize(model)] || []).map(([name,from,to]) => ({
       name,from,to,label:name+' · '+(to ? from+'–'+to : 'ab '+from)
     }));
