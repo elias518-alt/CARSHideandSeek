@@ -1,0 +1,52 @@
+/* Final component layer: fixed avatar geometry; badges are outside the crop. */
+#profile #profileAvatar {box-sizing:border-box;position:relative;display:grid;place-items:center;width:80px;height:80px;min-width:80px;min-height:80px;max-width:80px;max-height:80px;flex:0 0 80px;aspect-ratio:1;border-radius:50%;line-height:1;overflow:visible;margin:0 0 22px}
+#profile #profileAvatar>img,#headerAvatar>img,#homeGreetingAvatar>img {position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:center;border-radius:50%;display:block}
+#headerAvatar,#homeGreetingAvatar {box-sizing:border-box;position:relative;display:grid;place-items:center;aspect-ratio:1;flex-shrink:0;border-radius:50%;line-height:1;padding:0}
+#headerAvatar {width:40px;height:40px;min-height:40px;flex-basis:40px}
+#homeGreetingAvatar {width:52px;height:52px;min-width:52px;min-height:52px;flex-basis:52px}
+#homeGreetingAvatar .vehicleAvatar {width:100%;height:100%;overflow:hidden;border-radius:50%}
+#profile #profileLevelBadge {position:absolute;right:-7px;bottom:-9px;z-index:2;line-height:1;min-width:26px;text-align:center;background:#202632;color:var(--player-accent,#ff9b6c);border:2px solid #101620;box-shadow:0 3px 12px #0006}
+#profile .profileHero {border:1px solid #ffffff16;border-radius:24px;overflow:hidden;box-shadow:0 12px 36px #0003}
+#profile .profileProgress {box-shadow:0 8px 24px #0003;backdrop-filter:blur(12px)}
+#profile .profileStats {gap:12px;margin:18px 0 26px}
+#profile .profileStats>div {position:relative;display:grid;grid-template-columns:1fr auto;gap:10px;padding:18px;border:1px solid #ffffff12;background:radial-gradient(ellipse at top right,#ffffff09,transparent 75%),#171e29;border-radius:20px;min-width:0;text-align:left}
+#profile .profileStats strong {grid-column:1;grid-row:1;font-size:34px;line-height:1.15;font-variant-numeric:tabular-nums;color:#f5f7fc}
+#profile .profileStats span {grid-column:1/-1;font-size:11px;letter-spacing:1.3px}
+#profile .profileStatIcon {grid-column:2;grid-row:1;display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--player-accent-soft,#ff78251c);color:var(--player-accent,#ffad79);font-style:normal;font-size:23px}
+#profileStatsDialog [data-stats] {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:25px}
+.profileDetailStat {display:flex;flex-direction:column-reverse;gap:8px;background:#141c27;border:1px solid #ffffff16;border-radius:16px;padding:18px;margin:0;color:#b8c5d6}
+.profileDetailStat strong {font-size:30px;color:#fff;font-variant-numeric:tabular-nums}
+#profileStatsDialog [data-stats]>p:not(.profileDetailStat) {grid-column:1/-1;line-height:1.6;color:#b8c5d6}
+#progressSheet .hubProgressHero {background:radial-gradient(ellipse at top,var(--player-accent-soft,#ff782528),transparent 75%),#151d28;border:1px solid #ffffff18;border-radius:24px;padding:26px}
+#progressSheet .hubPerformanceStats {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#progressSheet .hubStatCard {position:relative;background:linear-gradient(145deg,#202a38,#151c26);border:1px solid #ffffff16;border-radius:18px;min-width:0;padding:18px;text-align:left;align-items:flex-start}
+#progressSheet .hubStatCard strong {font-size:30px;font-variant-numeric:tabular-nums}
+#progressSheet .hubStatIcon {color:var(--player-accent,#ffad79);background:var(--player-accent-soft,#ff78251c);border-radius:10px;padding:8px}
+#progressSheet .hubStatLabel {color:#b8c5d6;line-height:1.4}
+@media(min-width:650px){#progressSheet .hubPerformanceStats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){#profile *,#progressSheet *{scroll-behavior:auto;transition:none}}
+.friendPresence {display:flex;align-items:center;gap:6px;margin-top:5px;color:#aebacc}
+.friendPresence::before {content:'';width:6px;height:6px;border-radius:50%;background:#7e8999;flex:none}
+.friendPresence.isOnline {color:#78dfa9}.friendPresence.isOnline::before {background:#78dfa9}
+[data-friend-location]:not(:empty) {display:block;margin-top:5px;color:#c8d3e3!important;line-height:1.4}
+.vehicleRender--original {width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.vehicleRender--original svg {width:100%;height:100%;overflow:visible}
+:root[data-player-accent],:root[data-player-accent] body,:root[data-player-accent] #game.freshLobby.active.freshWaiting {--orange:var(--player-accent);--orange2:var(--player-accent);--chs-lime:var(--player-accent);--chs-lime-2:var(--player-accent)}
+:root[data-player-accent] .progress>div,:root[data-player-accent] progress {accent-color:var(--player-accent);background-color:var(--player-accent)}
+:root[data-player-accent] #profileLevelBadge,:root[data-player-accent] .primary,:root[data-player-accent] #openPlay {background:var(--player-accent)!important;color:#131923!important;border-color:var(--player-accent)!important}
+:root[data-player-accent] #profileLevelText,:root[data-player-accent] .hubEyebrow,:root[data-player-accent] .profileStatIcon {color:var(--player-accent)!important}
+.plusDialog {max-width:540px}.plusDialog p {line-height:1.6;color:#bdc8d8}
+.plusPalette {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0}
+.plusPalette button {display:grid;place-items:center;gap:10px;border:1px solid #ffffff20;border-radius:16px;padding:16px 5px;background:#182230;color:#f5f7fc;min-height:90px}
+.plusPalette button>span {width:28px;height:28px;background:var(--swatch);border-radius:50%;box-shadow:0 0 18px color-mix(in srgb,var(--swatch) 20%,transparent)}
+.plusPalette button[aria-pressed=true] {outline:2px solid var(--swatch);outline-offset:2px}
+.plusPalette button:disabled {opacity:.45}.plusPalette button:disabled[aria-pressed=true] {opacity:1}
+.plusDialog form label {display:grid;gap:8px;margin:16px 0}.plusDialog input,.plusDialog select {box-sizing:border-box;width:100%;max-width:100%;padding:12px;border:1px solid #ffffff25;border-radius:10px;background:#151e2a;color:#fff}
+.plusAdminActions {display:flex;gap:10px;flex-wrap:wrap}
+.vehicleRender--original {background:none!important;aspect-ratio:384/240;filter:none!important}
+.plusDialog [hidden] {display:none!important}
+:root[data-player-accent] .hubProgressHero progress::-webkit-progress-value {background:var(--player-accent)}
+:root[data-player-accent] .hubProgressHero progress::-moz-progress-bar {background:var(--player-accent)}
+:root[data-player-accent] .hubButton.primary,:root[data-player-accent] .plusCard>button {background:var(--player-accent);color:#131923}
+:root[data-player-accent] .hubTabs [aria-selected=true],:root[data-player-accent] .hubTabs button.active {color:var(--player-accent);border-color:var(--player-accent)}
+:root[data-player-accent] .hubProgressHero>span,:root[data-player-accent] .hubEmpty>svg,:root[data-player-accent] .isMe>div>strong {color:var(--player-accent)}

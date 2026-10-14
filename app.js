@@ -1398,6 +1398,7 @@ function playerData() {
     vehicle:
       `${car.brand} ${car.model}${car.year ? ' · Bj. '+car.year : ''}`.trim(),
     bodyType: car.body || '',
+    vehicleYear: car.year || '', vehicleSeries: car.series || '',
     background: getLobbyBackground(),
 
     color:
@@ -2822,6 +2823,8 @@ function vehiclePaintFilter(color) {
 }
 
 function vehicleIllustration(car,context='vehicle') {
+  const art=window.vehicleArt?.render(car||{});
+  if(art)return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--original">'+art+'</div><figcaption>Eigenständige Illustration · an die Baureihe angelehnt</figcaption></figure>';
   const template=vehicleCatalog.illustration(car || {});
   const filter=vehiclePaintFilter(car?.color);
   const image='<image href="assets/vehicle-lineup.webp" x="'+(-template.x)+'" y="'+(-template.y)+'" width="1536" height="1024" />';
@@ -3302,14 +3305,19 @@ function openProfileStatistics() {
   const rounds = number('rounds_played');
   const rows = [['Runden',rounds],['Siege',number('wins')],['Funde',number('finds')],['Überlebte Runden',number('survived_rounds')],['Siegquote',rounds ? Math.round(number('wins') / rounds * 100) + '%' : '0%'],['Level',Math.max(1,number('level'))],['XP',number('xp').toLocaleString('de-DE')]];
   for (const [label,value] of rows) {
-    const row = document.createElement('p'); row.style.cssText = 'display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #53616b;padding:12px 0';
+    const row = document.createElement('p'); row.className = 'profileDetailStat';
     const key = document.createElement('span'); key.textContent = label;
     const val = document.createElement('strong'); val.textContent = value; row.append(key,val); body.append(row);
   }
-  const hint = document.createElement('p'); hint.textContent = 'Gespeicherte Kontowerte. Eine Liste einzelner vergangener Runden ist noch nicht vorhanden.'; body.append(hint);
+  const hint = document.createElement('p'); hint.className = 'profileStatsHint'; hint.textContent = rounds ? 'Deine bisher gespeicherten Rundenergebnisse.' : 'Deine erste Runde wartet. Hier wächst deine Statistik mit jedem Spiel.'; body.append(hint);
   if (!dialog.open) dialog.showModal();
   const actor=authSession?.user?.id;
-  api('personal-stats',{},'GET').then(stats=>{if(!dialog.isConnected||actor!==authSession?.user?.id)return;const p=document.createElement('p');p.textContent='Beta-Erfassung: '+stats.seekerRounds+' Sucherrunden · '+stats.hiderRounds+' Versteckerrunden · Ø Überleben '+(stats.averageSurvivalSeconds===null?'noch keine Daten':formatTime(stats.averageSurvivalSeconds));body.append(p);}).catch(()=>{});
+  const generation=dialog._statsGeneration=(dialog._statsGeneration||0)+1;
+  api('personal-stats',{},'GET').then(stats=>{
+    if(!dialog.isConnected||actor!==authSession?.user?.id||generation!==dialog._statsGeneration)return;
+    const count=value=>Number.isFinite(value)?Math.max(0,value).toLocaleString('de-DE'):'–';
+    const p=document.createElement('p');p.textContent='Rollenstatistik: '+count(stats.seekerRounds)+' Sucherrunden · '+count(stats.hiderRounds)+' Versteckerrunden · Ø Überleben '+(Number.isFinite(stats.averageSurvivalSeconds)?formatTime(stats.averageSurvivalSeconds):'noch keine Daten');body.append(p);
+  }).catch(()=>{if(dialog.isConnected&&actor===authSession?.user?.id&&generation===dialog._statsGeneration){const p=document.createElement('p');p.textContent='Erweiterte Rollenstatistik derzeit nicht erreichbar.';body.append(p);}});
 }
 function setupProfileActions() {
   document.querySelector('#profile .settingsButton')?.addEventListener('click', openProfileEditor);
@@ -3614,7 +3622,7 @@ function lobbyCarMarkup(player,mine=false,context='lobby'){
     return `<img class="lobbyModelCar${rawClass}" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
 
-  return vehicleIllustration({id:player.id,vehicle:player.vehicle,body:player.bodyType,color:player.color},context);
+  return vehicleIllustration({id:player.id,vehicle:player.vehicle,body:player.bodyType,color:player.color,year:player.vehicleYear,series:player.vehicleSeries},context);
 }
 
 function lobbyProfileMarkup(player) {

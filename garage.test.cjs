@@ -33,12 +33,13 @@ test('generation validation accepts boundaries and leaves unknown models editabl
 });
 test('lobby profile identifier comes from authenticated participant, without location disclosure',async()=>{
   const now=Date.now();
-  const me={id:'player-session',authId:'authenticated-profile',profileId:'spoofed',name:'Test',vehicle:'Ford Focus',bodyType:'Compact',color:'Grey',lastSeen:now,location:{lat:52,lng:13,accuracy:5,at:now}};
+  const me={id:'player-session',authId:'authenticated-profile',profileId:'spoofed',name:'Test',vehicle:'Ford Focus',bodyType:'Compact',vehicleYear:'2018',vehicleSeries:'IV',color:'Grey',lastSeen:now,location:{lat:52,lng:13,accuracy:5,at:now}};
   lobbies.set('GARA1',{code:'GARA1',state:'LOBBY',hostId:me.id,players:[me],messages:[],radius:500});
   try{
     const result=await route('state',{code:'GARA1',userId:me.id},me.authId);
     assert.equal(result.lobby.players[0].profileId,me.authId);
     assert.equal(result.lobby.players[0].bodyType,'Compact');
+    assert.equal(result.lobby.players[0].vehicleYear,'2018');assert.equal(result.lobby.players[0].vehicleSeries,'IV');
     assert.equal(result.lobby.players[0].location,undefined);
   }finally{lobbies.delete('GARA1');}
 });

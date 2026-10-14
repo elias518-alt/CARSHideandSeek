@@ -15,9 +15,9 @@ let browser,checks=0;
 const check=(value,message)=>{if(!value)throw Error(message);checks++;};
 function fixture(){
  const id='11111111-1111-4111-8111-111111111111',peer='22222222-2222-4222-8222-222222222222';
- window.qa={id,peer,requests:[],gps:0,holdGps:false,denyGps:false,holdRead:false,failRead:false,failSave:false,settings:{mode:'off',revision:null,recipients:[]},own:null};
+ window.qa={id,peer,requests:[],gps:0,holdGps:false,denyGps:false,holdRead:false,failRead:false,failSave:false,settings:{mode:'off',revision:null,recipients:[]},own:null,plus:{active:false,accent:'orange',can_manage:false,expires_at:null}};
  Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(success,failure){qa.gps++;const deliver=()=>qa.denyGps?failure({code:1}):success({coords:{latitude:52.52,longitude:13.405,accuracy:20},timestamp:Date.now()});if(qa.holdGps)qa.deliverGps=deliver;else setTimeout(deliver,0);}}});
- const user={id,user_metadata:{}},profile={id,username:'Testspieler',player_tag:'QA',level:2,xp:1200,rounds_played:2,wins:1,finds:1,survived_rounds:1};
+ const user={id,user_metadata:{}},profile={id,avatar_url:'https://qa.invalid/portrait.svg',username:'Testspieler',player_tag:'QA',level:2,xp:1200,rounds_played:2,wins:1,finds:1,survived_rounds:1};
  const contact={user_id:peer,username:'Lea <img src=x onerror=alert(1)>',avatar_url:null,is_friend:true,is_crew:true};
  const mapData=()=>({server_time:new Date().toISOString(),paused:false,settings:structuredClone(qa.settings),contacts:[contact],own:structuredClone(qa.own),players:[{...contact,lat:52.525,lng:13.412,accuracy:30,measured_at:new Date(Date.now()-1200000).toISOString(),last_active_at:new Date(Date.now()-60000).toISOString(),expires_at:new Date(Date.now()+3600000).toISOString()}]});
  window.supabase={createClient(){return {auth:{getSession:async()=>({data:{session:{user,access_token:'qa-token'}}}),onAuthStateChange:fn=>{qa.auth=fn;},signOut:async()=>{qa.auth('SIGNED_OUT',null);return {};},updateUser:async()=>({data:{user}})},storage:{from:()=>({getPublicUrl:()=>({data:{publicUrl:''}})})},from(table){const chain=new Proxy({},{get(_,key){if(key==='then')return resolve=>resolve({data:table==='profiles'?profile:[],error:null});return ()=>chain;}});return chain;},async rpc(name,args){
@@ -27,6 +27,9 @@ function fixture(){
    if(args.action==='settings'){if(qa.failSave)return {error:{message:'Speichern fehlgeschlagen'}};if(qa.holdSave)await new Promise(r=>qa.deliverSave=r);qa.settings={mode:args.payload.mode,recipients:args.payload.recipients,revision:crypto.randomUUID()};qa.own=null;return {data:{ok:true,...qa.settings}};}
    if(args.action==='publish'){if(qa.settings.mode==='off'||args.payload.revision!==qa.settings.revision)return {error:{message:'Freigabe geändert'}};qa.own={user_id:id,...args.payload,last_active_at:new Date().toISOString(),expires_at:new Date(Date.now()+86400000).toISOString()};}return {data:{ok:true}};
   }
+  if(name==='chs_plus_read')return {data:{...qa.plus,server_time:new Date().toISOString(),purchases_enabled:false}};
+  if(name==='chs_plus_action'){if(args.action==='accent'){if(!qa.plus.active&&args.payload.accent!=='orange')return {error:{message:'PLUS erforderlich.'}};qa.plus.accent=args.payload.accent;}return {data:{...qa.plus,server_time:new Date().toISOString(),purchases_enabled:false}};}
+  if(name==='chs_friend_presence')return {data:[{user_id:peer,last_active_at:new Date(Date.now()-900000).toISOString()}]};
   if(name==='chs_social_overview_v2')return {data:[{...contact,peer_id:peer,request_id:'friend',status:'accepted',incoming:false,level:1,unread_count:0}]};
   if(name==='chs_community_read'){if(args.section==='crew')return {data:{crew:{id:'crew',name:'Testcrew',tag:'TEST',logo:'shield',join_mode:'OPEN',my_role:'MEMBER',points:1200},members:[{...contact,role:'MEMBER',points:1200}],invitations:[],requests:[],sent_invites:[]}};if(args.section==='progress')return {data:{...profile,rewards:[],stats:{}}};return {data:{rows:[],total:0,self:null}};}
   return {data:[]};
@@ -36,13 +39,45 @@ try{
  browser=await chromium.launch({executablePath:process.env.CHS_QA_CHROMIUM||undefined,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  for(const width of [390,360,430,1000]){
   const page=await browser.newPage({viewport:{width,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.route('https://qa.invalid/portrait.svg',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="160" height="320"><rect width="160" height="320" fill="#508caf"/><circle cx="80" cy="130" r="44" fill="#f5c7a2"/><path d="M0 310Q80 140 160 310" fill="#17293a"/></svg>'}));
   await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:'('+fixture.toString()+')()'}));
   await page.route('**/maplibre-gl@5.6.0/dist/maplibre-gl.js',r=>r.fulfill({contentType:'text/javascript',body:fs.readFileSync(maplibre)}));
   await page.route('**/maplibre-gl@5.6.0/dist/maplibre-gl.css',r=>r.fulfill({contentType:'text/css',body:fs.readFileSync(maplibre.replace(/\.js$/,'.css'))}));
   await page.route('https://tiles.openfreemap.org/**',r=>r.fulfill({json:{version:8,sources:{},layers:[{id:'qa-background',type:'background',paint:{'background-color':'#25303a'}}]}}));
   await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();return r.fulfill({json:action==='account-status'?{accepted:true,banned:false,admin:false,onboardingRequired:false,legal:{ready:true}}:action==='invites'?{invites:[]}:action==='rejoin-lookup'?{code:null}:action==='personal-stats'?{}:{ok:true}});});
   await page.goto(base,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.accountUI?.currentAccount?.accepted&&window.socialMap&&window.qa);
-  await page.evaluate(()=>openPage('friends'));await page.locator('[data-open-social-map="friends"]').click();
+  await page.evaluate(()=>openPage('profile'));
+  for(const selector of ['#profileAvatar','#headerAvatar','#homeGreetingAvatar']) {
+   check(await page.locator(selector).evaluate(el=>{const s=getComputedStyle(el);return Math.abs(parseFloat(s.width)-parseFloat(s.height))<1;}),'Square avatar geometry '+selector+' at '+width);
+  }
+  check(await page.locator('#profileAvatar img').evaluate(el=>el.complete&&el.naturalHeight>el.naturalWidth&&getComputedStyle(el).objectFit==='cover'),'Portrait photo loaded and cropped without stretching');
+  check(await page.locator('#profile .profileStats').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'Profile stats fit '+width);
+  await page.screenshot({animations:'disabled',path:output+'/profile-'+width+'.png'});
+  await page.evaluate(()=>openProfileStatistics());
+  check(await page.locator('#profileStatsDialog .profileDetailStat').count()===7,'Detailed statistics show real account fields');
+  await page.screenshot({animations:'disabled',path:output+'/statistics-'+width+'.png'});
+  await page.evaluate(()=>document.getElementById('profileStatsDialog').close());
+  await page.evaluate(()=>plusUI.open());await page.waitForFunction(()=>document.querySelector('#plusStatus')?.textContent.includes('noch nicht'));
+  check(await page.locator('[data-accent=pink]').isDisabled(),'Free account cannot select pink');
+  check(!await page.locator('[data-plus-admin]').isVisible(),'Admin controls hidden from ordinary members');
+  await page.evaluate(async()=>{qa.plus.active=true;await plusUI.refresh();});
+  await page.locator('[data-accent=pink]').click();await page.waitForFunction(()=>document.documentElement.dataset.playerAccent==='pink');
+  check(await page.locator('[data-accent=pink]').getAttribute('aria-pressed')==='true','Chosen premium palette persisted');
+  await page.screenshot({animations:'disabled',path:output+'/plus-'+width+'.png'});
+  await page.evaluate(async()=>{qa.plus.active=false;await plusUI.refresh();});
+  check(await page.evaluate(()=>document.documentElement.dataset.playerAccent==='orange'),'Revocation removes premium theme in open session');
+  check(await page.locator('[data-accent=pink]').isDisabled(),'Revoked palette locked');
+  await page.evaluate(async()=>{qa.plus.active=true;qa.plus.accent='blue';qa.plus.expires_at=new Date(Date.now()+900).toISOString();await plusUI.refresh();});
+  await page.waitForFunction(()=>document.documentElement.dataset.playerAccent==='orange');
+  check(await page.locator('[data-accent=blue]').isDisabled(),'Expiry timer removes rights without reopening');
+  await page.evaluate(()=>{qa.plus.active=false;qa.plus.expires_at=null;});
+  await page.locator('#plusDialog header button').click();
+  await page.evaluate(()=>{const d=document.createElement('dialog');d.id='qaGarage';d.style.cssText='width:min(90vw,650px);background:#151d28;color:white;border:0;border-radius:20px';d.innerHTML='<h2>Generation 2018</h2>'+vehicleIllustration({brand:'BMW',model:'M2',year:2018,color:'Blau'})+'<h2>Generation 2024</h2>'+vehicleIllustration({brand:'BMW',model:'M2',year:2024,color:'Rosa'});document.body.append(d);d.showModal();});
+  check(await page.locator('#qaGarage .vehicleRender--original').count()===2,'Both M2 generations rendered');
+  check(await page.locator('#qaGarage .vehicleRender--original').first().evaluate(el=>getComputedStyle(el).backgroundImage==='none'),'No generic background behind generation artwork');
+  await page.screenshot({animations:'disabled',path:output+'/garage-'+width+'.png'});await page.evaluate(()=>document.getElementById('qaGarage').remove());
+  await page.evaluate(()=>openPage('friends'));await page.waitForFunction(()=>document.querySelector('.friendPresence')?.textContent==='Zuletzt aktiv vor 15 Min.');
+  await page.locator('[data-open-social-map="friends"]').click();
   await page.locator('.socialMapMarker').first().waitFor();
   check((await page.locator('#socialMapSharing').textContent()).includes('Aus'),'Default-off label');
   check(await page.evaluate(()=>qa.gps===0),'Opening map must not request GPS');
@@ -52,7 +87,7 @@ try{
   check(await page.locator('#socialMapPeople img').count()===0,'Untrusted name escaped');
   check(await page.locator('#socialMapDialog').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'Dialog fits width '+width);
   check(await page.locator('#socialMapCanvas canvas').count()===1,'Real MapLibre canvas');
-  await page.screenshot({path:output+'/friends-'+width+'.png'});
+  await page.screenshot({animations:'disabled',path:output+'/friends-'+width+'.png'});
   await page.locator('[data-social-scope="crew"]').click();await page.waitForFunction(()=>qa.requests.some(r=>r.name==='chs_social_map_read'&&r.args.scope==='crew'));
   check(await page.locator('[data-social-scope="crew"]').getAttribute('aria-pressed')==='true','Crew filter selected');
   if(width===390){

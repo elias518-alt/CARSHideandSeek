@@ -17,7 +17,7 @@ function refreshVehicleForm() {
     series.value?'Baureihe: '+series.value:brand&&model?'Baureihe kannst du bei Bedarf ergänzen.':'';
   if(!pendingCarPhoto){
     const existing=localGarage.find(car=>car.id===editingVehicleId);
-    $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,body:$('#newCarBody').value,color:$('#newCarColor').value,photo:existing?.photo},'garage-preview');
+    $('#newCarPhotoPreview').innerHTML=carPhotoMarkup({brand,model,year,series:series.value,body:$('#newCarBody').value,color:$('#newCarColor').value,photo:existing?.photo},'garage-preview');
   }
 }
 
