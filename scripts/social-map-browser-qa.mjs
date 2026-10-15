@@ -139,7 +139,10 @@ try{
    check((await page.locator('#socialMapSharing').textContent()).includes('Aus'),'Returning after background save reloads, no stuck mutation');
    await page.evaluate(()=>qa.failRead=true);await page.locator('[data-social-map-action="refresh"]').click();await page.waitForFunction(()=>document.querySelectorAll('.socialMapPerson').length===0);check(await page.locator('.socialMapMarker').count()===0,'Offline read clears cached positions');
    await page.evaluate(()=>qa.failRead=false);await page.locator('[data-social-map-action="refresh"]').click();await page.locator('.socialMapMarker').first().waitFor();
-   await page.evaluate(()=>{state={lobby:{state:'ACTIVE'}};socialMap.gameChanged();});check(await page.locator('.socialMapMarker').count()===0,'Active game immediately clears map');await page.evaluate(()=>state=null);
+   // Keep the minimal map-only state inside this synchronous callback; the
+   // application's countdown timer must never observe an incomplete game fixture.
+   const activeMarkers=await page.evaluate(()=>{const previous=state;try{state={lobby:{state:'ACTIVE'}};socialMap.gameChanged();return document.querySelectorAll('.socialMapMarker').length;}finally{state=previous;}});
+   check(activeMarkers===0,'Active game immediately clears map');
    await page.evaluate(()=>qa.holdRead=true);await page.locator('[data-social-map-action="refresh"]').click();await page.waitForFunction(()=>typeof qa.deliverRead==='function');await page.evaluate(()=>{qa.auth('SIGNED_OUT',null);qa.deliverRead();});
    check(await page.locator('#socialMapDialog').count()===0,'Logout removes all private map views');check(await page.locator('.socialMapMarker').count()===0,'Late read cannot restore another account markers');
   }else{

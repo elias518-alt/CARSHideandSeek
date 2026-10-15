@@ -5,7 +5,7 @@ function refreshVehicleForm() {
   const brand=$('#newCarBrand').value.trim(), model=$('#newCarModel').value.trim();
   const series=$('#newCarSeries'), year=$('#newCarYear').value.trim();
   const signature=brand.toLowerCase()+'|'+model.toLowerCase();
-  const known=vehicleCatalog.ranges(brand,model);
+  const known=vehicleCatalog.ranges(brand,model,$('#newCarBody').value);
   const matching=year && !vehicleCatalog.yearError(year)
     ? known.filter(item=>Number(year)>=item.from&&(!item.to||Number(year)<=item.to)) : [];
   if(series.dataset.manual!=='true'){
@@ -34,7 +34,7 @@ function editVehicle(id) {
   $('#newCarSearch').setAttribute('aria-expanded','false');
   $('#saveCar').textContent='Änderungen speichern';
   $('#carModal h2').textContent='FAHRZEUG BEARBEITEN';
-  const known=vehicleCatalog.ranges(car.brand,car.model);
+  const known=vehicleCatalog.ranges(car.brand,car.model,car.body);
   const matching=car.year?known.filter(item=>Number(car.year)>=item.from&&(!item.to||Number(car.year)<=item.to)):[];
   const inferred=matching.length===1?matching[0]:null;
   // Preserve an explicit saved series when the year alone cannot identify it.

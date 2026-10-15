@@ -1179,7 +1179,7 @@ async function saveCar() {
   const color = $('#newCarColor')?.value.trim();
   const series = $('#newCarSeries').value.trim();
   const body = $('#newCarBody').value;
-  const generation = vehicleCatalog.ranges(brand,model).find(item=>item.label===series||item.name===series);
+  const generation = vehicleCatalog.ranges(brand,model,body).find(item=>item.label===series||item.name===series);
   const yearProblem = vehicleCatalog.yearError(year,generation);
   if(yearProblem){toast(yearProblem);return;}
   if(gameSession){toast('Verlasse zuerst die Lobby, um deine Garage zu bearbeiten.');return;}

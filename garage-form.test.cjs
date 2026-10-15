@@ -154,3 +154,18 @@ test('ArrowUp from an unselected suggestion activates the last result',()=>{
   const last=f.$('#carSearchResults').children.at(-1);
   assert.equal(f.$('#newCarSearch').attributes['aria-activedescendant'],last.id);
 });
+
+test('expanded SUV, MINI convertible and Audi wagon choices persist the selected body and generation',async()=>{
+  for(const [query,brand,model,body,code]of [
+    ['BMW X5 E70 2009','BMW','X5','SUV','E70'],
+    ['Mini R59 2014','Mini','Roadster','Roadster','R59'],
+    ['Audi A4 Avant 2020','Audi','A4 Avant','Touring','B9']
+  ]){
+    const f=formFixture();f.run('openCarModal()');f.type(query);f.key('Enter');f.color('Weiß');
+    assert.equal(f.$('#newCarBody').value,body,query);
+    await f.run('saveCar()');assert.equal(f.writes.length,1,query+' '+f.messages.join(' '));
+    const row=f.writes[0].values;
+    assert.deepEqual([row.brand,row.model,row.body_type,row.color],[brand,model,body,'Weiß']);
+    assert.ok(row.series.startsWith(code),query);
+  }
+});
