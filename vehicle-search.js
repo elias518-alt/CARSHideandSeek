@@ -66,6 +66,14 @@ const models = {
   const compact=value=>normalize(value).replace(/[^a-z0-9]/g,'');
   const brandAliases={'vw':'Volkswagen','mercedes':'Mercedes-Benz','skoda':'Škoda'};
   const bmwSeries={'E21':'3er','E12':'5er','E28':'5er','E34':'5er','E39':'5er','E60':'5er','F10':'5er','G30':'5er','G60':'5er','E30':'3er','E36':'3er','E46':'3er','E90':'3er','F30':'3er','G20':'3er','G31':'5er'};
+  const generations=typeof module!=='undefined'&&module.exports?require('./vehicle-generations'):window.vehicleGenerations;
+  const generationChoices=[];
+  for(const f of Object.values(generations?.families||{})){
+    if(!models[f.brand])models[f.brand]=[];
+    if(!models[f.brand].includes(f.model))models[f.brand].push(f.model);
+    if(f.body)modelBodies[f.brand+'|'+f.model]=f.body;
+    for(const [code]of f.rows)generationChoices.push({brand:f.brand,model:f.model,series:code,body:f.body||(code==='E21'||f.model==='M2'?'Coupé':'Limousine'),label:f.model+' · '+code,exact:true,manual:false});
+  }
   function canonicalBrand(value) {
     const raw=String(value||'').trim();
     const alias=brandAliases[normalize(raw)];
@@ -91,7 +99,7 @@ const models = {
         exact:true,
         manual:false
       };
-    }).filter((item,index,array)=>array.findIndex(other=>other.label===item.label)===index);
+    }).concat(generationChoices.filter(item=>item.brand===brand)).filter((item,index,array)=>array.findIndex(other=>other.label===item.label)===index);
   }
 
   function search(value){
@@ -105,6 +113,15 @@ const models = {
     const named=names.find(item=>query.startsWith(compact(item.name)));
     const modelQuery=named?query.slice(compact(named.name).length):query;
     const output=[],seen=new Set();
+    for(const entry of generationChoices){
+      if(named&&entry.brand!==named.brand)continue;
+      const code=compact(entry.series),target=named?modelQuery:query;
+      const exact=target===code||target===compact(entry.model)+code;
+      if(!exact)continue;
+      const key=entry.brand+'|'+entry.model+'|'+entry.series;
+      if(seen.has(key))continue;seen.add(key);
+      output.push({...entry,year,label:entry.brand+' '+entry.label,exact:true});
+    }
     for(const brand of brands){
       if(named&&brand!==named.brand)continue;
       for(const entry of models[brand]||[]){

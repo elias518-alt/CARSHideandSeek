@@ -21,8 +21,8 @@
     'bmw|e46': [['E46',1997,2006]]
   };
   const normalize = value => String(value || '').trim().toLocaleLowerCase('de').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  function ranges(brand, model) {
-    const extra=expanded?.ranges({brand,model});if(extra?.length)return extra;
+  function ranges(brand, model, body) {
+    const extra=expanded?.ranges({brand,model,body});if(extra?.length)return extra;
     return (generations[normalize(brand)+'|'+normalize(model)] || []).map(([name,from,to]) => ({
       name,from,to,label:name+' · '+(to ? from+'–'+to : 'ab '+from)
     }));
@@ -35,6 +35,8 @@
     if (/coupe|cabrio|roadster/.test(body)) return 'coupe';
     if (/compact|kompakt|schragheck/.test(body)) return 'hatch';
     if (/limousine|sedan/.test(body)) return 'sedan';
+    const family=expanded?.families[expanded.identify(car)];
+    if(family?.body)return shape({body:family.body});
     const name=normalize((car.brand||'')+' '+(car.model||car.vehicle||''));
     if (/touring|variant|turnier|avant|kombi|\bv[69]0\b/.test(name)) return 'wagon';
     if (/transit|caddy|transporter|touran|zafira|berlingo|v-klasse|ducato/.test(name)) return 'van';
