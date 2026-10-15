@@ -11,6 +11,6 @@ test('M2 generation follows explicit series or valid production year',()=>{
 test('original illustrations have distinct geometry and reject injected paint',()=>{
  const old=art.render({vehicle:'BMW M2',year:2018,color:'red'}),current=art.render({vehicle:'BMW M2',year:2024,color:'red'});
  assert.notEqual(old.replace(/original-car-\d+/g,'id'),current.replace(/original-car-\d+/g,'id'));
- assert.match(old,/#df454f/);assert.doesNotMatch(art.render({vehicle:'BMW M2',year:2024,color:'"><script>alert(1)</script>'}),/<script|alert/);
+ assert.match(old,/data-paint="#b52332"/);assert.doesNotMatch(art.render({vehicle:'BMW M2',year:2024,color:'"><script>alert(1)</script>'}),/<script|alert/);
  assert.equal(art.render({vehicle:'Unbekannt'}),'');
 });

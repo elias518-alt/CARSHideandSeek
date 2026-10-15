@@ -201,3 +201,7 @@
 .friendRequestNotice button[data-decline]{background:#293649;color:white;}
 .mapMeetup{background:#ff5a12;color:#132007;border:3px solid white;border-radius:50%;font-size:22px;line-height:32px;width:38px;height:38px;text-align:center;box-shadow:0 3px 12px #0008;}
 .mapMeetup.isStale{opacity:.55;}
+
+/* New photo locations share the host-selected scene with the game shell. */
+#players:is([data-background="skyline"],[data-background="alpine"],[data-background="hangar"]) .parkingScene::before{background-image:var(--lobby-background);filter:none;}
+#players:is([data-background="skyline"],[data-background="alpine"],[data-background="hangar"]) .parkingScene::after{background:linear-gradient(180deg,#10182612,transparent 55%,#08101630);}
