@@ -169,3 +169,18 @@ test('expanded SUV, MINI convertible and Audi wagon choices persist the selected
     assert.ok(row.series.startsWith(code),query);
   }
 });
+
+test('year options descend from the current year and refresh after a year rollover',()=>{
+ const f=formFixture();f.run('openCarModal()');
+ const years=()=>[...f.$('#newCarYear').innerHTML.matchAll(/value="(\d{4})"/g)].map(m=>Number(m[1]));
+ assert.equal(years()[0],new Date().getFullYear());assert.equal(years().at(-1),1900);
+ assert.ok(years().every((year,i,list)=>i===0||year===list[i-1]-1));
+ f.run('Date=class extends Date {getFullYear(){return 2030;}}; openCarModal()');
+ assert.equal(years()[0],2030);assert.ok(!years().includes(2031));
+});
+test('Cooper S remains Cooper S when saved with a selected year',async()=>{
+ const f=formFixture();f.run('openCarModal()');f.type('Mini Cooper S 2010');f.key('Enter');f.color('Weiß');
+ await f.run('saveCar()');assert.equal(f.writes.length,1);
+ assert.equal(f.writes[0].values.model,'Cooper S');assert.equal(f.writes[0].values.model_year,2010);
+ assert.ok(f.writes[0].values.series.startsWith('R56'));
+});

@@ -42,3 +42,15 @@ test('an explicit A5 Sportback remains valid in the B10 transition year',()=>{
  assert.ok(catalog.ranges('Audi','A5','Limousine').some(r=>r.name==='B10'));
  assert.equal(studio.select({brand:'Audi',model:'80',model_year:1989})?.code,'B3');
 });
+
+test('MINI Cooper S is a distinct model with its own generations and body variants',()=>{
+ for(const [year,code]of [[2004,'R53'],[2010,'R56'],[2019,'F56'],[2025,'F66']]){
+  const s=studio.select({brand:'Mini',model:'Cooper S',year});
+  assert.equal(s?.family,'minicoopers');assert.equal(s.code,code);assert.equal(s.asset[0],'mini-cooper-s');
+  assert.notDeepEqual(s.asset,studio.select({brand:'Mini',model:'Cooper',year}).asset);
+ }
+ assert.equal(studio.select({brand:'Mini',model:'Cooper S',year:2011,body:'Cabrio'}).family,'minicabrios');
+ assert.equal(studio.select({brand:'Mini',model:'Cooper S 5-Türer',year:2019}).code,'F55');
+ assert.equal(search.search('Mini Cooper S 2010')[0].model,'Cooper S');
+ assert.ok(search.modelsForBrand('Mini').some(c=>c.model==='Cooper S'&&!c.series));
+});

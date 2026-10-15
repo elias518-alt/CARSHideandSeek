@@ -14,7 +14,7 @@ test('explicit valid overlapping generation wins; incompatible series or body ne
 });
 test('each declared generation maps to an existing studio atlas and colors stay sanitized',()=>{
  const codes=new Set();for(const [key,f]of Object.entries(generations.families))for(const [code,year]of f.rows){const markup=studio.render({brand:f.brand,model:f.model,series:code,year,color:'Weiß'});assert.ok(markup.includes('data-studio-generation="'+code+'"'),key+' '+code);assert.ok(fs.existsSync(markup.match(/href="([^"]+)"/)[1]));codes.add(key+'|'+code);}
- assert.equal(codes.size,180);assert.notEqual(studio.color('Silber'),studio.color('Grau'));assert.notEqual(studio.color('Weiß'),studio.color('Schwarz'));assert.equal(studio.color('#123abc'),'#123abc');assert.equal(studio.color('"/><script>bad</script>'),'#bfc6cc');
+ assert.equal(codes.size,192);assert.notEqual(studio.color('Silber'),studio.color('Grau'));assert.notEqual(studio.color('Weiß'),studio.color('Schwarz'));assert.equal(studio.color('#123abc'),'#123abc');assert.equal(studio.color('"/><script>bad</script>'),'#bfc6cc');
 });
 test('three new host-selectable backgrounds exist and invalid values remain rejected',()=>{
  for(const id of ['skyline','alpine','hangar']){assert.equal(scene.background(id),id);assert.ok(fs.existsSync(scene.backgrounds.find(b=>b.id===id).image));}

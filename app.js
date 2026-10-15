@@ -1141,6 +1141,7 @@ function openCarModal() {
   if (gameSession) { toast('Verlasse zuerst die Lobby, um deine Garage zu bearbeiten.'); return; }
   editingVehicleId = null;
   pendingCarPhoto = '';
+  populateVehicleYears();
   for (const id of ['newCarBrand','newCarModel','newCarYear','newCarBody','newCarColor','newCarSeries']) $('#'+id).value='';
   $('#newCarSearch').value='';
   $('#newCarSeries').dataset.manual='false';
