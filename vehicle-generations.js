@@ -44,6 +44,10 @@
   bmwix:{"brand":"BMW","model":"iX","body":"SUV","rows":[["I20",2021,null,["bmw-x-grand",9]]]},
   miniclassic:{"brand":"Mini","model":"Classic","body":"Compact","rows":[["Mk I",1959,1967,["mini-hatch",0]],["Mk II",1967,1969,["mini-hatch",1]],["Mk III–VI",1969,1996,["mini-hatch",2]],["Mk VII",1996,2000,["mini-hatch",3]]]},
   minicooper:{"brand":"Mini","model":"Cooper","body":"Compact","rows":[["R50",2001,2006,["mini-hatch",4]],["R56",2006,2013,["mini-hatch",5]],["F56",2013,2024,["mini-hatch",6]],["F66",2024,null,["mini-hatch",7]]]},
+  minicoopers:{brand:'Mini',model:'Cooper S',body:'Compact',rows:[['R53',2002,2006,['mini-cooper-s',0]],['R56',2006,2013,['mini-cooper-s',1]],['F56',2013,2024,['mini-cooper-s',2]],['F66',2024,null,['mini-cooper-s',3]]]},
+  minicoopers5:{brand:'Mini',model:'Cooper S 5-Türer',body:'Compact',rows:[['F55',2014,2024,['mini-cooper-s',4]],['F65',2024,null,['mini-cooper-s',5]]]},
+  minicabrios:{brand:'Mini',model:'Cooper S Cabrio',body:'Cabrio',rows:[['R52',2004,2008,['mini-cooper-s',6]],['R57',2009,2015,['mini-cooper-s',7]],['F57',2015,2024,['mini-cooper-s',8]],['F67',2024,null,['mini-cooper-s',9]]]},
+  miniclubmans:{brand:'Mini',model:'Clubman Cooper S',body:'Touring',rows:[['R55',2007,2014,['mini-cooper-s',10]],['F54',2015,2024,['mini-cooper-s',11]]]},
   minielectric:{"brand":"Mini","model":"Cooper Electric","body":"Compact","rows":[["J01",2023,null,["mini-hatch",8]]]},
   mini5door:{"brand":"Mini","model":"Cooper 5-Türer","body":"Compact","rows":[["F55",2014,2024,["mini-hatch",9]],["F65",2024,null,["mini-hatch",10]]]},
   minicabrio:{"brand":"Mini","model":"Cabrio","body":"Cabrio","rows":[["R52",2004,2008,["mini-hatch",11]],["R57",2009,2015,["mini-range",0]],["F57",2015,2024,["mini-range",1]],["F67",2024,null,["mini-range",2]]]},
@@ -122,7 +126,7 @@
    if(/^c\s?\d{3}[a-z]*(?:\s|$)|^c[- ]?klasse/.test(model)||families.mercedesc.rows.some(([code])=>codeMatch(model,code)))return 'mercedesc';
   }
   if(make==='Mini'){
-   canonical=canonical.replace(/^one\b/,'cooper').replace(/^cooper s\b/,'cooper');
+   canonical=canonical.replace(/^one\b/,'cooper');
    canonical=canonical.replace(/^(?:cooper )?(?:convertible|cabrio)\b/,'cabrio');
    canonical=canonical.replace(/\b5[- ]?(?:door|turer)\b/,'5-Türer');
   }
@@ -141,7 +145,7 @@
   }
   const body=bodyType(car.body||car.body_type||car.bodyType);
   const a5Sedan=codeMatch(series,'F5')||codeMatch(series,'8T')?'audi5sportback':codeMatch(series,'B10')||year>=2024?'audi5sedan':'audi5sportback';
-  const derivatives={bmw1:{coupe:'bmw1coupe',open:'bmw1cabrio'},bmw2:{open:'bmw2cabrio',sedan:'bmw2gc'},bmw4:{open:'bmw4cabrio',sedan:'bmw4gc'},bmw6:{open:'bmw6cabrio',sedan:'bmw6gc'},bmw8:{open:'bmw8cabrio',sedan:'bmw8gc'},minicooper:{open:'minicabrio'},audi3:{sedan:'audi3sedan'},audi5:{open:'audi5cabrio',sedan:a5Sedan},audi4:{wagon:'audi4avant'},audi6:{wagon:'audi6avant'}};
+  const derivatives={bmw1:{coupe:'bmw1coupe',open:'bmw1cabrio'},bmw2:{open:'bmw2cabrio',sedan:'bmw2gc'},bmw4:{open:'bmw4cabrio',sedan:'bmw4gc'},bmw6:{open:'bmw6cabrio',sedan:'bmw6gc'},bmw8:{open:'bmw8cabrio',sedan:'bmw8gc'},minicooper:{open:'minicabrio'},minicoopers:{open:'minicabrios'},audi3:{sedan:'audi3sedan'},audi5:{open:'audi5cabrio',sedan:a5Sedan},audi4:{wagon:'audi4avant'},audi6:{wagon:'audi6avant'}};
   if(derivatives[key]?.[body])key=derivatives[key][body];
   // Historic Audi 80 is one model name across B1–B4.
   if(key==='audi80'&&(year&&year<1991||families.audi80early.rows.some(([code])=>codeMatch(series,code))))key='audi80early';

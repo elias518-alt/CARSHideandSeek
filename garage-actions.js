@@ -1,6 +1,15 @@
 'use strict';
 let editingVehicleId = null;
 
+function populateVehicleYears(savedYear='') {
+  const currentYear=new Date().getFullYear(),year=Number(savedYear);
+  const options=['<option value="">Baujahr auswählen</option>'];
+  for(let value=currentYear;value>=1900;value--)options.push('<option value="'+value+'">'+value+'</option>');
+  // Keep a previously saved next-model-year vehicle editable without losing its year.
+  if(Number.isInteger(year)&&year===currentYear+1)options.push('<option value="'+year+'">'+year+' · gespeichert</option>');
+  $('#newCarYear').innerHTML=options.join('');
+}
+
 function refreshVehicleForm() {
   const brand=$('#newCarBrand').value.trim(), model=$('#newCarModel').value.trim();
   const series=$('#newCarSeries'), year=$('#newCarYear').value.trim();
@@ -25,6 +34,7 @@ function editVehicle(id) {
   if(gameSession){toast('Verlasse zuerst die Lobby, um deine Garage zu bearbeiten.');return;}
   const car=localGarage.find(item=>item.id===id);if(!car)return;
   openCarModal();editingVehicleId=id;
+  populateVehicleYears(car.year);
   $('#newCarBrand').value=car.brand;$('#newCarModel').value=car.model;
   $('#newCarYear').value=car.year||'';$('#newCarBody').value=car.body||'';
   $('#newCarColor').value=car.color||'';$('#newCarSeries').value=car.series||'';
