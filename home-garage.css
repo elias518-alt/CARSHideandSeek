@@ -1,74 +1,37 @@
-/* Home and profile showroom composition. The vehicle and its material stay live data. */
+/* A shared visible-car scale and tyre baseline for photos and illustrations. */
 #home .homeStage{
-  height:clamp(330px,96vw,405px)!important;
-  isolation:isolate;
-  background:linear-gradient(180deg,#080c1455 0%,transparent 35%,#0b0e1322 76%,#0b0e13 100%),var(--personal-scene,url('assets/scenes/hangar.webp')) center 52%/cover!important;
+ height:var(--showroom-height,400px)!important;isolation:isolate;
+ background:linear-gradient(180deg,#080c1455,transparent 35%,#0b0e1322 76%,#0b0e13),var(--personal-scene,url('assets/scenes/hangar.webp')) center 52%/cover!important;
 }
-#home .homeStage::before{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse at 52% 68%,#f3c28b13,transparent 58%);
-}
+#home .homeStage::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 52% 68%,#f3c28b13,transparent 58%)}
 #home .referenceGreeting{z-index:5;top:16px;filter:drop-shadow(0 2px 5px #0008)}
-#home #homeOwnScene{
-  --home-ground:8px;
-  inset:92px 0 0;
-  container-type:inline-size;
-  z-index:1;
-}
+#home #homeOwnScene{inset:96px 0 0;container-type:inline-size;z-index:1;--showroom-ground:24px;--showroom-personHeight:140px}
 #home #homeOwnScene .parkingPlayer{inset:0;transform:none;width:100%;height:100%}
 #home #homeOwnScene .parkingVehicleStage{inset:0}
 #home #homeOwnScene .vehicleIllustration{
-  left:50%!important;bottom:var(--home-ground)!important;
-  width:100%!important;height:auto;max-width:none;
-  transform:translateX(-50%);z-index:3;
-  filter:drop-shadow(0 3px 2px #0009);
+ position:absolute;left:var(--showroom-center,45%)!important;bottom:var(--showroom-ground)!important;
+ width:var(--showroom-carWidth,86%)!important;height:var(--showroom-carHeight,auto)!important;max-width:none;margin:0;
+ transform:translateX(-50%);z-index:3;filter:drop-shadow(0 2px 1px #0009);
 }
-#home #homeOwnScene .vehicleRender{
-  display:block;aspect-ratio:auto;height:auto;width:100%;
+#home #homeOwnScene .vehicleRender,#profile #profileVehicleStage .vehicleRender{display:block;aspect-ratio:auto;height:100%;width:100%;background:none;overflow:visible}
+#home #homeOwnScene .vehicleIllustration svg,#profile #profileVehicleStage svg{display:block;width:100%;height:100%;filter:none}
+#home #homeOwnScene figcaption,#profile #profileVehicleStage figcaption{display:none}
+#home #homeOwnScene .lobbyCrewCharacter,#home #homeOwnScene .wardrobeStudio{
+ height:var(--showroom-personHeight)!important;width:calc(var(--showroom-personHeight)*.667)!important;max-height:none;max-width:none;
+ left:var(--showroom-personLeft,85%)!important;bottom:calc(var(--showroom-ground) + var(--showroom-personDepth,10px))!important;
+ z-index:4;filter:brightness(.94) drop-shadow(0 2px 1px #0009);
 }
-#home #homeOwnScene .vehicleIllustration svg{
-  display:block;width:100%;height:auto;filter:none;
-}
-#home #homeOwnScene .vehicleIllustration figcaption{display:none}
-#home #homeOwnScene .lobbyModelCar{
-  width:100%;height:90%;max-height:none!important;left:50%;bottom:var(--home-ground);
-  object-fit:contain;object-position:center bottom;z-index:3;
-  filter:drop-shadow(0 4px 3px #0008);
-}
-#home #homeOwnScene .lobbyModelCar--raw{border-radius:14px}
-#home #homeOwnScene .lobbyCrewCharacter{
-  height:45cqw!important;width:30cqw!important;max-height:300px;max-width:200px;
-  left:85%!important;bottom:calc(var(--home-ground) - 2px)!important;
-  z-index:4;filter:brightness(.94) drop-shadow(3px 5px 3px #0008);
-}
+#home #homeOwnScene .wardrobeStudio{width:calc(var(--showroom-personHeight)*.41)!important}
+#home #homeOwnScene .lobbyCrewCharacter::after{content:"";position:absolute;bottom:-2px;left:15%;width:70%;height:6px;background:radial-gradient(ellipse,#0009,transparent 70%);z-index:-1}
 #home #homeOwnScene .parkingContactShadow{
-  left:49%;bottom:calc(var(--home-ground) - 9px);width:87%;height:30px;
-  opacity:1;z-index:1;
-  background:radial-gradient(ellipse,#000d 0%,#0009 38%,#0003 63%,transparent 74%);
-  filter:blur(3px);transform:translateX(-50%) rotate(-2deg);
+ left:var(--showroom-center,45%);bottom:calc(var(--showroom-ground) - 5px);width:calc(var(--showroom-carWidth,86%)*.86);height:14px;
+ opacity:1;z-index:1;background:radial-gradient(ellipse,#000d 0%,#0007 40%,transparent 72%);filter:blur(2px);transform:translateX(-50%);
 }
 #home #homeOwnScene .referenceNoCar{inset:20% 10% 24%;backdrop-filter:blur(10px)}
-@media(min-width:760px){
-  #home .homeStage{height:560px!important}
-  #home #homeOwnScene{inset:110px 0 0;--home-ground:12px}
-  #home #homeOwnScene .lobbyCrewCharacter{height:300px!important;width:200px!important}
-}
-@media(max-height:720px) and (max-width:600px){
-  #home .homeStage{height:295px!important}
-  #home .referenceGreeting{top:10px}
-  #home #homeOwnScene{inset:78px 0 0;--home-ground:6px}
-  #home #homeOwnScene .lobbyCrewCharacter{height:45cqw!important;width:30cqw!important}
-}
-
-/* A single tyre baseline: artwork is aligned to the shadow, not centered in a tall box. */
 #profile .profileHero{isolation:isolate;background-position:center bottom!important}
-#profile #profileVehicleStage{position:relative;bottom:auto!important;right:auto!important;width:100%!important;height:200px!important;flex:0 0 200px;margin:8px 0 18px;z-index:2;overflow:visible}
-#profile #profileVehicleStage::before{content:"";position:absolute;left:3%;bottom:-8px;width:94%;height:22px;background:radial-gradient(ellipse,#000d 0%,#0006 42%,transparent 72%);filter:blur(3px);z-index:-1}
+#profile #profileVehicleStage{position:relative;bottom:auto!important;right:auto!important;width:100%!important;height:var(--showroom-height,240px)!important;flex:0 0 var(--showroom-height,240px);margin:20px 0 30px;z-index:2;overflow:visible}
+#profile #profileVehicleStage::before{content:"";position:absolute;left:50%;bottom:-5px;width:calc(var(--showroom-carWidth,94%)*.86);height:14px;transform:translateX(-50%);background:radial-gradient(ellipse,#000d 0%,#0007 40%,transparent 72%);filter:blur(2px);z-index:-1}
 #profile #profileVehicleStage:empty::before{display:none}
-#profile #profileVehicleStage .vehicleIllustration{height:100%;width:100%;filter:drop-shadow(0 2px 1px #0008)}
-#profile #profileVehicleStage .vehicleRender{height:100%;width:100%;aspect-ratio:auto;display:flex;align-items:flex-end;background:none}
-#profile #profileVehicleStage svg{display:block;width:100%;height:100%}
-#profile #profileVehicleStage img{height:100%;max-height:100%!important;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 2px 2px #0008)}
+#profile #profileVehicleStage .vehicleIllustration{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:var(--showroom-carHeight,100%);width:var(--showroom-carWidth,94%);max-width:none;margin:0;filter:drop-shadow(0 2px 1px #0008)}
 #profile .profileProgress{position:relative;z-index:3}
-#home #homeOwnScene .wardrobeStudio{width:18cqw!important;height:53cqw!important;max-width:125px;max-height:370px;left:86%!important;bottom:var(--home-ground)!important}
-@media(max-height:720px) and (max-width:600px){#profile #profileVehicleStage{height:180px!important;flex-basis:180px}}
+@media(min-width:760px){#home #homeOwnScene{inset:108px 0 0}}

@@ -2809,6 +2809,7 @@ function safeCarPhoto(value) {
 }
 function carPhotoMarkup(car,context='garage') {
   const source = vehiclePhotoSource(car?.photo);
+  if(source&&['home-hero','profile'].includes(context))return '<figure class="vehicleIllustration showroomPhoto"><div class="vehicleRender"><svg data-showroom-photo viewBox="0 0 400 240" preserveAspectRatio="xMidYMax meet" role="img" aria-label="Foto von '+esc([car?.brand,car?.model].filter(Boolean).join(' '))+'"><image href="'+esc(source)+'" width="400" height="240" preserveAspectRatio="xMidYMax meet"/></svg></div></figure>';
   return source
     ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" ${context==='home-hero'?'class="lobbyModelCar"':''} style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
     : vehicleIllustration(car,context);
