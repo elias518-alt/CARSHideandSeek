@@ -1,5 +1,6 @@
 (function(root){
   'use strict';
+  const studio=typeof module==='object'&&module.exports?require('./character-studio'):root.characterStudio;
   const models=['men-casual','men-hoodie','men-punk','women-casual','women-formal','women-punk'];
   const characters=['Männlich · Casual','Männlich · Hoodie','Männlich · Punk','Weiblich · Casual','Weiblich · Formal','Weiblich · Punk'];
   const hair=['Kurz','Hoodie-Frisur','Irokesenschnitt','Bob','Hochgesteckt','Irokesenschnitt'];
@@ -11,6 +12,7 @@
   const integer=(v,max,fallback=0)=>Number.isInteger(v)&&v>=0&&v<=max?v:fallback;
   function normalize(value){
     const v=value&&typeof value==='object'?value:{};
+    if(v.collection==='studio')return studio.normalize(v);
     if(v.collection==='realistic')return {version:2,collection:'realistic',gender:v.gender==='female'?'female':'male',classic:integer(v.classic,2),character:integer(v.character,5),hair:integer(v.hair,2),top:integer(v.top,2),pants:integer(v.pants,2),shoes:0,hairColor:validColor(v.hairColor,hairColors,'brown'),topColor:validColor(v.topColor,colors,'black'),pantsColor:validColor(v.pantsColor,colors,'navy'),jewelry:Object.hasOwn(jewelry,v.jewelry)?v.jewelry:'none',glasses:v.glasses===true,earrings:v.earrings===true};
     return {version:1,collection:v.collection==='modular'?'modular':'classic',character:integer(v.character,5),classic:integer(v.classic,2),
       hair:integer(v.hair,2),top:integer(v.top,2),pants:integer(v.pants,2),shoes:integer(v.shoes,2),jewelry:Object.hasOwn(jewelry,v.jewelry)?v.jewelry:'none'};
@@ -22,16 +24,11 @@
   }
   function markup(value){
     const v=normalize(value);
-    if(v.collection==='realistic'){
-      const folder=`assets/characters/noedge/${v.gender}/`;
-      const layer=(name,filter='')=>`<img src="${folder}${name}.webp" alt="" decoding="async" width="384" height="540"${filter?` style="filter:${filter}"`:''}>`;
-      return `<span class="lobbyCrewCharacter wardrobeCharacter wardrobeRealistic lobbyCrewPose--side" aria-hidden="true">${layer('base')}${layer('pants-'+v.pants,colors[v.pantsColor][1])}${layer('top-'+v.top,colors[v.topColor][1])}${layer('shoes')}${layer('hair-'+v.hair,hairColors[v.hairColor][1])}${v.jewelry!=='none'?layer('chain',v.jewelry==='silver'?'grayscale(1) brightness(1.3)':''):''}${v.glasses?layer('glasses'):''}${v.gender==='female'&&v.earrings?layer('earrings',v.jewelry==='silver'?'grayscale(1) brightness(1.3)':''):''}</span>`;
-    }
-    if(v.collection==='classic')return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${v.classic} lobbyCrewPose--side" aria-hidden="true"></span>`;
-    const layers=Object.entries(parts(v)).map(([part,model])=>`<img src="assets/characters/quaternius/${model}-${part}.webp" alt="" decoding="async" width="384" height="540">`).join('');
-    const ornament=v.jewelry==='none'?'':`<span class="wardrobeJewelry wardrobeJewelry--${v.jewelry}"></span>`;
-    return `<span class="lobbyCrewCharacter wardrobeCharacter lobbyCrewPose--side" aria-hidden="true">${layers}${ornament}</span>`;
+    if(v.collection!=='classic')return studio.render(v);
+    return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${v.classic} lobbyCrewPose--side" aria-hidden="true"></span>`;
   }
-  const api={models,characters,hair,outfits,jewelry,colors,hairColors,normalize,choices,parts,markup};
+  function restrict(value,plus){const v=normalize(value);return plus||v.collection==='classic'?v:normalize({classic:v.classic});}
+
+  const api={models,characters,hair,outfits,jewelry,colors,hairColors,normalize,choices,parts,markup,restrict};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.wardrobe=api;
 })(typeof globalThis==='object'?globalThis:this);

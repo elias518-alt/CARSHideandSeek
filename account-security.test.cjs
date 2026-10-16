@@ -7,12 +7,13 @@ const owner='11111111-1111-4111-8111-111111111111',player='22222222-2222-4222-82
 const env={CHS_ADMIN_USER_IDS:owner,CHS_OPERATOR_NAME:'Testanbieter',CHS_OPERATOR_ADDRESS:'Teststraße 1, 12345 Testort',CHS_OPERATOR_EMAIL:'test@example.com',CHS_LEGAL_REVIEWED:'true'};
 function fixture(){
   const bans=new Map(),acceptances=new Map(),calls=[],actions=[];
-  let offline=false;
+  let offline=false,plus=false;
   async function fetchImpl(url,options={}){
     calls.push({url,options});if(offline)return {ok:false,status:503};
     const parsed=new URL(url),resource=parsed.pathname.split('/').pop(),params=parsed.searchParams;
     const json=options.body?JSON.parse(options.body):{};
     let value=[];
+    if(resource==='chs_plus_read')value={active:plus};
     if(resource==='user')value={id:options.headers.Authorization==='Bearer owner-token'?owner:player,user_metadata:{is_admin:true}};
     if(resource==='chs_account_bans')value=[...(params.get('user_id')?.startsWith('eq.')?[bans.get(params.get('user_id').slice(3))]:bans.values())].filter(Boolean);
     if(resource==='chs_legal_acceptances'){
@@ -28,7 +29,7 @@ function fixture(){
     if(resource==='chs_admin_audit')value=actions;
     return {ok:true,status:200,json:async()=>value};
   }
-  return {service:createAccountService({url:'https://example.supabase.co',key:'sb_secret_test',fetchImpl,env}),fetchImpl,bans,acceptances,calls,setOffline:value=>offline=value};
+  return {service:createAccountService({url:'https://example.supabase.co',key:'sb_secret_test',fetchImpl,env}),fetchImpl,bans,acceptances,calls,setPlus:value=>plus=value,setOffline:value=>offline=value};
 }
 test('admin rights cannot be forged; non-admin requests fail before data access',async()=>{
   const f=fixture();await assert.rejects(f.service.players(player,{is_admin:true}),{status:403});assert.equal(f.calls.length,1);assert.ok(f.calls[0].url.includes('chs_staff_roles'));
@@ -80,6 +81,9 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.equal((await request('admin-players',{},'player-token','GET')).status,403);
     assert.equal((await request('create',{name:'Testspieler',vehicle:'Testauto'})).status,428);
     const legal=documents(process.env);assert.equal((await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true})).status,200);
+    const denied=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(denied.status,403);
+    const forged=await request('create',{name:'Free',vehicle:'Auto',appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(forged.data.lobby.players[0].appearance.collection,'classic');
+    f.setPlus(true);await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'}});
     const created=await request('create',{name:'Testspieler',vehicle:'Testauto',appearance:{collection:'modular',character:5}});assert.equal(created.status,200);
     assert.equal(created.data.lobby.players[0].appearance.character,5);
     await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true},'owner-token');
@@ -99,6 +103,8 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const seen=await request('state',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token','GET');assert.equal(seen.status,200);
     assert.deepEqual(seen.data.lobby.players.find(p=>p.id===created.data.userId).appearance,wardrobe.normalize(look));
     const rejoined=await request('join',{code:created.data.lobby.code});assert.deepEqual(rejoined.data.lobby.players.find(p=>p.id===created.data.userId).appearance,wardrobe.normalize(look));
+    f.setPlus(false);assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'}})).status,403);
+    const revoked=await request('state',{code:created.data.lobby.code,userId:created.data.userId},'player-token','GET');assert.equal(revoked.status,200);assert.equal(revoked.data.lobby.me.appearance.collection,'classic');
     await request('leave',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token');
 
     assert.equal((await request('admin-ban',{targetId:player,hours:24,reason:'Nachgewiesener Testverstoß'},'owner-token')).status,200);

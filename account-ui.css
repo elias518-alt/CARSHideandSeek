@@ -36,3 +36,20 @@ body:has(.legalDocument){background:#141923;}
 .adminList{overflow-wrap:anywhere;}
 .assetCredits{font-size:12px;line-height:1.6;}
 @media(max-width:600px){.wardrobeLayout{grid-template-columns:1fr;gap:14px;}.wardrobePreview{position:relative;height:280px;}.wardrobePreview>.lobbyCrewCharacter{height:260px;width:185px;}.adminPlayer{grid-template-columns:1fr;}.accountGate{padding:20px;}}
+/* Clear free/PLUS selection with full-body portraits and a grounded studio preview. */
+.wardrobeStudio>svg{display:block;width:100%;height:100%;overflow:hidden}
+.wardrobeIntro{color:#aebccc;line-height:1.6}
+.characterChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.characterChoices--plus{grid-template-columns:repeat(2,minmax(0,1fr))}
+.characterChoice{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;padding:12px 4px;border:1px solid #ffffff18;border-radius:16px;background:linear-gradient(160deg,#243244,#141b25);color:#eff4fb;overflow:hidden}
+.characterChoice .lobbyCrewCharacter{position:relative!important;left:auto!important;bottom:auto!important;transform:none!important;width:76px!important;height:118px!important;max-width:100%;filter:none}
+.characterChoice strong{font-size:12px}.characterChoice small{font-size:10px;color:#aabaca}
+.characterChoice[aria-pressed=true]{border-color:#ff914d;background:linear-gradient(160deg,#49312a,#1b202a);box-shadow:inset 0 0 0 1px #ff914d}
+.characterChoice:disabled{opacity:.7;cursor:not-allowed}.characterChoice:disabled small{color:#e4bb86}
+.wardrobeAccess{font-size:12px;line-height:1.6;color:#afbdd0}.studioControls{display:grid;gap:14px}
+.wardrobeForm h3{font-size:13px;color:#b7c7da;letter-spacing:.08em;margin:8px 0}
+.wardrobePreview{height:440px;overflow:hidden;background:radial-gradient(ellipse at 50% 100%,#6e778131,transparent 60%),linear-gradient(150deg,#283441,#0c121b);border:1px solid #ffffff16}
+.wardrobePreview>.lobbyCrewCharacter{height:380px;width:245px;z-index:2;align-self:end;margin-bottom:22px;filter:drop-shadow(0 3px 2px #0007)}
+.studioPreviewTag{position:absolute;top:18px;left:18px;font-size:10px;letter-spacing:.19em;color:#d1bfa8}
+.studioPreviewGround{position:absolute;bottom:17px;left:18%;width:64%;height:16px;background:radial-gradient(ellipse,#000c,transparent 70%);z-index:1}
+@media(max-width:600px){.wardrobePreview{height:300px}.wardrobePreview>.lobbyCrewCharacter{height:250px;width:170px;margin-bottom:20px}.characterChoice .lobbyCrewCharacter{height:105px!important}}

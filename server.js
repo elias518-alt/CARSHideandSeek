@@ -176,6 +176,20 @@ async function verifyAuth(req, force = false) {
   if (authCache.size > 1000) authCache.clear();
   return user.id;
 }
+// Membership is read with the authenticated user's JWT; client metadata grants no rights.
+const wardrobeAccessCache=new Map();
+async function wardrobePlus(req,force=false){
+ const token=/^Bearer (.+)$/i.exec(req.headers.authorization||'')?.[1];
+ const cached=wardrobeAccessCache.get(token);if(!force&&cached?.until>Date.now())return cached.active;
+ let active=false,expiry=Date.now()+30000;
+ try{
+  const result=await fetch(SUPABASE_URL+'/rest/v1/rpc/chs_plus_read',{method:'POST',headers:{Authorization:'Bearer '+token,apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(5000)});
+  if(!result.ok)throw Error('PLUS unavailable');const data=await result.json();
+  if(typeof data.active!=='boolean')throw Error('Invalid PLUS response');
+  active=data.active;if(data.expires_at){const until=Date.parse(data.expires_at);active=active&&until>Date.now();expiry=Math.min(expiry,until);}
+ }catch{if(force)fail(503,'PLUS konnte gerade nicht geprüft werden. Bitte erneut versuchen.');return false;}
+ if(wardrobeAccessCache.size>1000)wardrobeAccessCache.clear();wardrobeAccessCache.set(token,{active,until:expiry});return active;
+}
 function readBody(req, maxBytes = 8192) {
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -769,6 +783,15 @@ async function handler(req, res) {
         const result=action==='ads-status'?ads.status(actor):action==='ads-begin'?await ads.begin(actor,payload):action==='ads-complete'?await ads.complete(actor,payload):await ads.cancel(actor);
         send(res,200,result);return;
       }
+      if(action==='wardrobe-save'){
+        if(req.method!=='POST')fail(405,'Methode nicht erlaubt.');
+        const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
+        const input=await readBody(req),appearance=wardrobe.normalize(input.appearance);
+        if(appearance.collection!=='classic'&&!await wardrobePlus(req,true))fail(403,'Für Alex und Maya brauchst du PLUS. Die Crew-Figuren sind kostenlos.');
+        let response;try{response=await fetch(SUPABASE_URL+'/auth/v1/user',{method:'PUT',headers:{Authorization:req.headers.authorization,apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({data:{chs_appearance:appearance,character_style:appearance.classic}}),signal:AbortSignal.timeout(8000)});}catch{fail(503,'Dein Look konnte nicht gespeichert werden.');}
+        if(!response.ok)fail(503,'Dein Look konnte nicht gespeichert werden.');
+        send(res,200,{user:await response.json()});return;
+      }
       if(action==='legal') {
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         send(res,200,documents());return;
@@ -828,6 +851,13 @@ async function handler(req, res) {
       // URL coordinates are strings by transport; POST payloads remain strictly typed.
       if(action==='public')for(const key of ['lat','lng','accuracy']) {
         if(typeof data[key]==='string' && data[key].trim())data[key]=Number(data[key]);
+      }
+      if(['create','join','identity'].includes(action)&&data.appearance&&wardrobe.normalize(data.appearance).collection!=='classic'){
+        if(!await wardrobePlus(req))data.appearance=wardrobe.restrict(data.appearance,false);
+      }
+      const existing=lobbies.get(clean(data.code,5).toUpperCase())?.players.find(p=>p.authId===authId);
+      if(action==='state'&&existing?.appearance&&existing.appearance.collection!=='classic'){
+        if(!await wardrobePlus(req))existing.appearance=wardrobe.restrict(existing.appearance,false);
       }
       const response=await route(action,data,authId);
       if(response.lobby)response.adminTestAvailable=account.permissions?.includes('lab')&&response.lobby.hostId===response.lobby.me?.id;

@@ -4,7 +4,7 @@
 (function(){
   let currentAccount=null,accountCheck=0;
   function stopActivity(){clearTimeout(pollTimer);clearInterval(gpsHeartbeat);gpsHeartbeat=null;gpsPhase='STOPPED';window.socialMap?.reset();window.plusUI?.reset();window.adsUI?.reset();}
-  const appearance=()=>wardrobe.normalize(authSession?.user?.user_metadata?.chs_appearance||{classic:getCharacterStyle()});
+  const appearance=()=>wardrobe.restrict(authSession?.user?.user_metadata?.chs_appearance||{classic:getCharacterStyle()},window.plusUI?.active===true);
   function accountDialog(id,title){
     let dialog=document.getElementById(id);
     if(!dialog){dialog=document.createElement('dialog');dialog.id=id;dialog.className='productDialog';document.body.append(dialog);}
@@ -69,64 +69,42 @@
     dialog.querySelector('[data-account-logout]').addEventListener('click',async()=>{stopActivity();await logout();});
     if(!dialog.open)dialog.showModal();
   }
-  function wardrobeOptions(v){
-    const group=wardrobe.choices(v.character),option=(value,label)=>`<option value="${value}">${esc(label)}</option>`;
-    return `<label>DARSTELLUNG<select name="collection">${option('classic','Vorhandene Lobbyfiguren')}${option('modular','Modulare Charaktere · Quaternius')}${option('realistic','Realistische Figuren · NoEdge')}</select></label>
-      <div data-classic-fields><label>CHARAKTER<select name="classic">${['Dunkle Jacke','Helle Jacke','Orange Jacke'].map((n,i)=>option(i,n)).join('')}</select></label></div>
-      <div data-modular-fields class="wardrobeForm"><label>CHARAKTER<select name="character">${wardrobe.characters.map((n,i)=>option(i,n)).join('')}</select></label>
-      <label>HAARE<select name="hair">${group.map((index,i)=>option(i,wardrobe.hair[index])).join('')}</select></label>
-      ${['top','pants','shoes'].map((key,column)=>`<label>${['OBERTEIL','HOSE','SCHUHE'][column]}<select name="${key}">${group.map((index,i)=>option(i,wardrobe.outfits[index][column])).join('')}</select></label>`).join('')}
-      <label>SCHMUCK<select name="jewelry">${Object.entries(wardrobe.jewelry).map(([key,n])=>option(key,n)).join('')}</select></label></div>${realisticOptions(v,option)}`;
-  }
-  function realisticOptions(v,option){
-    const female=v.gender==='female';
-    const select=(name,label,values)=>`<label>${label}<select name="${name}">${values.map(([key,text])=>option(key,text)).join('')}</select></label>`;
-    return `<div data-realistic-fields class="wardrobeForm">
-      ${select('gender','FIGUR',[['male','Männlich · NoEdge'],['female','Weiblich · Camilia']])}
-      ${select('hair','FRISUR',(female?['Lange Locken','Bob','Pferdeschwanz']:['Mittelscheitel','Kurz','Zurückgekämmt']).map((text,i)=>[i,text]))}
-      ${select('hairColor','HAARFARBE',Object.entries(wardrobe.hairColors).map(([key,v])=>[key,v[0]]))}
-      ${select('top','OBERTEIL',(female?['T-Shirt','Hoodie','Bauchfreies Oberteil']:['T-Shirt','Hoodie','Halfzip mit T-Shirt']).map((text,i)=>[i,text]))}
-      ${select('topColor','FARBE OBERTEIL',Object.entries(wardrobe.colors).map(([key,v])=>[key,v[0]]))}
-      ${select('pants','HOSE',['Kurze Hose','Jeans','Lockere Jogger · offener Beinabschluss'].map((text,i)=>[i,text]))}
-      ${select('pantsColor','FARBE HOSE',Object.entries(wardrobe.colors).map(([key,v])=>[key,v[0]]))}
-      ${select('jewelry',female?'KETTE':'KÖNIGSKETTE',[['none','Keine'],['gold','Gold'],['silver','Silber']])}
-      ${select('glasses','SONNENBRILLE',[['false','Keine'],['true','Sonnenbrille']])}
-      ${female?select('earrings','OHRRINGE',[['false','Keine'],['true','Creolen']]):''}
-      <p class="assetCredits">Realistische Figuren: <a href="https://www.fab.com/listings/5e145586-3955-4688-8666-dc4b242e78e9" target="_blank" rel="noopener">NoEdge</a>. Schuhe passend zur Figur.</p>
-    </div>`;
-  }
-  function openWardrobe(){
+  async function openWardrobe(){
     if(!authSession?.user?.id){toast('Bitte zuerst anmelden.');return;}
-    const dialog=accountDialog('wardrobeDialog','DEIN KLEIDERSCHRANK');dialog.classList.add('wardrobeDialog');
-    dialog.insertAdjacentHTML('beforeend','<p>Dein Look hat keinen Einfluss auf Spielwerte.</p><div class="wardrobeLayout"><div class="wardrobePreview" data-wardrobe-preview></div><form class="wardrobeForm"><div data-wardrobe-fields></div><p class="accountError" role="alert"></p><button type="submit" class="primaryButton">LOOK SPEICHERN</button></form></div><p class="assetCredits">Charaktere: <a href="https://quaternius.com/packs/ultimatemodularcharacters.html" target="_blank" rel="noopener">Quaternius</a>, CC0. Anhänger: <a href="https://game-icons.net/1x1/lorc/gem-pendant.html" target="_blank" rel="noopener">Lorc / Game-icons.net</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a> (Farbe und Größe angepasst).</p>');
-    const userId=authSession.user.id,form=dialog.querySelector('form');let draft=appearance(),busy=false;
+    const userId=authSession.user.id;
+    const dialog=accountDialog('wardrobeDialog','DEIN LOOK');dialog.classList.add('wardrobeDialog');
+    dialog.insertAdjacentHTML('beforeend','<p class="wardrobeIntro">Wähle deine Figur. Mit PLUS gestaltest du deinen eigenen Streetwear-Look.</p><div class="wardrobeLayout"><div class="wardrobePreview" data-wardrobe-preview></div><form class="wardrobeForm"><div data-wardrobe-fields></div><p class="accountError" role="alert"></p><button type="submit" class="primaryButton">LOOK SPEICHERN</button></form></div>');
+    const form=dialog.querySelector('form');let draft=appearance(),busy=false;
+    if(draft.collection!=='classic')draft=characterStudio.normalize(draft);
+    const plus=()=>window.plusUI?.active===true;
+    const card=(value,label,look,premium=false)=>'<button type="button" class="characterChoice" data-character-choice="'+value+'" aria-pressed="'+(draft.collection==='classic'?value==='classic-'+draft.classic:value===draft.gender)+'" '+(premium&&!plus()?'disabled':'')+'>'+wardrobe.markup(look)+'<strong>'+label+'</strong><small>'+(premium?'PLUS · anpassbar':'Kostenlos')+'</small></button>';
     function render(){
-      const fields=form.querySelector('[data-wardrobe-fields]');fields.innerHTML=wardrobeOptions(draft);
-      for(const field of fields.querySelectorAll('select'))if(Object.hasOwn(draft,field.name))field.value=String(draft[field.name]);
-      fields.querySelector('[data-classic-fields]').hidden=draft.collection!=='classic';fields.querySelector('[data-modular-fields]').hidden=draft.collection!=='modular';fields.querySelector('[data-realistic-fields]').hidden=draft.collection!=='realistic';
-      dialog.querySelector('[data-wardrobe-preview]').innerHTML=wardrobe.markup(draft);
+      const fields=form.querySelector('[data-wardrobe-fields]');
+      const select=(name,label,values)=>'<label>'+label+'<select name="'+name+'">'+values.map(([value,text])=>'<option value="'+value+'">'+esc(text)+'</option>').join('')+'</select></label>';
+      fields.innerHTML='<h3>Deine Crew-Figuren</h3><div class="characterChoices">'+['Night Rider','Silver Line','Orange Shift'].map((name,i)=>card('classic-'+i,name,{classic:i})).join('')+'</div><h3>Dein PLUS-Studio</h3><div class="characterChoices characterChoices--plus">'+card('male','Alex',{collection:'studio',gender:'male',outfit:1},true)+card('female','Maya',{collection:'studio',gender:'female',outfit:2,topColor:'cream',pantsColor:'black'},true)+'</div><p class="wardrobeAccess" role="status">'+(plus()?'PLUS aktiv · beide Studio-Figuren freigeschaltet.':'Alle drei Crew-Figuren sind frei wählbar. Alex und Maya sind mit PLUS anpassbar. Käufe sind noch nicht verfügbar.')+'</p>'+(draft.collection==='studio'&&plus()?'<div class="studioControls">'+select('outfit','OUTFIT',characterStudio.outfits.map((name,i)=>[i,name]))+['topColor','pantsColor'].map((key,i)=>select(key,i?'FARBE HOSE':'FARBE OBERTEIL',Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]))).join('')+'</div>':'');
+      for(const field of fields.querySelectorAll('select'))field.value=String(draft[field.name]);
+      dialog.querySelector('[data-wardrobe-preview]').innerHTML='<span class="studioPreviewTag">'+(draft.collection==='classic'?'CREW':'PLUS STUDIO')+'</span>'+wardrobe.markup(draft)+'<span class="studioPreviewGround"></span>';
     }
-    render();
-    form.addEventListener('change',event=>{
-      const field=event.target;if(!field.name)return;
-      draft=wardrobe.normalize({...draft,[field.name]:['character','classic','hair','top','pants','shoes'].includes(field.name)?Number(field.value):['glasses','earrings'].includes(field.name)?field.value==='true':field.value});
-      const focusName=field.name;render();Array.from(form.querySelectorAll('select')).find(e=>e.name===focusName&&!e.closest('[hidden]'))?.focus();
-    });
+    render();dialog.showModal();
+    form.addEventListener('click',event=>{const button=event.target.closest('[data-character-choice]');if(!button||busy)return;const choice=button.dataset.characterChoice;if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',gender:choice});render();});
+    form.addEventListener('change',event=>{const field=event.target;if(!field.name||busy||!plus())return;draft=characterStudio.normalize({...draft,[field.name]:field.name==='outfit'?Number(field.value):field.value});render();form.querySelector('[name="'+field.name+'"]').focus();});
     dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
+    const refreshAccess=()=>{if(!dialog.open)return;if(!plus()&&draft.collection!=='classic')draft=wardrobe.restrict(draft,false);render();};
+    document.addEventListener('chs:plus-changed',refreshAccess);dialog.addEventListener('close',()=>document.removeEventListener('chs:plus-changed',refreshAccess),{once:true});
     form.addEventListener('submit',async event=>{
       event.preventDefault();if(busy)return;busy=true;form.querySelectorAll('button,select').forEach(e=>e.disabled=true);dialog.querySelector('.dialogClose').disabled=true;
       try{
         if(authSession?.user?.id!==userId)throw new Error('Konto wurde gewechselt. Bitte neu öffnen.');
-        const {data,error}=await supabaseClient.auth.updateUser({data:{chs_appearance:draft,character_style:draft.classic}});if(error)throw error;
+        const data=await api('wardrobe-save',{appearance:draft});
         if(authSession?.user?.id!==userId)return;
-        authSession={...authSession,user:data.user};setCharacterStyle(draft.classic);
-        let synced=true;
-        if(gameSession){try{await api('join',{...playerData(),code:gameSession.code});await poll();}catch{synced=false;}}
-        dialog.close();toast(synced?'Look im Konto gespeichert ✓':'Look gespeichert. Die Lobby wird beim Wiederbeitritt aktualisiert.');
+        authSession={...authSession,user:data.user};await supabaseClient.auth.refreshSession();setCharacterStyle(draft.classic);
+        window.referenceUI?.renderOwn();if(typeof renderGarage==='function')renderGarage();
+        let synced=true;if(gameSession){try{await api('join',{...playerData(),code:gameSession.code});await poll();}catch{synced=false;}}
+        dialog.close();toast(synced?'Dein Look ist gespeichert ✓':'Look gespeichert. Die Lobby wird beim Wiederbeitritt aktualisiert.');
       }catch(error){form.querySelector('[role=alert]').textContent=error.message;}
-      finally{busy=false;form.querySelectorAll('button,select').forEach(e=>e.disabled=false);dialog.querySelector('.dialogClose').disabled=false;}
+      finally{busy=false;render();form.querySelector('button[type=submit]').disabled=false;dialog.querySelector('.dialogClose').disabled=false;}
     });
-    dialog.showModal();
+    await window.plusUI?.refresh();if(authSession?.user?.id===userId&&dialog.open)refreshAccess();
   }
   async function openAdmin(){
     if(!currentAccount?.admin)return;
