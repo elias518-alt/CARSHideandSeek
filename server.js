@@ -783,10 +783,16 @@ async function handler(req, res) {
         const result=action==='ads-status'?ads.status(actor):action==='ads-begin'?await ads.begin(actor,payload):action==='ads-complete'?await ads.complete(actor,payload):await ads.cancel(actor);
         send(res,200,result);return;
       }
+      if(action==='wardrobe-access'){
+        if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
+        const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
+        send(res,200,{plus:await wardrobePlus(req,true)});return;
+      }
       if(action==='wardrobe-save'){
         if(req.method!=='POST')fail(405,'Methode nicht erlaubt.');
         const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
         const input=await readBody(req),appearance=wardrobe.normalize(input.appearance);
+        if(appearance.collection==='studio'&&!require('./character-studio').ownsFace(appearance,actor))fail(403,'Bitte ein eigenes Gesichtsfoto verwenden.');
         if(appearance.collection!=='classic'&&!await wardrobePlus(req,true))fail(403,'Für Alex und Maya brauchst du PLUS. Die Crew-Figuren sind kostenlos.');
         let response;try{response=await fetch(SUPABASE_URL+'/auth/v1/user',{method:'PUT',headers:{Authorization:req.headers.authorization,apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({data:{chs_appearance:appearance,character_style:appearance.classic}}),signal:AbortSignal.timeout(8000)});}catch{fail(503,'Dein Look konnte nicht gespeichert werden.');}
         if(!response.ok)fail(503,'Dein Look konnte nicht gespeichert werden.');
@@ -853,6 +859,8 @@ async function handler(req, res) {
         if(typeof data[key]==='string' && data[key].trim())data[key]=Number(data[key]);
       }
       if(['create','join','identity'].includes(action)&&data.appearance&&wardrobe.normalize(data.appearance).collection!=='classic'){
+        data.appearance=wardrobe.normalize(data.appearance);
+        if(data.appearance.collection==='studio'&&!require('./character-studio').ownsFace(data.appearance,authId))data.appearance.face=null;
         if(!await wardrobePlus(req))data.appearance=wardrobe.restrict(data.appearance,false);
       }
       const existing=lobbies.get(clean(data.code,5).toUpperCase())?.players.find(p=>p.authId===authId);

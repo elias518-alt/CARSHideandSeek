@@ -53,3 +53,11 @@ body:has(.legalDocument){background:#141923;}
 .studioPreviewTag{position:absolute;top:18px;left:18px;font-size:10px;letter-spacing:.19em;color:#d1bfa8}
 .studioPreviewGround{position:absolute;bottom:17px;left:18%;width:64%;height:16px;background:radial-gradient(ellipse,#000c,transparent 70%);z-index:1}
 @media(max-width:600px){.wardrobePreview{height:300px}.wardrobePreview>.lobbyCrewCharacter{height:250px;width:170px;margin-bottom:20px}.characterChoice .lobbyCrewCharacter{height:105px!important}}
+.characterPhoto{padding:16px;border:1px solid #ffffff24;border-radius:14px;background:#101923}
+.characterPhoto[hidden],.characterPhoto [hidden]{display:none!important}
+.characterPhoto p{font-size:12px;line-height:1.6;color:#b6c5d5}
+.photoActions{display:flex;gap:8px;flex-wrap:wrap}.photoActions button{flex:1 1 130px;padding:10px;border:1px solid #596a7c;border-radius:8px;background:#243344;color:#fff;font-size:11px;font-weight:700}
+.photoActions button:disabled{opacity:.45}.photoCrop{position:relative;width:192px;height:256px;margin:18px auto;background:repeating-conic-gradient(#23313e 0 25%,#192530 0 50%) 0/16px 16px;border-radius:48%;overflow:hidden}
+.photoCrop canvas{width:192px;height:256px;display:block}.photoCrop span{position:absolute;top:38%;left:10%;right:10%;border-top:1px dashed #fff9;color:white;text-shadow:0 1px 4px #000;font-size:9px;text-align:center;padding-top:2px;pointer-events:none}
+.photoSliders,.faceAlignment{display:grid;gap:12px;margin:14px 0}.photoSliders input,.faceAlignment input{width:100%;accent-color:var(--accent,#f98a2e);min-height:28px}
+.wardrobeForm .photoConsent{display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.5}.photoConsent input{flex:none;width:20px;height:20px;margin:0;accent-color:var(--accent,#f98a2e)}

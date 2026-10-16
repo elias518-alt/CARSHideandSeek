@@ -83,7 +83,13 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const legal=documents(process.env);assert.equal((await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true})).status,200);
     const denied=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(denied.status,403);
     const forged=await request('create',{name:'Free',vehicle:'Auto',appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(forged.data.lobby.players[0].appearance.collection,'classic');
+    assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,false);
     f.setPlus(true);await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'}});
+    assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,true);
+    const foreignFace={path:owner+'/character-face-22222222-2222-4222-8222-222222222222.png'};
+    assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',face:foreignFace}})).status,403);
+    const ownFace={...foreignFace,path:player+'/character-face-22222222-2222-4222-8222-222222222222.png'};
+    assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',top:1,pants:2,face:ownFace}})).status,200);
     const created=await request('create',{name:'Testspieler',vehicle:'Testauto',appearance:{collection:'modular',character:5}});assert.equal(created.status,200);
     assert.equal(created.data.lobby.players[0].appearance.character,5);
     await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true},'owner-token');
@@ -98,6 +104,8 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.equal((await request('block',{targetAuthId:owner,blocked:true})).status,200);
     assert.equal((await request('join',{code:created.data.lobby.code},'owner-token')).status,403);
     assert.equal((await request('block',{targetAuthId:owner,blocked:false})).status,200);
+    const foreign=await request('join',{code:created.data.lobby.code,appearance:{collection:'studio',face:foreignFace}});assert.equal(foreign.data.lobby.me.appearance.face,null);
+    const own=await request('join',{code:created.data.lobby.code,appearance:{collection:'studio',top:1,pants:2,face:ownFace}});assert.equal(own.data.lobby.me.appearance.face.path,ownFace.path);assert.equal(own.data.lobby.me.appearance.pants,2);
     const look={collection:'realistic',gender:'female',hair:2,hairColor:'blonde',top:2,topColor:'green',pants:1,pantsColor:'navy',glasses:true,earrings:true,jewelry:'silver'};
     const updated=await request('join',{code:created.data.lobby.code,appearance:look});assert.equal(updated.status,200);
     const seen=await request('state',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token','GET');assert.equal(seen.status,200);
