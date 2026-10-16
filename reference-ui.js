@@ -8,7 +8,7 @@
   const intro=document.getElementById('homeGreeting');intro.textContent='Hey '+name.split(/\s+/)[0];
   document.getElementById('homeGreetingAvatar').innerHTML=parkingAvatarMarkup(player);
   document.getElementById('homeGreetingCar').textContent=car?player.vehicle+' ist bereit':'Wähle dein Fahrzeug in der Garage';
-  const markup=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+lobbyCarMarkup(player,true,'home-hero')+lobbyCharacterMarkup(player)+'<span class="parkingContactShadow"></span></div></article>':'<button class="referenceNoCar" type="button" data-page="garage">Fahrzeug hinzufügen <span>Dein Auto und Charakter erscheinen hier.</span></button>';
+  const markup=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+carPhotoMarkup(car,'home-hero')+lobbyCharacterMarkup(player)+'<span class="parkingContactShadow"></span></div></article>':'<button class="referenceNoCar" type="button" data-page="garage">Fahrzeug hinzufügen <span>Dein Auto und Charakter erscheinen hier.</span></button>';
   if(target.dataset.markup!==markup){target.innerHTML=markup;target.dataset.markup=markup;}
   renderPhotoPreview();
  }

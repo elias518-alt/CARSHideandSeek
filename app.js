@@ -1038,6 +1038,7 @@ function syncVehicleUI() {
   const profileVehicleStage = document.getElementById('profileVehicleStage');
   if (profileVehicleStage) {
     profileVehicleStage.innerHTML = car ? carPhotoMarkup(car,'profile') : '';
+    profileVehicleStage.querySelectorAll('svg').forEach(svg=>svg.setAttribute('preserveAspectRatio','xMidYMax meet'));
   }
 
   renderGarage();
@@ -2809,7 +2810,7 @@ function safeCarPhoto(value) {
 function carPhotoMarkup(car,context='garage') {
   const source = vehiclePhotoSource(car?.photo);
   return source
-    ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
+    ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" ${context==='home-hero'?'class="lobbyModelCar"':''} style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
     : vehicleIllustration(car,context);
 }
 
@@ -2830,16 +2831,20 @@ function vehiclePaintFilter(color) {
 }
 
 function vehicleIllustration(car,context='vehicle') {
-  const art=window.vehicleArt?.render(car||{});
+  let art=window.vehicleArt?.render(car||{});
+  const grounded=['home-hero','profile'].includes(context);
+  if(art&&grounded&&!art.includes('data-studio-generation'))art=art.replace('viewBox="0 0 384 240"','viewBox="16 73 350 137"');
   if(art)return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--original">'+art+'</div><figcaption>Eigenständige Illustration · an die Baureihe angelehnt</figcaption></figure>';
   const template=vehicleCatalog.illustration(car || {});
+  const groundBounds=[[7,61,377,219],[0,83,376,197],[0,86,380,194],[0,87,379,193],[5,80,379,200],[0,83,384,192],[0,85,383,195],[0,40,381,236],[6,49,378,226],[2,26,382,245],[0,48,384,229],[0,80,379,198]];
+  const viewBox=grounded?groundBounds[template.index].join(' '):'0 0 384 280';
   const filter=vehiclePaintFilter(car?.color);
   const image='<image href="assets/vehicle-lineup.webp" x="'+(-template.x)+'" y="'+(-template.y)+'" width="1536" height="1024" />';
   const paint=typeof vehiclePaint==='undefined'?'':vehiclePaint.path(template.index);
   const maskId='paint-'+String(context+'-'+(car?.id||'')+'-'+template.index).replace(/[^a-zA-Z0-9_-]/g,'');
   const componentPaths=paint.split('Z').filter(p=>p.trim()).map(p=>'<path d="'+p+'Z" fill="black" stroke="black" stroke-width="2" stroke-linejoin="round"/>').join('');
   const layer=paint&&filter!=='none'?'<defs><mask id="'+maskId+'" maskUnits="userSpaceOnUse" x="0" y="0" width="384" height="280" style="mask-type:luminance"><rect width="384" height="280" fill="white"/>'+componentPaths+'</mask></defs><g mask="url(#'+maskId+')"><g class="vehiclePaintLayer" style="filter:'+filter+'">'+image+'</g></g>':'';
-  return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="0 0 384 280" aria-hidden="true" focusable="false">'+image+layer+'</svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Karosseriefarbe angenähert</figcaption></figure>';
+  return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="'+viewBox+'" aria-hidden="true" focusable="false">'+image+layer+'</svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Karosseriefarbe angenähert</figcaption></figure>';
 }
 async function loadImageFromBlob(blob) {
   const url = URL.createObjectURL(blob);

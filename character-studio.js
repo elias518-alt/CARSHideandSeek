@@ -1,0 +1,15 @@
+/* Original generated character art. Two separate material channels recolor clothing only. */
+(function(root){
+ 'use strict';let serial=0;
+ const colors={black:['Schwarz','#20252c'],white:['Weiß','#e6e7e2'],navy:['Nachtblau','#263b60'],green:['Salbei','#657a65'],purple:['Violett','#79508e'],red:['Bordeaux','#843c4c'],cream:['Sand','#bcae91']};
+ const outfits=['Cargo & T-Shirt','Denim & Hoodie','Bomber & Jogger'];
+ const crops=[[68,4,237,728],[403,4,236,732],[739,4,240,730],[65,766,256,733],[407,765,246,737],[748,767,244,733]];
+ const channel=(value,fallback)=>colors[value]?value:fallback;
+ function normalize(v={}){return {version:3,collection:'studio',gender:v.gender==='female'||v.collection==='modular'&&v.character>=3?'female':'male',outfit:Number.isInteger(v.outfit)&&v.outfit>=0&&v.outfit<3?v.outfit:Number.isInteger(v.top)&&v.top>=0&&v.top<3?v.top:0,topColor:channel(v.topColor,'black'),pantsColor:channel(v.pantsColor,'navy'),classic:Number.isInteger(v.classic)&&v.classic>=0&&v.classic<3?v.classic:0};}
+ function render(input){const v=normalize(input),index=(v.gender==='female'?3:0)+v.outfit,[x,y,w,h]=crops[index],id='character-studio-'+(++serial);
+  const recolor=(key,material)=>{const rgb=[1,3,5].map(i=>parseInt(colors[key][1].slice(i,i+2),16)/255);return rgb.map(c=>material==='top'?`${c} ${1-c} 0 0 0`:`${1-c} ${c} 0 0 0`).join(' ')+' 0 0 0 1 0';};
+  const mask=(name,a,b)=>`<feColorMatrix in="SourceGraphic" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 ${a} 0 -.12" result="${name}a"/><feColorMatrix in="SourceGraphic" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 ${b} 0 -.12" result="${name}b"/><feComposite in="${name}a" in2="${name}b" operator="in" result="${name}raw"/><feComposite in="${name}raw" in2="SourceGraphic" operator="in" result="${name}"/>`;
+  return `<span class="lobbyCrewCharacter wardrobeCharacter wardrobeStudio" aria-hidden="true" data-character="${v.gender}" data-outfit="${v.outfit}"><svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${id}" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">${mask('top','8 -8 0','0 -8 8')}${mask('pants','-8 8 0','-8 0 8')}<feColorMatrix in="SourceGraphic" values="${recolor(v.topColor,'top')}" result="topColor"/><feComposite in="topColor" in2="top" operator="in" result="shirt"/><feColorMatrix in="SourceGraphic" values="${recolor(v.pantsColor,'pants')}" result="pantsColor"/><feComposite in="pantsColor" in2="pants" operator="in" result="trousers"/><feComposite in="SourceGraphic" in2="top" operator="out" result="detail1"/><feComposite in="detail1" in2="pants" operator="out" result="detail2"/><feMerge><feMergeNode in="detail2"/><feMergeNode in="shirt"/><feMergeNode in="trousers"/></feMerge></filter></defs><image href="assets/characters/studio/street.webp" x="${-x}" y="${-y}" width="1024" height="1536" filter="url(#${id})"/></svg></span>`;
+ }
+ const api={normalize,render,colors,outfits,crops};if(typeof module==='object'&&module.exports)module.exports=api;else root.characterStudio=api;
+})(typeof globalThis==='object'?globalThis:this);
