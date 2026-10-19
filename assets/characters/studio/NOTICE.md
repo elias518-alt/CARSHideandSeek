@@ -12,3 +12,7 @@ These illustrations replace the old modular/NoEdge renders in the current charac
 - Maya: `/workspace/generated_images/exec-42e5695c-2840-43ea-8e34-14e08ac48a34.png`
 
 Converted to WebP quality 90 with transparency. Runtime material masks recolor magenta tops and cyan trousers; these marker colors are not the player-facing default. The app uses static illustrations, not a live image-generation service. No per-user image-generation API is called.
+
+## Restored originals and new figures, 2026-10-19
+
+Alex and Maya are restored as selectable original studio figures. `new-street.webp` adds Nico and Lea, each with three complete realistic streetwear looks. Source: `/workspace/generated_images/exec-c6c7cd88-3881-42e9-9f7e-4c50da93b486.png` (1536 × 1024), an original generated illustration. Converted to transparent WebP quality 94 without overwriting the source. Separate magenta/cyan garment channels recolor clothes while preserving natural faces and skin. No player photograph is inserted into these sprites.

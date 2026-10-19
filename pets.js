@@ -1,0 +1,31 @@
+/* Original companion sprites; all saved choices and image paths are allowlisted. */
+(function(root){
+ 'use strict';let serial=0;
+ const coats={tan:['Sand','#b08b56'],rust:['Rostbraun','#9d542e'],brown:['Braun','#80553a'],chocolate:['Schokolade','#513a30'],cream:['Creme','#d2c3a8'],snow:['Schnee','#dddcd4'],silver:['Silber','#aeb2b7'],gray:['Grau','#6b737b'],black:['Anthrazit','#30353b'],blue:['Blau','#386b9d'],green:['Grün','#487b50'],red:['Rot','#ac4141'],gold:['Gold','#c79a42'],orange:['Orange','#cf7334']};
+ const eyes={amber:['Bernstein','#b98d39'],brown:['Braun','#684a32'],blue:['Blau','#71b7d0'],green:['Grün','#72965c'],gray:['Grau','#8d9ba4']};
+ const breeds={
+  shepherd:{name:'Schäferhund',group:'Hunde',cell:0,height:.43,coats:['tan','brown','cream','silver'],eyes:['brown','amber','blue']},
+  husky:{name:'Husky',group:'Hunde',cell:1,height:.4,coats:['gray','black','rust','silver'],eyes:['blue','brown','amber']},
+  doberman:{name:'Dobermann',group:'Hunde',cell:2,height:.46,coats:['rust','brown','tan','chocolate'],eyes:['brown','amber','blue']},
+  bengal:{name:'Bengalkatze',group:'Katzen',cell:3,height:.25,coats:['tan','silver','snow','brown'],eyes:['green','amber','blue']},
+  shorthair:{name:'Britisch Kurzhaar',group:'Katzen',cell:4,height:.25,coats:['gray','chocolate','cream','black','silver'],eyes:['amber','blue','green'],stances:['Sitzend','Stehend']},
+  parrot:{name:'Papagei',group:'Weitere Tiere',cell:5,height:.32,coats:['blue','green','red','gold'],eyes:['amber','brown','gray']},
+  fish:{name:'Fisch im Aquarium',group:'Weitere Tiere',cell:6,height:.22,coats:['orange','gold','silver','blue'],eyes:['brown','amber','blue']},
+  hamster:{name:'Hamster',group:'Weitere Tiere',cell:7,height:.17,coats:['gold','cream','brown','silver'],eyes:['brown','gray','blue']},
+  horse:{name:'Pferd',group:'Weitere Tiere',cell:8,height:.78,coats:['brown','black','silver','cream'],eyes:['brown','blue','amber']},
+  monkey:{name:'Kapuzineraffe',group:'Weitere Tiere',cell:9,height:.3,coats:['brown','chocolate','black','gold'],eyes:['brown','amber','blue']},
+  donkey:{name:'Esel',group:'Weitere Tiere',cell:10,height:.61,coats:['gray','brown','cream','silver'],eyes:['brown','amber','blue']}
+ };
+ // Tight per-cell alpha bounds, updated from the generated transparent sheet.
+ const sprites=[{"file":"dogs-cats.webp","sheet":[1536,1024],"crop":[15,252,400,491]},{"file":"dogs-cats.webp","sheet":[1536,1024],"crop":[417,252,340,488]},{"file":"dogs-cats.webp","sheet":[1536,1024],"crop":[823,252,359,499]},{"file":"dogs-cats.webp","sheet":[1536,1024],"crop":[1215,293,307,459]},{"file":"small-pets.webp","sheet":[2172,724],"crop":[83,165,380,442]},{"file":"small-pets.webp","sheet":[2172,724],"crop":[634,158,360,465]},{"file":"small-pets.webp","sheet":[2172,724],"crop":[1133,184,457,412]},{"file":"small-pets.webp","sheet":[2172,724],"crop":[1749,193,332,399]},{"file":"large-pets.webp","sheet":[1536,1024],"crop":[26,260,395,484]},{"file":"large-pets.webp","sheet":[1536,1024],"crop":[466,360,344,369]},{"file":"large-pets.webp","sheet":[1536,1024],"crop":[775,285,348,446]},{"file":"large-pets.webp","sheet":[1536,1024],"crop":[1139,362,368,350]}];
+ const crops=sprites.map(s=>s.crop);
+ function normalize(value){if(!value||typeof value!=='object'||!Object.hasOwn(breeds,value.breed))return null;const b=breeds[value.breed];return {version:1,breed:value.breed,coat:b.coats.includes(value.coat)?value.coat:b.coats[0],eyes:b.eyes.includes(value.eyes)?value.eyes:b.eyes[0],size:Number.isInteger(value.size)&&value.size>=0&&value.size<3?value.size:1,flip:value.flip===true,stance:value.breed==='shorthair'&&value.stance===1?1:0};}
+ const restrict=(value,plus)=>plus===true?normalize(value):null;
+ function render(value){const v=normalize(value);if(!v)return '';const b=breeds[v.breed],sprite=sprites[v.breed==='shorthair'&&v.stance===1?11:b.cell],[x,y,w,h]=sprite.crop,id='pet-'+(++serial),height=b.height*[.86,1,1.12][v.size];
+  const matrix=(hex,channel)=>[1,3,5].map(i=>{const c=parseInt(hex.slice(i,i+2),16)/255;return channel==='coat'?`${c} ${1-c} 0 0 0`:`0 ${c*1.35} 0 0 0`;}).join(' ')+' 0 0 0 1 0';
+  const mask=(name,a,z)=>`<feColorMatrix in="SourceGraphic" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 ${a} 0 -.02" result="${name}a"/><feColorMatrix in="SourceGraphic" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 ${z} 0 -.02" result="${name}b"/><feComposite in="${name}a" in2="${name}b" operator="in" result="${name}raw"/><feComposite in="${name}raw" in2="SourceGraphic" operator="in" result="${name}"/>`;
+  const region=v.breed==='monkey'?`M0 0H${780-x}V${650-y}H${w}V${h}H0Z`:v.breed==='donkey'?`M0 0H${w}V${h}H${825-x}V${630-y}H0Z`:null;
+  return `<span class="petCompanion" data-pet="${v.breed}" data-coat="${v.coat}" data-eyes="${v.eyes}" style="--pet-scale:${height.toFixed(3)};--pet-ratio:${(w/h).toFixed(3)}" role="img" aria-label="${b.name}"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMax meet" style="transform:scaleX(${v.flip?-1:1})" xmlns="http://www.w3.org/2000/svg"><defs>${region?`<clipPath id="${id}-clip"><path d="${region}"/></clipPath>`:''}<filter id="${id}" x="0" y="0" width="${w}" height="${h}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">${mask('coat','32 -32 0',v.breed==='parrot'?'-12 0 24':'0 -32 32')}${mask('iris','-10 10 0','0 10 -10')}<feColorMatrix in="SourceGraphic" values="${matrix(coats[v.coat][1],'coat')}" result="coatColor"/><feComposite in="coatColor" in2="coat" operator="in" result="fur"/><feColorMatrix in="SourceGraphic" values="${matrix(eyes[v.eyes][1],'eyes')}" result="eyeColor"/><feComposite in="eyeColor" in2="iris" operator="in" result="eye"/><feComposite in="SourceGraphic" in2="coat" operator="out" result="detail1"/><feComposite in="detail1" in2="iris" operator="out" result="detail2"/><feMerge><feMergeNode in="detail2"/><feMergeNode in="fur"/><feMergeNode in="eye"/></feMerge></filter></defs><g${region?` clip-path="url(#${id}-clip)"`:''}><image href="assets/pets/${sprite.file}" x="${-x}" y="${-y}" width="${sprite.sheet[0]}" height="${sprite.sheet[1]}" filter="url(#${id})"/></g></svg></span>`;
+ }
+ const api={normalize,restrict,render,breeds,coats,eyes,crops,sprites};if(typeof module==='object'&&module.exports)module.exports=api;else root.pets=api;
+})(typeof globalThis==='object'?globalThis:this);

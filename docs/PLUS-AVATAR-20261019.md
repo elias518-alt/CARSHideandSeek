@@ -1,3 +1,5 @@
+> Historischer Stand: Die Karikaturen wurden auf Wunsch durch [Originalfiguren und realistische Begleiter](REALISTIC-CHARACTERS-PETS-20261019.md) ersetzt. Die Selfie-Gestaltung ist dort pausiert.
+
 # PLUS-Avatar v5
 
 Ersetzt die bisherige Fotoauflage im Kleiderschrank. Ein Selbstporträt dient ausschließlich als lokale Vorlage für eine illustrierte Spielfigur. Das eigene Foto wird nicht als Textur in die Figur eingefügt.
