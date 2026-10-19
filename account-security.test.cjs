@@ -82,15 +82,16 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.equal((await request('create',{name:'Testspieler',vehicle:'Testauto'})).status,428);
     const legal=documents(process.env);assert.equal((await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true})).status,200);
     const denied=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(denied.status,403);
-    const forged=await request('create',{name:'Free',vehicle:'Auto',appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(forged.data.lobby.players[0].appearance.collection,'classic');
+    const forged=await request('create',{name:'Free',vehicle:'Auto',appearance:{collection:'studio',gender:'female'},pet:{breed:'horse',coat:'brown'},plus:true});assert.equal(forged.data.lobby.players[0].appearance.collection,'classic');assert.equal(forged.data.lobby.players[0].pet,null);assert.equal((await request('pets-save',{pet:{breed:'husky'},plus:true})).status,403);assert.equal((await request('pets-save',{pet:null})).status,200);
     assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,false);
-    f.setPlus(true);const avatarSave=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female',top:7,pants:5,shoes:3,pose:4,winPose:2,traits:{skin:4,eyeSpacing:9}}});assert.equal(avatarSave.status,200);const stored=JSON.parse(f.calls.filter(c=>c.options.method==='PUT'&&c.url.endsWith('/user')).at(-1).options.body).data.chs_appearance;assert.equal(stored.pose,4);assert.equal(stored.winPose,2);assert.equal(stored.traits.eyeSpacing,1.15);assert.equal(stored.face,null);
+    f.setPlus(true);const avatarSave=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female',top:7,pants:5,shoes:3,pose:4,winPose:2,traits:{skin:4,eyeSpacing:9}}});assert.equal(avatarSave.status,200);const stored=JSON.parse(f.calls.filter(c=>c.options.method==='PUT'&&c.url.endsWith('/user')).at(-1).options.body).data.chs_appearance;assert.equal(stored.pose,0);assert.equal(stored.winPose,2);assert.equal(stored.traits.eyeSpacing,1.15);assert.equal(stored.face,null);
     assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,true);
     const foreignFace={path:owner+'/character-face-22222222-2222-4222-8222-222222222222.png'};
     assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',face:foreignFace}})).status,403);
+    const petSave=await request('pets-save',{pet:{breed:'husky',coat:'silver',eyes:'blue',size:2,flip:true}});assert.equal(petSave.status,200);const petData=JSON.parse(f.calls.filter(c=>c.options.method==='PUT'&&c.url.endsWith('/user')).at(-1).options.body).data;assert.deepEqual(Object.keys(petData),['chs_pet']);assert.equal(petData.chs_pet.breed,'husky');assert.equal(petData.chs_pet.eyes,'blue');
     const ownFace={...foreignFace,path:player+'/character-face-22222222-2222-4222-8222-222222222222.png'};
     assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',top:1,pants:2,face:ownFace}})).status,200);
-    const created=await request('create',{name:'Testspieler',vehicle:'Testauto',appearance:{collection:'modular',character:5}});assert.equal(created.status,200);
+    const created=await request('create',{name:'Testspieler',vehicle:'Testauto',appearance:{collection:'modular',character:5},pet:{breed:'bengal',coat:'silver'}});assert.equal(created.status,200);assert.equal(created.data.lobby.me.pet.breed,'bengal');
     assert.equal(created.data.lobby.players[0].appearance.character,5);
     await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true},'owner-token');
     const joined=await request('join',{code:created.data.lobby.code,name:'Zweiter Spieler',vehicle:'Zweites Auto'},'owner-token');assert.equal(joined.status,200);
@@ -112,7 +113,7 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.deepEqual(seen.data.lobby.players.find(p=>p.id===created.data.userId).appearance,wardrobe.normalize(look));
     const rejoined=await request('join',{code:created.data.lobby.code});assert.deepEqual(rejoined.data.lobby.players.find(p=>p.id===created.data.userId).appearance,wardrobe.normalize(look));
     f.setPlus(false);assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'}})).status,403);
-    const revoked=await request('state',{code:created.data.lobby.code,userId:created.data.userId},'player-token','GET');assert.equal(revoked.status,200);assert.equal(revoked.data.lobby.me.appearance.collection,'classic');
+    const revoked=await request('state',{code:created.data.lobby.code,userId:created.data.userId},'player-token','GET');assert.equal(revoked.status,200);assert.equal(revoked.data.lobby.me.appearance.collection,'classic');assert.equal(revoked.data.lobby.me.pet,null);assert.equal((await request('pets-save',{pet:{breed:'horse'}})).status,403);
     await request('leave',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token');
 
     assert.equal((await request('admin-ban',{targetId:player,hours:24,reason:'Nachgewiesener Testverstoß'},'owner-token')).status,200);

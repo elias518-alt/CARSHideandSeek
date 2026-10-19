@@ -1418,6 +1418,7 @@ function playerData() {
       getCharacterStyle(),
 
     appearance: window.accountUI.appearance(),
+    pet: window.petUI?.selection(),
 
     level:
       Math.max(1, Math.min(50, Number(dbProfile.level) || 1)),
@@ -3648,11 +3649,12 @@ function lobbyProfileMarkup(player) {
 }
 
 function lobbyCharacterMarkup(player) {
-  if (player?.appearance && typeof wardrobe !== 'undefined') return wardrobe.markup(player.appearance);
+  const companion=typeof pets!=='undefined'?pets.render(player?.pet):'';
+  if (player?.appearance && typeof wardrobe !== 'undefined') return wardrobe.markup(player.appearance)+companion;
   let hash=0;for(const ch of String(player.profileId||player.id))hash=(hash*31+ch.charCodeAt(0))>>>0;
   const fallback=hash%3;
   const skin=Number.isInteger(player?.characterStyle) ? Math.max(0,Math.min(2,player.characterStyle)) : fallback;
-  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin} lobbyCrewPose--side" aria-hidden="true"></span>`;
+  return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${skin} lobbyCrewPose--side" aria-hidden="true"></span>`+companion;
 }
 
 function openLobbyPlayerCard(playerId) {

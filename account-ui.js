@@ -16,7 +16,7 @@
     window.communityUI?.closePrivateViews();
     stopActivity();
     currentAccount=null;document.getElementById('adminMenuButton')?.setAttribute('hidden','');
-    for(const id of ['adminDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.remove();}
+    for(const id of ['adminDialog','petsDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.disposePets?.();view?.remove();}
   }
   async function initialize(){
     const userId=authSession?.user?.id,attempt=++accountCheck;if(!userId)return false;
@@ -74,16 +74,16 @@
     if(document.getElementById('wardrobeDialog')?.open)return;
     const userId=authSession.user.id;document.getElementById('wardrobeDialog')?.disposeWardrobe?.();
     const dialog=accountDialog('wardrobeDialog','DEIN LOOK');dialog.classList.add('wardrobeDialog');const editorToken={};dialog.wardrobeEditor=editorToken;
-    dialog.insertAdjacentHTML('beforeend','<p class="wardrobeIntro">Deine Crew-Figur oder dein eigener PLUS-Avatar: Kleidung, Gesicht und Posen.</p><div class="wardrobeLayout"><div class="wardrobePreview" data-wardrobe-preview></div><form class="wardrobeForm"><div data-wardrobe-fields></div><section class="characterPhoto" data-character-photo hidden></section><p class="accountError" role="alert"></p><button type="submit" class="primaryButton">LOOK SPEICHERN</button></form></div>');
+    dialog.insertAdjacentHTML('beforeend','<p class="wardrobeIntro">Deine bekannten Crew-Figuren und realistische PLUS-Charaktere mit eigenen Kleidungsfarben.</p><div class="wardrobeLayout"><div class="wardrobePreview" data-wardrobe-preview></div><form class="wardrobeForm"><div data-wardrobe-fields></div><p class="accountError" role="alert"></p><button type="submit" class="primaryButton">LOOK SPEICHERN</button></form></div>');
     const form=dialog.querySelector('form');let draft=appearance(),busy=false,previewVictory=false;
     if(draft.collection!=='classic')draft=characterStudio.normalize(draft);
     let oldFace=characterStudio.normalizeFace(authSession.user.user_metadata?.chs_appearance?.face);
     if(oldFace?.path.split('/')[0]!==userId)oldFace=null;
     const plus=()=>window.plusUI?.active===true;
-    const photo=characterPhoto.create(form.querySelector('[data-character-photo]'),{getLook:()=>draft,onError:message=>form.querySelector('[role=alert]').textContent=message,onChange:traits=>{if(plus()&&draft.collection==='studio'&&authSession?.user?.id===userId){draft=characterStudio.normalize({...draft,traits});render();}}});
+
     const options=values=>values.map((name,i)=>[i,name]);
     const select=(name,label,values)=>'<label>'+label+'<select name="'+name+'">'+values.map(([value,text])=>'<option value="'+value+'">'+esc(text)+'</option>').join('')+'</select></label>';
-    const card=(value,label,look,premium=false)=>'<button type="button" class="characterChoice" data-character-choice="'+value+'" aria-pressed="'+(draft.collection==='classic'?value==='classic-'+draft.classic:value===draft.gender)+'" '+(premium&&!plus()?'disabled':'')+'>'+wardrobe.markup(look)+'<strong>'+label+'</strong><small>'+(premium?'PLUS · anpassbar':'Kostenlos')+'</small></button>';
+    const card=(value,label,look,premium=false)=>'<button type="button" class="characterChoice" data-character-choice="'+value+'" aria-pressed="'+(draft.collection==='classic'?value==='classic-'+draft.classic:value===draft.figure)+'" '+(premium&&!plus()?'disabled':'')+'>'+wardrobe.markup(look)+'<strong>'+label+'</strong><small>'+(premium?'PLUS · anpassbar':'Kostenlos')+'</small></button>';
     function preview(){dialog.querySelector('[data-wardrobe-preview]').innerHTML='<span class="studioPreviewTag">'+(draft.collection==='classic'?'CREW':previewVictory?'DEIN SIEGERMOMENT':'PLUS AVATAR')+'</span>'+wardrobe.markup(draft,previewVictory?'victory':'standing')+'<span class="studioPreviewGround"></span>';}
     function render(){
       if(dialog.wardrobeEditor!==editorToken)return;
@@ -91,12 +91,12 @@
       let controls='';
       if(draft.collection==='studio'&&plus()){
         const garment=characterStudio.garments[draft.gender],colors=Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]);
-        controls='<div class="studioControls">'+select('top','OBERTEIL',options(garment.tops))+select('pants','HOSE',options(garment.pants))+select('shoes','SCHUHE',options(characterStudio.shoes))+'<details data-section="colors"><summary>Deine Farben</summary><div class="avatarFieldGrid">'+[['topColor','Oberteil'],['pantsColor','Hose'],['shoeColor','Schuhe']].map(([key,label])=>select(key,label,colors)).join('')+'</div></details>'+select('pose','POSE NEBEN DEM AUTO',options(characterAvatar.poses))+select('winPose','JUBEL BEIM GEWINNEN',options(characterAvatar.celebrations))+'<button type="button" data-victory-preview aria-pressed="'+previewVictory+'">'+(previewVictory?'STANDPOSE ANSEHEN':'JUBEL ANSEHEN')+'</button><details data-section="face"><summary>Gesicht &amp; Haare</summary><div class="avatarFieldGrid">'+select('trait-shape','Gesichtsform',options(characterAvatar.shapes))+select('trait-skin','Hautton',options(['Porzellan','Hell','Warm','Bronze','Braun','Dunkelbraun']))+select('trait-hair','Frisur',options(characterAvatar.hairstyles))+select('trait-hairColor','Haarfarbe',options(['Schwarz','Dunkelbraun','Braun','Blond','Hellblond','Kupfer','Grau','Weiß']))+select('trait-eyes','Augenfarbe',options(['Braun','Grün','Blau','Grau']))+select('trait-beard','Bart',options(characterAvatar.beards))+select('trait-glasses','Brille',[[0,'Ohne Brille'],[1,'Mit Brille']])+[['eyeSpacing','Augenabstand',.85,1.15],['eyeSize','Augengröße',.8,1.2],['nose','Nasenbreite',.8,1.2],['mouth','Mundbreite',.8,1.2]].map(([key,label,min,max])=>'<label>'+label+'<input type="range" data-trait-range="'+key+'" min="'+min+'" max="'+max+'" step=".01" value="'+draft.traits[key]+'"></label>').join('')+'</div></details></div>';
+        const original=!!characterStudio.figures[draft.figure].atlas;
+        controls='<div class="studioControls">'+select('top',original?'OBERTEIL':'KOMPLETTER LOOK',options(original?garment.tops:characterStudio.outfits))+(original?select('pants','HOSE',options(garment.pants)):'<p class="wardrobeAccess">Abgestimmte Outfits mit natürlichen Proportionen.</p>')+'<details data-section="colors"><summary>Deine Kleidungsfarben</summary><div class="avatarFieldGrid">'+[['topColor','Oberteil'],['pantsColor','Hose']].map(([key,label])=>select(key,label,colors)).join('')+'</div></details>'+select('pose','BLICKRICHTUNG',[[0,'Original'],[1,'Gespiegelt']])+select('winPose','SIEGERANIMATION',[[0,'Freudensprung'],[1,'Goldener Moment'],[2,'Konfetti']])+'<button type="button" data-victory-preview aria-pressed="'+previewVictory+'">'+(previewVictory?'STAND ANSEHEN':'SIEGERMOMENT ANSEHEN')+'</button><p class="wardrobeAccess">Die Selfie-Gestaltung wird überarbeitet und ist bei diesen realistischen Figuren derzeit nicht verfügbar. Haustiere findest du separat im Profil.</p></div>';
       }
-      fields.innerHTML='<h3>Deine Crew-Figuren</h3><div class="characterChoices">'+['Night Rider','Silver Line','Orange Shift'].map((name,i)=>card('classic-'+i,name,{classic:i})).join('')+'</div><h3>Dein PLUS-Studio</h3><div class="characterChoices characterChoices--plus">'+card('male','Männliche Figur',{collection:'studio',gender:'male',top:5},true)+card('female','Weibliche Figur',{collection:'studio',gender:'female',top:3,topColor:'cream'},true)+'</div><p class="wardrobeAccess" role="status">'+(plus()?'PLUS aktiv · Kleidung, Posen und Selfie-Avatar freigeschaltet.':'Die drei Crew-Figuren sind kostenlos. Kleidung, Posen und Selfie-Avatar benötigen PLUS. Käufe sind noch nicht verfügbar.')+'</p>'+(oldFace?'<p class="avatarMigration">Dein früheres Gesichtsfoto wird nicht mehr dargestellt. Beim Speichern wird es aus dem Bildspeicher entfernt. Du kannst jetzt einen gezeichneten Avatar aus einem neuen Selfie erstellen.</p>':'')+controls;
-      for(const field of fields.querySelectorAll('select')){const key=field.name;field.value=String(key.startsWith('trait-')?(key==='trait-glasses'?Number(draft.traits.glasses):draft.traits[key.slice(6)]):draft[key]);}
+      fields.innerHTML='<h3>Deine Crew-Figuren</h3><div class="characterChoices">'+['Night Rider','Silver Line','Orange Shift'].map((name,i)=>card('classic-'+i,name,{classic:i})).join('')+'</div><h3>Dein PLUS-Studio</h3><div class="characterChoices characterChoices--plus">'+Object.entries(characterStudio.figures).map(([id,figure])=>card(id,figure.label,{collection:'studio',figure:id,gender:figure.gender,top:0,topColor:id==='lea'?'cream':'black'},true)).join('')+'</div><p class="wardrobeAccess" role="status">'+(plus()?'PLUS aktiv · Original-Figuren und neue Streetwear-Charaktere freigeschaltet.':'Die drei Crew-Figuren sind kostenlos. Die anpassbaren Studiofiguren benötigen PLUS. Käufe sind noch nicht verfügbar.')+'</p>'+(oldFace?'<p class="avatarMigration">Dein früheres Gesichtsfoto wird nicht mehr dargestellt. Beim Speichern wird es aus dem Bildspeicher entfernt. Deine Figur wird mit ihrem ursprünglichen Gesicht angezeigt.</p>':'')+controls;
+      for(const field of fields.querySelectorAll('select')){const key=field.name;field.value=String(draft[key]);}
       fields.querySelectorAll('details').forEach(el=>el.open=open.includes(el.dataset.section));preview();
-      photo.setState({editable:plus()&&draft.collection==='studio',visible:plus()&&draft.collection==='studio',busy});
       if(busy)form.querySelectorAll('button,select,input').forEach(el=>el.disabled=true);
     }
     render();dialog.showModal();
@@ -104,21 +104,20 @@
       if(busy)return;
       if(event.target.closest('[data-victory-preview]')){previewVictory=!previewVictory;render();return;}
       const button=event.target.closest('[data-character-choice]');if(!button)return;
-      const choice=button.dataset.characterChoice;if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',gender:choice});previewVictory=false;render();
+      const choice=button.dataset.characterChoice;if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',figure:choice,gender:characterStudio.figures[choice].gender,top:Math.min(draft.top||0,2),pants:Math.min(draft.pants||0,2)});previewVictory=false;render();
     });
     form.addEventListener('change',event=>{
       const field=event.target,key=field.name;if(busy||!plus()||draft.collection!=='studio'||!key)return;
-      if(key.startsWith('trait-'))draft=characterStudio.normalize({...draft,traits:{...draft.traits,[key.slice(6)]:key==='trait-glasses'?field.value==='1':Number(field.value)}});
-      else if(['top','pants','shoes','pose','winPose','topColor','pantsColor','shoeColor'].includes(key)){draft=characterStudio.normalize({...draft,[key]:key.endsWith('Color')?field.value:Number(field.value)});if(key==='winPose')previewVictory=true;if(key==='pose')previewVictory=false;}else return;
+      if(['top','pants','pose','winPose','topColor','pantsColor'].includes(key)){draft=characterStudio.normalize({...draft,[key]:key.endsWith('Color')?field.value:Number(field.value)});if(key==='winPose')previewVictory=true;if(key==='pose')previewVictory=false;}else return;
       render();form.querySelector('[name="'+key+'"]')?.focus();
     });
-    form.addEventListener('input',event=>{const key=event.target.dataset.traitRange;if(!key||busy||!plus()||draft.collection!=='studio')return;draft=characterStudio.normalize({...draft,traits:{...draft.traits,[key]:Number(event.target.value)}});preview();});
+
     const refreshAccess=()=>{if(!dialog.open)return;if(!plus()&&draft.collection!=='classic'){draft=wardrobe.restrict(draft,false);previewVictory=false;}render();};
     const onCancel=event=>{if(busy)event.preventDefault();},onClose=()=>{if(!dialog.open)dispose();};
-    const dispose=()=>{document.removeEventListener('chs:plus-changed',refreshAccess);dialog.removeEventListener('cancel',onCancel);dialog.removeEventListener('close',onClose);photo.dispose();};dialog.disposeWardrobe=dispose;
+    const dispose=()=>{document.removeEventListener('chs:plus-changed',refreshAccess);dialog.removeEventListener('cancel',onCancel);dialog.removeEventListener('close',onClose);};dialog.disposeWardrobe=dispose;
     document.addEventListener('chs:plus-changed',refreshAccess);dialog.addEventListener('cancel',onCancel);dialog.addEventListener('close',onClose);
     form.addEventListener('submit',async event=>{
-      event.preventDefault();if(busy)return;if(photo.processing){form.querySelector('[role=alert]').textContent='Der Avatar wird noch vorbereitet. Bitte kurz warten.';return;}
+      event.preventDefault();if(busy)return;
       const candidate=wardrobe.normalize(draft);busy=true;render();dialog.querySelector('.dialogClose').disabled=true;
       try{
         if(authSession?.user?.id!==userId)throw Error('Konto wurde gewechselt. Bitte neu öffnen.');

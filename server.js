@@ -9,6 +9,7 @@ const round = require('./round-engine');
 const adminLab=require('./admin-lab');
 const {createStore}=require('./state-store');
 const wardrobe=require('./wardrobe');
+const pets=require('./pets');
 const {documents}=require('./legal');
 const {createAccountService,uuid}=require('./account-service');
 const moderation=require('./moderation-rules');
@@ -235,6 +236,7 @@ function newPlayer(data, authId) {
     avatarUrl: safePhotoUrl(data.avatarUrl),
     characterStyle: Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || 0))),
     appearance: data.appearance ? wardrobe.normalize(data.appearance) : null,
+    pet:pets.normalize(data.pet),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: Math.max(1, Math.min(50, Math.trunc(number(data.level) || 1))),
     role: null, ready: false, found: false, roundFinds: 0, location: null,
@@ -244,7 +246,7 @@ function newPlayer(data, authId) {
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
     id: p.id, profileId: p.authId, name: p.name, vehicle: p.vehicle, color: p.color, bodyType: p.bodyType || '', vehicleYear:p.vehicleYear||'', vehicleSeries:p.vehicleSeries||'',
-    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, mode: p.mode,
+    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, pet:pets.normalize(p.pet), mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found, eliminated: !!p.eliminated, left: !!p.left, eliminationReason: p.eliminationReason || "",
     connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge), hasStoredLocation: !!p.location
   };
@@ -502,6 +504,7 @@ async function route(action, data, authId) {
         existing.characterStyle = Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle))));
       }
       if (data.appearance) existing.appearance=wardrobe.normalize(data.appearance);
+      if(Object.hasOwn(data,'pet'))existing.pet=pets.normalize(data.pet);
       if(['DRIVER','PASSENGER'].includes(data.mode))existing.mode=data.mode;
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       if(now-existing.lastSeen>=30000)monitor.record('REJOIN','REJOIN_ACCEPTED');
@@ -798,6 +801,15 @@ async function handler(req, res) {
         if(!response.ok)fail(503,'Dein Look konnte nicht gespeichert werden.');
         send(res,200,{user:await response.json()});return;
       }
+      if(action==='pets-save'){
+        if(req.method!=='POST')fail(405,'Methode nicht erlaubt.');
+        const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
+        const input=await readBody(req),pet=pets.normalize(input.pet);
+        if(pet&&!await wardrobePlus(req,true))fail(403,'Haustiere benötigen eine aktive PLUS-Mitgliedschaft.');
+        let response;try{response=await fetch(SUPABASE_URL+'/auth/v1/user',{method:'PUT',headers:{Authorization:req.headers.authorization,apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({data:{chs_pet:pet}}),signal:AbortSignal.timeout(8000)});}catch{fail(503,'Dein Begleiter konnte nicht gespeichert werden.');}
+        if(!response.ok)fail(503,'Dein Begleiter konnte nicht gespeichert werden.');
+        send(res,200,{user:await response.json()});return;
+      }
       if(action==='legal') {
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         send(res,200,documents());return;
@@ -863,10 +875,12 @@ async function handler(req, res) {
         if(data.appearance.collection==='studio'&&!require('./character-studio').ownsFace(data.appearance,authId))data.appearance.face=null;
         if(!await wardrobePlus(req))data.appearance=wardrobe.restrict(data.appearance,false);
       }
+      if(['create','join','identity'].includes(action)&&Object.hasOwn(data,'pet'))data.pet=pets.normalize(data.pet)?pets.restrict(data.pet,await wardrobePlus(req)):null;
       const existing=lobbies.get(clean(data.code,5).toUpperCase())?.players.find(p=>p.authId===authId);
       if(action==='state'&&existing?.appearance&&existing.appearance.collection!=='classic'){
         if(!await wardrobePlus(req))existing.appearance=wardrobe.restrict(existing.appearance,false);
       }
+      if(action==='state'&&existing?.pet&&!await wardrobePlus(req))existing.pet=null;
       const response=await route(action,data,authId);
       if(response.lobby)response.adminTestAvailable=account.permissions?.includes('lab')&&response.lobby.hostId===response.lobby.me?.id;
       if(response.reward)await accounts.attest(authId,response.reward);

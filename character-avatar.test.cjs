@@ -7,10 +7,12 @@ test('visual traits are bounded and discard photo/landmark data and injected str
  assert.equal(avatar.traits(null,'female').hair,4);
  const v=studio.normalize({shoes:99,pose:-1,winPose:99,traits:input});assert.equal(v.shoes,0);assert.equal(v.pose,0);assert.equal(v.winPose,0);assert.equal(v.traits.photo,undefined);
 });
-test('all stand and victory poses have distinct limbs with a shared ground plane',()=>{
- const renders=[];for(let pose=0;pose<5;pose++){const html=studio.render({pose});assert.match(html,new RegExp('data-pose="'+pose+'"'));assert.doesNotMatch(html,/avatarCelebrating/);assert.match(html,/viewBox="0 30 320 610"/);renders.push(html.match(/class="avatarArm avatarArm--right">([\s\S]*?)<g transform/)[1]);}
- assert.ok(new Set(renders).size>=3);
- for(let winPose=0;winPose<3;winPose++){const html=studio.render({winPose},'victory');assert.match(html,/avatarCelebrating/);assert.match(html,new RegExp('data-pose="'+(5+winPose)+'"'));assert.doesNotMatch(html,/<image|href=/);}
+test('restored and new figures use realistic sprites, grounded feet and optional victory effects',()=>{
+ for(const figure of ['alex','maya','nico','lea'])for(const pose of [0,1]){
+  const html=studio.render({figure,pose});assert.match(html,/wardrobeRealistic/);assert.match(html,/preserveAspectRatio="xMidYMax meet"/);assert.match(html,new RegExp('data-figure="'+figure+'"'));assert.doesNotMatch(html,/wardrobeAvatar|data-studio-face/);
+  assert.match(html,new RegExp('scaleX\\('+ (pose?-1:1)+'\\)'));
+ }
+ for(let winPose=0;winPose<3;winPose++){const html=studio.render({winPose},'victory');assert.match(html,new RegExp('realisticCelebrating celebration-'+winPose));}
 });
 test('only a surviving winner celebrates, including valid seekers and hidden hiders',()=>{
  const outcome=(role,seekersWin,more={})=>avatar.won({result:{seekersWin,players:[{id:'me',role,...more}]}},'me');

@@ -3,8 +3,8 @@
 (function(){
  let crewRows=[];
  // Unique SVG IDs must not restart an unchanged avatar animation on each poll.
- const avatarSignature=html=>html.replace(/(avatar|studio-car)-\d+/g,'$1-id');
- function ownPlayer(car=activeCar()){return {id:'own-reference',profileId:authSession?.user?.id,name:dbProfile?.username||authSession?.user?.user_metadata?.full_name||'Spieler',avatarUrl:dbProfile?.avatar_url,vehicle:car?[car.brand,car.model].filter(Boolean).join(' '):'Dein Fahrzeug',bodyType:car?.body,vehicleYear:car?.year,vehicleSeries:car?.series,color:car?.color,photoUrl:car?.photo,appearance:window.accountUI?.appearance?.(),characterStyle:getCharacterStyle()};}
+ const avatarSignature=html=>html.replace(/(avatar|character-studio|studio-car|pet)-\d+/g,'$1-id');
+ function ownPlayer(car=activeCar()){return {id:'own-reference',profileId:authSession?.user?.id,name:dbProfile?.username||authSession?.user?.user_metadata?.full_name||'Spieler',avatarUrl:dbProfile?.avatar_url,vehicle:car?[car.brand,car.model].filter(Boolean).join(' '):'Dein Fahrzeug',bodyType:car?.body,vehicleYear:car?.year,vehicleSeries:car?.series,color:car?.color,photoUrl:car?.photo,appearance:window.accountUI?.appearance?.(),pet:window.petUI?.selection?.(),characterStyle:getCharacterStyle()};}
  function renderOwn(){
   const target=document.getElementById('homeOwnScene');if(!target)return;const car=activeCar(),player=ownPlayer(car),name=player.name;
   const intro=document.getElementById('homeGreeting');intro.textContent='Hey '+name.split(/\s+/)[0];
@@ -31,7 +31,7 @@
  function renderResult(lobby){
   const card=document.getElementById('result');if(!card)return;
   let scene=document.getElementById('referenceResultScene');if(!scene){scene=document.createElement('div');scene.id='referenceResultScene';card.prepend(scene);}
-  const car=activeCar(),own=ownPlayer(car),victory=characterAvatar.won(lobby,lobby.me?.id||gameSession?.userId)&&window.plusUI?.active===true,sceneHtml=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+lobbyCarMarkup(own,true,'result-scene')+wardrobe.markup(own.appearance,victory?'victory':'standing')+'</div></article>':'';scene.hidden=!car;if(scene.dataset.markup!==avatarSignature(sceneHtml)){scene.innerHTML=sceneHtml;scene.dataset.markup=avatarSignature(sceneHtml);}
+  const car=activeCar(),own=ownPlayer(car),victory=characterAvatar.won(lobby,lobby.me?.id||gameSession?.userId)&&window.plusUI?.active===true,sceneHtml=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+lobbyCarMarkup(own,true,'result-scene')+wardrobe.markup(own.appearance,victory?'victory':'standing')+pets.render(own.pet)+'</div></article>':'';scene.hidden=!car;if(scene.dataset.markup!==avatarSignature(sceneHtml)){scene.innerHTML=sceneHtml;scene.dataset.markup=avatarSignature(sceneHtml);}
   let list=document.getElementById('referenceResultPeople');if(!list){list=document.createElement('div');list.id='referenceResultPeople';card.querySelector('#rematch')?.before(list);}
   const html=(lobby.result?.players||[]).map(result=>{const player=lobby.players.find(p=>p.id===result.id)||result;const label=result.eliminated?'Ausgeschieden':result.foundBy||result.found?'Gefunden':result.role==='HIDER'?'Überlebt':'Sucher';return '<div class="referenceResultPerson"><span class="parkingStripAvatar">'+parkingAvatarMarkup(player)+'</span><strong>'+esc(result.name)+'</strong><span>'+esc(label)+'</span><small>+'+esc(Number(result.baseXp)||0)+' XP</small></div>';}).join('');
   if(list.dataset.markup!==html){list.innerHTML=html;list.dataset.markup=html;}
