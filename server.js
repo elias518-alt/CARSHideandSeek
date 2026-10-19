@@ -792,8 +792,8 @@ async function handler(req, res) {
         if(req.method!=='POST')fail(405,'Methode nicht erlaubt.');
         const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
         const input=await readBody(req),appearance=wardrobe.normalize(input.appearance);
-        if(appearance.collection==='studio'&&!require('./character-studio').ownsFace(appearance,actor))fail(403,'Bitte ein eigenes Gesichtsfoto verwenden.');
-        if(appearance.collection!=='classic'&&!await wardrobePlus(req,true))fail(403,'Für Alex und Maya brauchst du PLUS. Die Crew-Figuren sind kostenlos.');
+        if(appearance.collection==='studio'&&!require('./character-studio').ownsFace(input.appearance,actor))fail(403,'Bitte ein eigenes Gesichtsfoto verwenden.');
+        if(appearance.collection!=='classic'&&!await wardrobePlus(req,true))fail(403,'Für anpassbare Avatare, Kleidung und Posen brauchst du PLUS. Die Crew-Figuren sind kostenlos.');
         let response;try{response=await fetch(SUPABASE_URL+'/auth/v1/user',{method:'PUT',headers:{Authorization:req.headers.authorization,apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({data:{chs_appearance:appearance,character_style:appearance.classic}}),signal:AbortSignal.timeout(8000)});}catch{fail(503,'Dein Look konnte nicht gespeichert werden.');}
         if(!response.ok)fail(503,'Dein Look konnte nicht gespeichert werden.');
         send(res,200,{user:await response.json()});return;
@@ -886,7 +886,8 @@ async function handler(req, res) {
     const file = path.resolve(ROOT, '.' + requestPath);
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
-    if (!types[extension] || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','ad-service.js','ad-store.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
+    const avatarModel = ['/assets/vendor/face-api/models/tiny_face_detector_model.bin','/assets/vendor/face-api/models/face_landmark_68_tiny_model.bin'].includes(requestPath);
+    if ((!types[extension] && !avatarModel) || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','ad-service.js','ad-store.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });

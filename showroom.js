@@ -38,6 +38,7 @@
   const box=svg.viewBox.baseVal;if(!box.width||!box.height)return;
   const width=host.clientWidth;if(!width)return;
   const layout=composition(width,box.width/box.height,profile);
+  if(!profile&&host.querySelector('.wardrobeAvatar'))layout.personLeft=Math.min(layout.personLeft,width-layout.personHeight*.265);
   if(!profile&&!host.querySelector('.wardrobeStudio'))layout.personLeft=Math.min(layout.personLeft,width-layout.personHeight/3);
   for(const [key,value]of Object.entries(layout))set(host,'--showroom-'+key,value);
   if(!profile)set(host.closest('.homeStage'),'--showroom-height',Math.max(width<600?330:400,Math.max(layout.carHeight,layout.personHeight+layout.personDepth)+layout.ground+(width<600?100:112)));

@@ -35,3 +35,5 @@
 #profile #profileVehicleStage .vehicleIllustration{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:var(--showroom-carHeight,100%);width:var(--showroom-carWidth,94%);max-width:none;margin:0;filter:drop-shadow(0 2px 1px #0008)}
 #profile .profileProgress{position:relative;z-index:3}
 @media(min-width:760px){#home #homeOwnScene{inset:108px 0 0}}
+
+#home #homeOwnScene .wardrobeAvatar{width:calc(var(--showroom-personHeight)*.525)!important}

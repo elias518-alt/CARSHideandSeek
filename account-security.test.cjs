@@ -84,7 +84,7 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const denied=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(denied.status,403);
     const forged=await request('create',{name:'Free',vehicle:'Auto',appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(forged.data.lobby.players[0].appearance.collection,'classic');
     assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,false);
-    f.setPlus(true);await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'}});
+    f.setPlus(true);const avatarSave=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female',top:7,pants:5,shoes:3,pose:4,winPose:2,traits:{skin:4,eyeSpacing:9}}});assert.equal(avatarSave.status,200);const stored=JSON.parse(f.calls.filter(c=>c.options.method==='PUT'&&c.url.endsWith('/user')).at(-1).options.body).data.chs_appearance;assert.equal(stored.pose,4);assert.equal(stored.winPose,2);assert.equal(stored.traits.eyeSpacing,1.15);assert.equal(stored.face,null);
     assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,true);
     const foreignFace={path:owner+'/character-face-22222222-2222-4222-8222-222222222222.png'};
     assert.equal((await request('wardrobe-save',{appearance:{collection:'studio',face:foreignFace}})).status,403);
@@ -105,7 +105,7 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.equal((await request('join',{code:created.data.lobby.code},'owner-token')).status,403);
     assert.equal((await request('block',{targetAuthId:owner,blocked:false})).status,200);
     const foreign=await request('join',{code:created.data.lobby.code,appearance:{collection:'studio',face:foreignFace}});assert.equal(foreign.data.lobby.me.appearance.face,null);
-    const own=await request('join',{code:created.data.lobby.code,appearance:{collection:'studio',top:1,pants:2,face:ownFace}});assert.equal(own.data.lobby.me.appearance.face.path,ownFace.path);assert.equal(own.data.lobby.me.appearance.pants,2);
+    const own=await request('join',{code:created.data.lobby.code,appearance:{collection:'studio',top:1,pants:2,face:ownFace}});assert.equal(own.data.lobby.me.appearance.face,null);assert.equal(own.data.lobby.me.appearance.pants,2);
     const look={collection:'realistic',gender:'female',hair:2,hairColor:'blonde',top:2,topColor:'green',pants:1,pantsColor:'navy',glasses:true,earrings:true,jewelry:'silver'};
     const updated=await request('join',{code:created.data.lobby.code,appearance:look});assert.equal(updated.status,200);
     const seen=await request('state',{code:created.data.lobby.code,userId:joined.data.userId},'owner-token','GET');assert.equal(seen.status,200);
@@ -118,7 +118,7 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     assert.equal((await request('admin-ban',{targetId:player,hours:24,reason:'Nachgewiesener Testverstoß'},'owner-token')).status,200);
     assert.equal(server.lobbies.size,0);
     const blocked=await request('create',{name:'Testspieler',vehicle:'Testauto'});assert.equal(blocked.status,403);assert.equal(blocked.data.code,'ACCOUNT_BANNED');
-    assert.equal((await request('legal-accept',{...legal,terms:true,safety:true,adult:true,privacyRead:true})).status,403);
+    assert.equal((await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true})).status,403);
     const source=await oldFetch('http://127.0.0.1:'+app.address().port+'/account-service.js');assert.equal(source.status,404);
     for(const file of ['moderation-rules.js','beta-monitor.js','scripts/moderation-sql-qa.mjs'])assert.equal((await oldFetch('http://127.0.0.1:'+app.address().port+'/'+file)).status,404);
   }finally{await new Promise(resolve=>app.close(resolve));global.fetch=oldFetch;for(const key of Object.keys(process.env))if(!(key in oldEnv))delete process.env[key];Object.assign(process.env,oldEnv);server.lobbies.clear();}

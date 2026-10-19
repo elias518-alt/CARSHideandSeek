@@ -2,6 +2,8 @@
 /* Reference composition using live account, vehicle and crew data. */
 (function(){
  let crewRows=[];
+ // Unique SVG IDs must not restart an unchanged avatar animation on each poll.
+ const avatarSignature=html=>html.replace(/(avatar|studio-car)-\d+/g,'$1-id');
  function ownPlayer(car=activeCar()){return {id:'own-reference',profileId:authSession?.user?.id,name:dbProfile?.username||authSession?.user?.user_metadata?.full_name||'Spieler',avatarUrl:dbProfile?.avatar_url,vehicle:car?[car.brand,car.model].filter(Boolean).join(' '):'Dein Fahrzeug',bodyType:car?.body,vehicleYear:car?.year,vehicleSeries:car?.series,color:car?.color,photoUrl:car?.photo,appearance:window.accountUI?.appearance?.(),characterStyle:getCharacterStyle()};}
  function renderOwn(){
   const target=document.getElementById('homeOwnScene');if(!target)return;const car=activeCar(),player=ownPlayer(car),name=player.name;
@@ -9,7 +11,7 @@
   document.getElementById('homeGreetingAvatar').innerHTML=parkingAvatarMarkup(player);
   document.getElementById('homeGreetingCar').textContent=car?player.vehicle+' ist bereit':'Wähle dein Fahrzeug in der Garage';
   const markup=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+carPhotoMarkup(car,'home-hero')+lobbyCharacterMarkup(player)+'<span class="parkingContactShadow"></span></div></article>':'<button class="referenceNoCar" type="button" data-page="garage">Fahrzeug hinzufügen <span>Dein Auto und Charakter erscheinen hier.</span></button>';
-  if(target.dataset.markup!==markup){target.innerHTML=markup;target.dataset.markup=markup;}
+  if(target.dataset.markup!==avatarSignature(markup)){target.innerHTML=markup;target.dataset.markup=avatarSignature(markup);}
   renderPhotoPreview();
  }
  function renderCrew(rows=crewRows){
@@ -29,12 +31,13 @@
  function renderResult(lobby){
   const card=document.getElementById('result');if(!card)return;
   let scene=document.getElementById('referenceResultScene');if(!scene){scene=document.createElement('div');scene.id='referenceResultScene';card.prepend(scene);}
-  const car=activeCar(),own=ownPlayer(car),sceneHtml=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+lobbyCarMarkup(own,true,'result-scene')+lobbyCharacterMarkup(own)+'</div></article>':'';scene.hidden=!car;if(scene.dataset.markup!==sceneHtml){scene.innerHTML=sceneHtml;scene.dataset.markup=sceneHtml;}
+  const car=activeCar(),own=ownPlayer(car),victory=characterAvatar.won(lobby,lobby.me?.id||gameSession?.userId)&&window.plusUI?.active===true,sceneHtml=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+lobbyCarMarkup(own,true,'result-scene')+wardrobe.markup(own.appearance,victory?'victory':'standing')+'</div></article>':'';scene.hidden=!car;if(scene.dataset.markup!==avatarSignature(sceneHtml)){scene.innerHTML=sceneHtml;scene.dataset.markup=avatarSignature(sceneHtml);}
   let list=document.getElementById('referenceResultPeople');if(!list){list=document.createElement('div');list.id='referenceResultPeople';card.querySelector('#rematch')?.before(list);}
   const html=(lobby.result?.players||[]).map(result=>{const player=lobby.players.find(p=>p.id===result.id)||result;const label=result.eliminated?'Ausgeschieden':result.foundBy||result.found?'Gefunden':result.role==='HIDER'?'Überlebt':'Sucher';return '<div class="referenceResultPerson"><span class="parkingStripAvatar">'+parkingAvatarMarkup(player)+'</span><strong>'+esc(result.name)+'</strong><span>'+esc(label)+'</span><small>+'+esc(Number(result.baseXp)||0)+' XP</small></div>';}).join('');
   if(list.dataset.markup!==html){list.innerHTML=html;list.dataset.markup=html;}
  }
  function setup(){
+  document.addEventListener('chs:plus-changed',()=>{if(typeof state!=='undefined'&&state?.lobby?.result)renderResult(state.lobby);});
   document.addEventListener('click',event=>{
    const peer=event.target.closest('[data-reference-peer]');if(peer){openPage('friends');void socialAction(event);return;}
    const create=event.target.closest('#homeCreateLobby');if(create){openPage('play');document.getElementById('create')?.focus();return;}

@@ -22,9 +22,9 @@
     const v=normalize(value),group=choices(v.character);
     return {legskin:v.character<3?'men-hoodie':'women-formal',pants:models[group[v.pants]],shoes:models[group[v.shoes]],top:models[group[v.top]],head:models[v.character],hair:models[group[v.hair]]};
   }
-  function markup(value){
+  function markup(value,context){
     const v=normalize(value);
-    if(v.collection!=='classic')return studio.render(v);
+    if(v.collection!=='classic')return studio.render(v,context);
     return `<span class="lobbyCrewCharacter lobbyCrewCharacter--${v.classic} lobbyCrewPose--side" aria-hidden="true"></span>`;
   }
   function restrict(value,plus){const v=normalize(value);return plus||v.collection==='classic'?v:normalize({classic:v.classic});}
