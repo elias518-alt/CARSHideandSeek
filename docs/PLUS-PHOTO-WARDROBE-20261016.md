@@ -1,3 +1,5 @@
+> Historische Dokumentation: Die Fotoauflage wird mit [PLUS-Avatar v5](PLUS-AVATAR-20261019.md) ersetzt.
+
 # PLUS wardrobe and local photo customization
 
 Open the existing **Dein Look** menu, choose **Alex** or **Maya**, then choose a top and trousers independently. Each figure has nine full-body combinations, seven independent top/trouser colors, and its own clothing cuts. The three existing Crew figures remain free.

@@ -27,7 +27,7 @@ test('legacy customizable looks render a complete studio character without old l
 
 test('studio choices are normalized, allowlisted and restricted by membership',()=>{
  const input={collection:'studio',gender:'female',outfit:2,topColor:'cream',pantsColor:'black',classic:2};
- assert.deepEqual(wardrobe.normalize(JSON.parse(JSON.stringify(input))),{version:4,collection:'studio',gender:'female',top:2,pants:2,topColor:'cream',pantsColor:'black',classic:2,face:null});
+ assert.deepEqual(wardrobe.normalize(JSON.parse(JSON.stringify(input))),{version:5,collection:'studio',gender:'female',top:2,pants:2,shoes:0,topColor:'cream',pantsColor:'black',shoeColor:'white',pose:0,winPose:0,traits:require('./character-avatar').traits({},'female'),classic:2,face:null});
  assert.equal(wardrobe.restrict(input,false).collection,'classic');assert.equal(wardrobe.restrict(input,false).classic,2);
  assert.equal(wardrobe.restrict(input,true).collection,'studio');
  const invalid=wardrobe.normalize({collection:'studio',outfit:99,gender:'../bad',topColor:'" onload="evil'});
@@ -35,19 +35,19 @@ test('studio choices are normalized, allowlisted and restricted by membership',(
 });
 
 const studio=require('./character-studio');
-test('all independent garments survive v4 storage; legacy full outfits migrate',()=>{
- for(const gender of ['male','female'])for(let top=0;top<3;top++)for(let pants=0;pants<3;pants++){
+test('all independent garments survive v5 storage; legacy full outfits migrate',()=>{
+ for(const gender of ['male','female'])for(let top=0;top<8;top++)for(let pants=0;pants<6;pants++){
   const look=studio.normalize({gender,top,pants});assert.deepEqual(studio.normalize(JSON.parse(JSON.stringify(look))),look);
   const html=studio.render(look);assert.match(html,new RegExp('data-top="'+top+'" data-pants="'+pants+'"'));
-  assert.match(html,gender==='male'?/alex.webp/:/maya.webp/);
+  assert.match(html,/wardrobeAvatar/);assert.doesNotMatch(html,/<image|href=/);
  }
  for(let outfit=0;outfit<3;outfit++){const look=studio.normalize({version:3,outfit});assert.equal(look.top,outfit);assert.equal(look.pants,outfit);}
 });
 test('face paths are scoped image objects; URL injection, other paths and invalid transforms cannot render',()=>{
  const id='11111111-1111-4111-8111-111111111111',path=id+'/character-face-22222222-2222-4222-8222-222222222222.png';
- const v=studio.normalize({face:{path,x:100,y:-100,scale:Infinity}});assert.deepEqual(v.face,{path,x:10,y:-10,scale:1});
- assert.equal(studio.ownsFace(v,id),true);assert.equal(studio.ownsFace(v,'another-user'),false);
- assert.match(studio.render(v),/data-studio-face/);
+ const v=studio.normalize({face:{path,x:100,y:-100,scale:Infinity}});assert.equal(v.face,null);
+ assert.equal(studio.ownsFace({face:{path}},id),true);assert.equal(studio.ownsFace({face:{path}},'another-user'),false);
+ assert.doesNotMatch(studio.render(v),/data-studio-face|character-face-|<image/);
  for(const bad of ['https://evil.test/a.png','data:image/png;base64,AAA',path+'?x=1',path+'\n',path.replace('character-face-','avatar-'),path.replace(id,'../secret'),'" onload="evil'])assert.equal(studio.normalize({face:{path:bad}}).face,null);
  assert.doesNotMatch(studio.render({face:{path:'javascript:evil'},topColor:'__proto__'}),/evil|undefined/);
  assert.equal(wardrobe.restrict({...v,collection:'studio'},false).face,undefined);
