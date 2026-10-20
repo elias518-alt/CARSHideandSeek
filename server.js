@@ -10,6 +10,7 @@ const adminLab=require('./admin-lab');
 const {createStore}=require('./state-store');
 const wardrobe=require('./wardrobe');
 const pets=require('./pets');
+const vehicleRewards=require('./vehicle-rewards');
 const {documents}=require('./legal');
 const {createAccountService,uuid}=require('./account-service');
 const moderation=require('./moderation-rules');
@@ -28,6 +29,7 @@ const PORT = Number(process.env.PORT || 3000);
 const ROOT = __dirname;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yyvljkzitodxhtkilsxm.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_zgP-ABl8eaVGLkheMdlVWw_0TeZIEr8';
+const vehicleRewardsService=require('./vehicle-reward-service').createVehicleRewardService({url:SUPABASE_URL,key:SUPABASE_KEY});
 const REMOVE_BG_API_KEY = process.env.REMOVE_BG_API_KEY || '';
 const accounts=createAccountService({url:SUPABASE_URL,key:process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY});
 const lobbies = new Map();
@@ -236,7 +238,7 @@ function newPlayer(data, authId) {
     avatarUrl: safePhotoUrl(data.avatarUrl),
     characterStyle: Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || 0))),
     appearance: data.appearance ? wardrobe.normalize(data.appearance) : null,
-    pet:pets.normalize(data.pet),
+    pet:pets.normalize(data.pet),cosmetics:vehicleRewards.normalize(data.cosmetics),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: Math.max(1, Math.min(50, Math.trunc(number(data.level) || 1))),
     role: null, ready: false, found: false, roundFinds: 0, location: null,
@@ -246,7 +248,7 @@ function newPlayer(data, authId) {
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
     id: p.id, profileId: p.authId, name: p.name, vehicle: p.vehicle, color: p.color, bodyType: p.bodyType || '', vehicleYear:p.vehicleYear||'', vehicleSeries:p.vehicleSeries||'',
-    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, pet:pets.normalize(p.pet), mode: p.mode,
+    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, pet:pets.normalize(p.pet),cosmetics:vehicleRewards.normalize(p.cosmetics), mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found, eliminated: !!p.eliminated, left: !!p.left, eliminationReason: p.eliminationReason || "",
     connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge), hasStoredLocation: !!p.location
   };
@@ -505,6 +507,7 @@ async function route(action, data, authId) {
       }
       if (data.appearance) existing.appearance=wardrobe.normalize(data.appearance);
       if(Object.hasOwn(data,'pet'))existing.pet=pets.normalize(data.pet);
+      if(Object.hasOwn(data,'cosmetics'))existing.cosmetics=vehicleRewards.normalize(data.cosmetics);
       if(['DRIVER','PASSENGER'].includes(data.mode))existing.mode=data.mode;
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       if(now-existing.lastSeen>=30000)monitor.record('REJOIN','REJOIN_ACCEPTED');
@@ -786,6 +789,12 @@ async function handler(req, res) {
         const result=action==='ads-status'?ads.status(actor):action==='ads-begin'?await ads.begin(actor,payload):action==='ads-complete'?await ads.complete(actor,payload):await ads.cancel(actor);
         send(res,200,result);return;
       }
+      if(action==='vehicle-rewards'){
+        if(!['GET','POST'].includes(req.method))fail(405,'Methode nicht erlaubt.');
+        const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
+        const result=req.method==='GET'?await vehicleRewardsService.read(actor,req.headers.authorization):await vehicleRewardsService.save(actor,req.headers.authorization,await readBody(req));
+        send(res,200,result);return;
+      }
       if(action==='wardrobe-access'){
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         const actor=await verifyAuth(req);await accounts.requireAccess(actor);rateLimit(actor,'join');
@@ -870,6 +879,12 @@ async function handler(req, res) {
       if(action==='public')for(const key of ['lat','lng','accuracy']) {
         if(typeof data[key]==='string' && data[key].trim())data[key]=Number(data[key]);
       }
+      if(['create','join','identity'].includes(action)){
+        // Never accept unlocks sent by the browser. Optional cosmetics must not
+        // block joining a game when the progression backend is unavailable.
+        data.cosmetics=vehicleRewards.normalize();
+        if(uuid(data.vehicleId)){try{const earned=await vehicleRewardsService.read(authId,req.headers.authorization);data.cosmetics=earned.loadouts[data.vehicleId]||vehicleRewards.normalize();}catch{monitor.record('BACKEND','VEHICLE_REWARDS_UNAVAILABLE');}}
+      }
       if(['create','join','identity'].includes(action)&&data.appearance&&wardrobe.normalize(data.appearance).collection!=='classic'){
         data.appearance=wardrobe.normalize(data.appearance);
         if(data.appearance.collection==='studio'&&!require('./character-studio').ownsFace(data.appearance,authId))data.appearance.face=null;
@@ -901,7 +916,7 @@ async function handler(req, res) {
     if (!file.startsWith(ROOT + path.sep)) fail(403, 'Zugriff verweigert.');
     const extension=path.extname(file);
     const avatarModel = ['/assets/vendor/face-api/models/tiny_face_detector_model.bin','/assets/vendor/face-api/models/face_landmark_68_tiny_model.bin'].includes(requestPath);
-    if ((!types[extension] && !avatarModel) || ['server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','ad-service.js','ad-store.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
+    if ((!types[extension] && !avatarModel) || ['vehicle-reward-service.js','server.js','server-backend.js','round-engine.js','state-store.js','account-service.js','moderation-rules.js','beta-monitor.js','admin-lab.js','ad-service.js','ad-store.js','legal.js','game-rules.js','meetup-route.js','package.json'].includes(path.basename(file)) || (requestPath.startsWith('/supabase/')||requestPath.startsWith('/scripts/'))) fail(404, 'Datei nicht gefunden.');
     const stat = await fs.promises.stat(file).catch(() => null);
     if (!stat?.isFile() || path.basename(file) === 'server.js' || requestPath.split('/').some(part => part.startsWith('.'))) fail(404, 'Datei nicht gefunden.');
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });

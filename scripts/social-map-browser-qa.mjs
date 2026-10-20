@@ -67,7 +67,7 @@ try{
   check(await page.locator('#profile .profileStats').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'Profile stats fit '+width);
   await page.screenshot({animations:'disabled',path:output+'/profile-'+width+'.png'});
   await page.evaluate(()=>openProfileStatistics());
-  check(await page.locator('#profileStatsDialog .profileDetailStat').count()===7,'Detailed statistics show real account fields');
+  check(await page.locator('#profileStatsDialog .gameMetric').count()===6 && (await page.locator('.statsRing').getAttribute('aria-label')).includes('50 Prozent'),'Detailed statistics show real account fields and win rate');
   await page.screenshot({animations:'disabled',path:output+'/statistics-'+width+'.png'});
   await page.evaluate(()=>document.getElementById('profileStatsDialog').close());
   await page.evaluate(()=>plusUI.open());await page.waitForFunction(()=>document.querySelector('#plusStatus')?.textContent.includes('noch nicht'));
@@ -104,7 +104,7 @@ try{
   }
   await page.evaluate(()=>{state=qaOldState;delete window.qaOldState;});
   await page.evaluate(()=>openPage('friends'));await page.waitForFunction(()=>document.querySelector('.friendPresence')?.textContent==='Zuletzt aktiv vor 15 Min.');
-  await page.locator('[data-open-social-map="friends"]').click();
+  await page.waitForFunction(()=>document.querySelector('#friends .socialMapPreviewCanvas canvas'));check(await page.locator('#friends .socialMapMarker').count()===1,'Inline preview shows only the incoming permitted share');check(await page.evaluate(()=>qa.gps===0),'Inline preview does not enable sharing');await page.locator('[data-open-social-map="friends"]').click();
   await page.locator('.socialMapMarker').first().waitFor();
   check((await page.locator('#socialMapSharing').textContent()).includes('Aus'),'Default-off label');
   check(await page.evaluate(()=>qa.gps===0),'Opening map must not request GPS');
@@ -118,7 +118,7 @@ try{
   await page.locator('[data-social-scope="crew"]').click();await page.waitForFunction(()=>qa.requests.some(r=>r.name==='chs_social_map_read'&&r.args.scope==='crew'));
   check(await page.locator('[data-social-scope="crew"]').getAttribute('aria-pressed')==='true','Crew filter selected');
   if(width===390){
-   await page.locator('[data-social-map-action="settings"]').click();check(!await page.locator('#socialMapSettings input[name=consent]').isChecked(),'Consent starts unchecked');
+   await page.locator('#socialMapDialog [data-social-map-action="settings"]').click();check(!await page.locator('#socialMapSettings input[name=consent]').isChecked(),'Consent starts unchecked');
    await page.locator('#socialMapSettings select').selectOption('selected');await page.locator('#socialMapRecipients input').check();await page.locator('#socialMapSettings [type=submit]').click();
    check(await page.evaluate(()=>!qa.requests.some(r=>r.args.action==='settings')),'Unchecked consent cannot save');
    await page.evaluate(()=>qa.holdGps=true);await page.locator('#socialMapSettings input[name=consent]').check();await page.locator('#socialMapSettings [type=submit]').click();
@@ -126,11 +126,11 @@ try{
    check(await page.evaluate(()=>qa.settings.recipients.length===1&&qa.settings.recipients[0]===qa.peer),'Selected audience saved');
    await page.locator('[data-social-map-action="off"]').click();await page.waitForFunction(()=>qa.settings.mode==='off');await page.evaluate(()=>qa.deliverGps());
    check(await page.evaluate(()=>!qa.requests.some(r=>r.args.action==='publish')),'Late GPS after disabling never published');
-   await page.evaluate(()=>{qa.holdGps=false;qa.denyGps=true;});await page.locator('[data-social-map-action="settings"]').click();await page.locator('#socialMapSettings select').selectOption('friends');await page.locator('#socialMapSettings input[name=consent]').check();await page.locator('#socialMapSettings [type=submit]').click();await page.waitForFunction(()=>document.getElementById('socialMapStatus').textContent.includes('verweigert'));
+   await page.evaluate(()=>{qa.holdGps=false;qa.denyGps=true;});await page.locator('#socialMapDialog [data-social-map-action="settings"]').click();await page.locator('#socialMapSettings select').selectOption('friends');await page.locator('#socialMapSettings input[name=consent]').check();await page.locator('#socialMapSettings [type=submit]').click();await page.waitForFunction(()=>document.getElementById('socialMapStatus').textContent.includes('verweigert'));
    check(await page.evaluate(()=>!qa.own),'Permission denied does not invent location');
    await page.evaluate(()=>qa.denyGps=false);await page.locator('[data-social-map-action="locate"]').click();await page.waitForFunction(()=>qa.own!==null);await page.waitForFunction(()=>document.querySelectorAll('.socialMapPerson').length===2);
    check((await page.locator('#socialMapPeople').textContent()).includes('Du'),'Own point after explicit sharing');
-   await page.locator('[data-social-map-action="settings"]').click();await page.evaluate(()=>qa.failSave=true);await page.locator('[data-stop-sharing]').click();await page.waitForFunction(()=>document.getElementById('socialMapSettingsError').textContent.includes('fehlgeschlagen'));
+   await page.locator('#socialMapDialog [data-social-map-action="settings"]').click();await page.evaluate(()=>qa.failSave=true);await page.locator('[data-stop-sharing]').click();await page.waitForFunction(()=>document.getElementById('socialMapSettingsError').textContent.includes('fehlgeschlagen'));
    check(await page.evaluate(()=>qa.settings.mode==='friends'),'Failed disable not reported as saved');check((await page.locator('#socialMapStatus').textContent()).includes('kann noch aktiv sein'),'Failure explains server state');
    await page.evaluate(()=>{qa.failSave=false;qa.holdSave=true;});await page.locator('[data-stop-sharing]').click();await page.waitForFunction(()=>typeof qa.deliverSave==='function');
    await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));qa.deliverSave();});await page.waitForFunction(()=>qa.settings.mode==='off'&&!document.getElementById('socialMapSettings').open);
@@ -151,4 +151,4 @@ try{
   check(errors.length===0,'No JavaScript errors: '+errors.join('; '));await page.close();
  }
  console.log(JSON.stringify({checks,status:'passed',widths:[360,390,430,1000],screenshots:output,scope:'Actual frontend and MapLibre with local RPC/auth/GPS/style fixtures, no physical GPS or production integration'}));
-}finally{await browser?.close();await new Promise(r=>server.close(r));}
+}finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));}

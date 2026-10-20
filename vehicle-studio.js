@@ -1,6 +1,7 @@
 /* Generated studio illustrations; magenta is a material channel, never final paint. */
 (function(root){
  'use strict';
+ const rewards=typeof module!=='undefined'&&module.exports?require('./vehicle-rewards'):root.vehicleRewards;
  const generations=typeof module!=='undefined'&&module.exports?require('./vehicle-generations'):root.vehicleGenerations;
  let serial=0;
  const sheets={
@@ -53,7 +54,7 @@
   // red or amber lamps fail at least one channel and retain their source color.
   const matrix=channels.map(v=>`${v.toFixed(5)} ${(1-v).toFixed(5)} 0 0 0`).join(' ')+' 0 0 0 1 0';
   const label=`${selected.brand} ${selected.model} ${selected.code} · ${selected.from}${selected.to?'–'+selected.to:'+'} · Illustration`;
-  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}" data-studio-generation="${selected.code}" data-paint="${paint}" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 12 -12 0 0 -.02" result="redMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 -12 12 0 -.02" result="blueMask"/><feComposite in="redMask" in2="blueMask" operator="in" result="paintMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="${matrix}" result="recolored"/><feComposite in="recolored" in2="paintMask" operator="in" result="body"/><feComposite in="SourceGraphic" in2="paintMask" operator="out" result="details"/><feMerge><feMergeNode in="details"/><feMergeNode in="body"/></feMerge></filter></defs><image href="assets/vehicles/${sheet.file}.webp" x="${-x}" y="${-y}" width="${sheet.width}" height="${sheet.height}" filter="url(#${id})"/></svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}" data-studio-generation="${selected.code}" data-paint="${paint}" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 12 -12 0 0 -.02" result="redMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 -12 12 0 -.02" result="blueMask"/><feComposite in="redMask" in2="blueMask" operator="in" result="paintMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="${matrix}" result="recolored"/><feComposite in="recolored" in2="paintMask" operator="in" result="body"/><feComposite in="SourceGraphic" in2="paintMask" operator="out" result="details"/><feMerge><feMergeNode in="details"/><feMergeNode in="body"/></feMerge></filter></defs><image href="assets/vehicles/${sheet.file}.webp" x="${-x}" y="${-y}" width="${sheet.width}" height="${sheet.height}" filter="url(#${id})"/>${rewards?.overlay(selected.code,crop,car.cosmetics)||''}</svg>`;
  }
  const api={select,render,color,sheets,identify:generations.identify};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.vehicleStudio=api;
 })(typeof window==='undefined'?{}:window);

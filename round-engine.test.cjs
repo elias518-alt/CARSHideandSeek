@@ -201,3 +201,10 @@ test('kicked players cannot immediately rejoin the waiting lobby',async()=>{
     const joined=await route('join',{code:f.lobby.code,name:target.name,vehicle:target.vehicle},target.authId);assert.ok(joined.userId);
   }finally{lobbies.delete(f.lobby.code);}
 });
+test('result presentation preserves every participant without retaining private GPS or auth IDs',()=>{
+ const {lobby,now}=fixture(5);const left=lobby.players[4];left.left=true;left.eliminated=true;left.appearance={collection:'classic',classic:2};left.pet={breed:'husky'};left.vehicleYear='1996';
+ engine.finish(lobby,true,'TIME',now+1000);
+ assert.equal(lobby.result.players.length,5);const record=lobby.result.players.find(p=>p.id===left.id);assert.equal(record.left,true);assert.equal(record.vehicleYear,'1996');assert.deepEqual(record.appearance,{collection:'classic',classic:2});
+ left.appearance.classic=0;assert.equal(record.appearance.classic,2);
+ for(const player of lobby.result.players)for(const key of ['location','fixes','authId','meetupRoute'])assert.equal(Object.hasOwn(player,key),false);
+});

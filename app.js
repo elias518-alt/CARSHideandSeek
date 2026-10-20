@@ -360,6 +360,7 @@ async function loadCloudGarage({ migrateLocal = true } = {}) {
     saveGarage();
     syncVehicleUI();
     void migrateLegacyVehicleCutout(activeCar());
+    void window.vehicleRewardsUI?.refresh();
   } catch (error) {
     console.error('Cloud-Garage konnte nicht geladen werden:', error);
     toast('Garage konnte nicht synchronisiert werden. Lokale Daten bleiben erhalten.');
@@ -402,6 +403,7 @@ function openPage(page) {
   window.crewUI?.onPage(page);
   window.socialMap?.onPage();
   window.adsUI?.onPage(page);
+  window.gameDesign?.onPage(page);
   if (page === 'play') {
     setTimeout(() => {
       if (typeof findPublic === 'function') findPublic({ automatic: true });
@@ -743,6 +745,7 @@ function renderProfile() {
   syncVehicleUI();
   renderAchievements();
   window.crewUI?.onProfile();
+  window.gameDesign?.identity();
 }
 
 async function loadAchievements() {
@@ -942,7 +945,7 @@ async function initializeAuth() {
 supabaseClient.auth.onAuthStateChange(
   (event, newSession) => {
 
-    if (authSession?.user?.id !== newSession?.user?.id) window.socialMap?.reset();
+    if (authSession?.user?.id !== newSession?.user?.id) {window.socialMap?.reset();window.vehicleRewardsUI?.reset();}
 
     authSession =
       newSession;
@@ -1068,6 +1071,7 @@ function renderGarage() {
       </section>
     `;
 
+    window.vehicleRewardsUI?.render();
     return;
   }
 
@@ -1135,6 +1139,7 @@ function renderGarage() {
         </section>
       `)
       .join('');
+  window.vehicleRewardsUI?.render();
 }
 
 
@@ -1400,6 +1405,7 @@ function playerData() {
 
     vehicle:
       `${car.brand} ${car.model}${car.year ? ' · Bj. '+car.year : ''}`.trim(),
+    vehicleId:car.id,
     bodyType: car.body || '',
     vehicleYear: car.year || '', vehicleSeries: car.series || '',
     background: getLobbyBackground(),
@@ -2703,13 +2709,14 @@ function renderLobbySettings() {
   }
 }
 
-function fillLobbySettings() {
+function fillLobbySettings(force=false) {
+  if(!force&&document.getElementById('freshSettingsDialog')?.open)return;
   const lobby = state?.lobby;
   const settings = lobby?.settings;
   if (!settings) return;
 
   const backgroundField=document.getElementById('lobbyBackground');
-  if(backgroundField&&!backgroundField.disabled)backgroundField.value=lobbyScene.background(lobby.background);
+  if(backgroundField)backgroundField.value=lobbyScene.background(lobby.background);
   const values = {
     lobbyVisibility:lobby.visibility,
     lobbyMaxPlayers:settings.maxPlayers||20,
@@ -2756,9 +2763,10 @@ async function saveFreshLobbySettings() {
     }));
     toast('Lobby-Einstellungen gespeichert.');
     await poll();
+    return true;
   } catch (error) {
     toast(error.message || 'Einstellungen konnten nicht gespeichert werden.');
-    fillLobbySettings();
+    return false;
   } finally {
     lobbySettingsSaving = false;
     if (button) button.disabled = false;
@@ -2836,7 +2844,7 @@ function vehicleIllustration(car,context='vehicle') {
   let art=window.vehicleArt?.render(car||{});
   const grounded=['home-hero','profile'].includes(context);
   if(art&&grounded&&!art.includes('data-studio-generation'))art=art.replace('viewBox="0 0 384 240"','viewBox="16 73 350 137"');
-  if(art)return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--original">'+art+'</div><figcaption>Eigenständige Illustration · an die Baureihe angelehnt</figcaption></figure>';
+  if(art)return '<figure class="vehicleIllustration" data-glow="'+(window.vehicleRewards?.normalize(car?.cosmetics).glow||'off')+'"><div class="vehicleRender vehicleRender--original">'+art+'</div><figcaption>Eigenständige Illustration · an die Baureihe angelehnt</figcaption></figure>';
   const template=vehicleCatalog.illustration(car || {});
   const groundBounds=[[7,61,377,219],[0,83,376,197],[0,86,380,194],[0,87,379,193],[5,80,379,200],[0,83,384,192],[0,85,383,195],[0,40,381,236],[6,49,378,226],[2,26,382,245],[0,48,384,229],[0,80,379,198]];
   const viewBox=grounded?groundBounds[template.index].join(' '):'0 0 384 280';
@@ -2846,7 +2854,7 @@ function vehicleIllustration(car,context='vehicle') {
   const maskId='paint-'+String(context+'-'+(car?.id||'')+'-'+template.index).replace(/[^a-zA-Z0-9_-]/g,'');
   const componentPaths=paint.split('Z').filter(p=>p.trim()).map(p=>'<path d="'+p+'Z" fill="black" stroke="black" stroke-width="2" stroke-linejoin="round"/>').join('');
   const layer=paint&&filter!=='none'?'<defs><mask id="'+maskId+'" maskUnits="userSpaceOnUse" x="0" y="0" width="384" height="280" style="mask-type:luminance"><rect width="384" height="280" fill="white"/>'+componentPaths+'</mask></defs><g mask="url(#'+maskId+')"><g class="vehiclePaintLayer" style="filter:'+filter+'">'+image+'</g></g>':'';
-  return '<figure class="vehicleIllustration"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="'+viewBox+'" aria-hidden="true" focusable="false">'+image+layer+'</svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Karosseriefarbe angenähert</figcaption></figure>';
+  return '<figure class="vehicleIllustration" data-glow="'+(window.vehicleRewards?.normalize(car?.cosmetics).glow||'off')+'"><div class="vehicleRender vehicleRender--template" role="img" aria-label="Markenneutrale Fahrzeugansicht: '+esc(template.label)+'"><svg viewBox="'+viewBox+'" aria-hidden="true" focusable="false">'+image+layer+'</svg></div><figcaption>Markenneutrale Fahrzeugvorlage · Karosseriefarbe angenähert</figcaption></figure>';
 }
 async function loadImageFromBlob(blob) {
   const url = URL.createObjectURL(blob);
@@ -3164,37 +3172,38 @@ function makeProfileDialog(id, title) {
   let dialog = document.getElementById(id);
   if (dialog) return dialog;
   dialog = document.createElement('dialog'); dialog.id = id;
-  dialog.style.cssText = 'position:fixed;inset:0;margin:auto;width:min(94vw,520px);max-height:88dvh;overflow:auto;background:#202c36;color:#f5f7fa;border:1px solid #74828b;border-radius:16px;padding:22px;box-sizing:border-box;z-index:10000';
-  const heading = document.createElement('h2'); heading.textContent = title;
-  const close = document.createElement('button'); close.type = 'button'; close.textContent = 'SCHLIESSEN ×';
-  close.style.cssText = 'float:right;padding:8px;color:white;background:#394957;border:0;border-radius:8px';
-  close.addEventListener('click', () => { if (!dialog._busy) dialog.close(); });
-  dialog.append(close, heading); document.body.append(dialog);
+  dialog.className = 'gameSheet profileSheet';
+  dialog.setAttribute('aria-labelledby',id+'Title');
+  const header=document.createElement('header');header.className='gameSheetHeader';
+  const heading=document.createElement('h2');heading.id=id+'Title';heading.textContent=title;
+  const close=document.createElement('button');close.type='button';close.className='sheetBack';close.setAttribute('aria-label','Schließen');close.textContent='←';
+  close.addEventListener('click',()=>{if(!dialog._busy)dialog.close();});
+  header.append(close,heading);dialog.append(header);document.body.append(dialog);
   return dialog;
 }
 function openProfileEditor() {
   if (!dbProfile || !authSession?.user) { toast('Bitte warten, bis dein Profil geladen wurde.'); return; }
-  const dialog = makeProfileDialog('profileEditDialog', 'PROFIL BEARBEITEN');
+  const dialog = makeProfileDialog('profileEditDialog', 'EINSTELLUNGEN');
   if (!dialog.querySelector('form')) {
     const form = document.createElement('form');
-    form.innerHTML = `<label>SPIELERNAME<input name="username" minlength="2" maxlength="24" required autocomplete="nickname"></label>
-      <label>CHARAKTER
-        <select name="characterStyle">
-          <option value="0">Mann · dunkle Jacke</option>
-          <option value="1">Frau · helle Jacke</option>
-          <option value="2">Mann · orange Jacke</option>
-        </select>
-      </label>
-      <p class="muted">Der Charakter wird in der Lobby direkt mit deinem Fahrzeug inszeniert. Die Auswahl beeinflusst keine Spielwerte.</p>
-      <label>DEIN LOBBY-HINTERGRUND
-        <select name="lobbyBackground">${lobbyBackgroundOptions()}</select>
-      </label><p class="muted">Voreinstellung für Lobbys, die du erstellst. In der Lobby kannst du den Hintergrund für alle ändern.</p>
-      <label>PROFILBILD<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
-      <div data-avatar-preview style="width:96px;height:96px;border-radius:50%;overflow:hidden;margin:12px auto;background:#344553;display:grid;place-items:center"></div>
-      <button type="button" data-remove-avatar class="textButton">BILD ENTFERNEN</button>
-      <p class="muted">Das Profilbild ist freiwillig. Wenn du eins auswählst, wird es normal zugeschnitten und kontoweit gespeichert. JPG, PNG oder WebP, maximal 15 MB.</p>
-      <p data-profile-error role="alert" style="color:#ffbca4;white-space:pre-wrap"></p>
-      <button type="submit" class="primaryButton">ÄNDERUNGEN SPEICHERN</button>`;
+    form.innerHTML = `<div class="settingsIdentity"><div data-avatar-preview></div><span><strong>Dein Spielerprofil</strong><small>Profilbild und Name für deine Crew</small></span></div>
+      <fieldset class="gameSettingsGroup"><legend>Konto</legend>
+      <label>Spielername<input name="username" minlength="2" maxlength="24" required autocomplete="nickname"></label>
+      <label class="photoUpload">Profilbild ändern<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      <button type="button" data-remove-avatar class="textButton">Bild entfernen</button>
+      <small>JPG, PNG oder WebP · maximal 15 MB</small><p class="settingsAccountEmail"></p></fieldset>
+      <fieldset class="gameSettingsGroup"><legend>Privatsphäre</legend>
+      <button type="button" class="settingsLink" data-design-action="privacy">${appIcon('map')}<span>Standortfreigabe<small>Personen auswählen und Freigabe verwalten</small></span>${appIcon('arrow')}</button>
+      <small>Standortfreigaben werden separat gespeichert. Deine bisherigen Freigaben bleiben beim Öffnen erhalten.</small></fieldset>
+      <fieldset class="gameSettingsGroup"><legend>Dein Look</legend>
+      <button type="button" class="settingsLink" data-design-action="accent">${appIcon('star')}<span>Akzentfarbe · PLUS<small>Deine Farbe für die Spieloberfläche</small></span>${appIcon('arrow')}</button>
+      <label>Basisfigur<select name="characterStyle"><option value="0">Night Rider</option><option value="1">Silver Line</option><option value="2">Orange Shift</option></select></label>
+      <button type="button" class="settingsLink" data-design-action="wardrobe">${appIcon('people')}<span>Kleiderschrank<small>Figuren, Outfits und Posen</small></span>${appIcon('arrow')}</button>
+      <label>Lobby-Hintergrund<select name="lobbyBackground">${lobbyBackgroundOptions()}</select></label>
+      <small>Voreinstellung für Lobbys, die du erstellst.</small></fieldset>
+      <div class="settingsLegal"><a href="/legal/privacy" target="_blank" rel="noopener">Datenschutz</a><a href="/legal/terms" target="_blank" rel="noopener">Nutzungsbedingungen</a><a href="/legal/imprint" target="_blank" rel="noopener">Impressum</a></div>
+      <button type="button" class="settingsLogout" data-design-action="logout">Abmelden</button>
+      <p data-profile-error role="alert"></p><div class="sheetFooter"><button type="submit" class="primaryButton">ÄNDERUNGEN SPEICHERN</button></div>`;
     dialog.append(form);
     form.elements.photo.addEventListener('change', async event => {
       const file = event.target.files[0]; if (!file || dialog._busy) return;
@@ -3289,6 +3298,7 @@ function openProfileEditor() {
   const form = dialog.querySelector('form');
   dialog._userId = authSession.user.id; dialog._photo = '__KEEP__';
   form.elements.username.value = dbProfile.username || '';
+  form.querySelector('.settingsAccountEmail').textContent=authSession.user.email||'Verknüpftes Konto';
   form.elements.characterStyle.value = String(getCharacterStyle());
   dialog._oldCharacterStyle = getCharacterStyle();
   form.elements.lobbyBackground.value = getLobbyBackground();
@@ -3311,27 +3321,19 @@ function renderProfilePreview(dialog, source) {
 }
 function openProfileStatistics() {
   if (!dbProfile) { toast('Profil wird noch geladen.'); return; }
-  const dialog = makeProfileDialog('profileStatsDialog', 'DEINE STATISTIKEN');
-  let body = dialog.querySelector('[data-stats]');
-  if (!body) { body = document.createElement('div'); body.dataset.stats = ''; dialog.append(body); }
-  body.replaceChildren();
-  const number = key => Math.max(0, Number(dbProfile[key]) || 0);
-  const rounds = number('rounds_played');
-  const rows = [['Runden',rounds],['Siege',number('wins')],['Funde',number('finds')],['Überlebte Runden',number('survived_rounds')],['Siegquote',rounds ? Math.round(number('wins') / rounds * 100) + '%' : '0%'],['Level',Math.max(1,number('level'))],['XP',number('xp').toLocaleString('de-DE')]];
-  for (const [label,value] of rows) {
-    const row = document.createElement('p'); row.className = 'profileDetailStat';
-    const key = document.createElement('span'); key.textContent = label;
-    const val = document.createElement('strong'); val.textContent = value; row.append(key,val); body.append(row);
-  }
-  const hint = document.createElement('p'); hint.className = 'profileStatsHint'; hint.textContent = rounds ? 'Deine bisher gespeicherten Rundenergebnisse.' : 'Deine erste Runde wartet. Hier wächst deine Statistik mit jedem Spiel.'; body.append(hint);
-  if (!dialog.open) dialog.showModal();
-  const actor=authSession?.user?.id;
-  const generation=dialog._statsGeneration=(dialog._statsGeneration||0)+1;
+  const dialog=makeProfileDialog('profileStatsDialog','DEINE STATISTIK');
+  let body=dialog.querySelector('[data-stats]');
+  if(!body){body=document.createElement('div');body.dataset.stats='';dialog.append(body);}
+  const number=key=>Math.max(0,Number(dbProfile[key])||0),rounds=number('rounds_played'),wins=number('wins'),rate=rounds?Math.min(100,Math.round(wins/rounds*100)):0;
+  const metric=(label,value,icon)=>'<div class="gameMetric">'+appIcon(icon)+'<strong>'+value+'</strong><span>'+label+'</span></div>';
+  body.innerHTML='<p class="gameEyebrow">DEINE BISHERIGEN RUNDEN</p><section class="statsHero"><div class="statsRing" style="--rate:'+rate+'%" role="img" aria-label="Siegquote '+rate+' Prozent"><div><strong>'+rate+'<small>%</small></strong><span>Siegquote</span></div></div><div class="statsTrophy">'+appIcon('trophy')+'<p>'+wins+' Siege aus '+rounds+' Runden</p></div></section><div class="gameMetricGrid">'+metric('Runden',rounds,'flag')+metric('Siege',wins,'trophy')+metric('Funde',number('finds'),'target')+'</div><p class="statsEmpty" '+(rounds?'hidden':'')+'>Deine erste Runde wartet. Hier wächst deine Statistik mit jedem Spiel.</p><div class="statsRoles" data-role-stats aria-live="polite"><p>Rollenstatistik wird geladen …</p></div><div class="statsTotals">'+metric('Überlebte Runden',number('survived_rounds'),'shield')+metric('Level',Math.max(1,number('level')),'star')+metric('Gesamt-XP',number('xp').toLocaleString('de-DE'),'bolt')+'</div>';
+  if(!dialog.open)dialog.showModal();
+  const actor=authSession?.user?.id,generation=dialog._statsGeneration=(dialog._statsGeneration||0)+1;
   api('personal-stats',{},'GET').then(stats=>{
-    if(!dialog.isConnected||actor!==authSession?.user?.id||generation!==dialog._statsGeneration)return;
+    if(!dialog.isConnected||!dialog.open||actor!==authSession?.user?.id||generation!==dialog._statsGeneration)return;
     const count=value=>Number.isFinite(value)?Math.max(0,value).toLocaleString('de-DE'):'–';
-    const p=document.createElement('p');p.textContent='Rollenstatistik: '+count(stats.seekerRounds)+' Sucherrunden · '+count(stats.hiderRounds)+' Versteckerrunden · Ø Überleben '+(Number.isFinite(stats.averageSurvivalSeconds)?formatTime(stats.averageSurvivalSeconds):'noch keine Daten');body.append(p);
-  }).catch(()=>{if(dialog.isConnected&&actor===authSession?.user?.id&&generation===dialog._statsGeneration){const p=document.createElement('p');p.textContent='Erweiterte Rollenstatistik derzeit nicht erreichbar.';body.append(p);}});
+    body.querySelector('[data-role-stats]').innerHTML='<article class="roleStat roleStat--seeker">'+appIcon('search')+'<span>ALS SUCHER</span><strong>'+count(stats.seekerRounds)+' <small>Runden</small></strong><p>Andere Spieler aufgespürt</p></article><article class="roleStat roleStat--hider">'+appIcon('shield')+'<span>ALS VERSTECKER</span><strong>'+count(stats.hiderRounds)+' <small>Runden</small></strong><p>Ein gutes Versteck gefunden</p></article><div class="statsSurvival">'+appIcon('clock')+'<span>Ø Überlebenszeit<strong>'+(Number.isFinite(stats.averageSurvivalSeconds)?formatTime(Math.max(0,stats.averageSurvivalSeconds)):'Noch keine Daten')+'</strong></span></div>';
+  }).catch(()=>{if(dialog.isConnected&&dialog.open&&actor===authSession?.user?.id&&generation===dialog._statsGeneration){const box=body.querySelector('[data-role-stats]');box.textContent='Rollenstatistik derzeit nicht erreichbar. ';const retry=document.createElement('button');retry.type='button';retry.textContent='Erneut laden';retry.onclick=openProfileStatistics;box.append(retry);}});
 }
 function setupProfileActions() {
   document.querySelector('#profile .settingsButton')?.addEventListener('click', openProfileEditor);
@@ -3484,8 +3486,9 @@ function ensureFreshLobby() {
 
   settingsButton?.addEventListener('click', () => {
     closeChat();
-    if (state?.lobby?.hostId !== state?.lobby?.me?.id || state?.lobby?.state !== 'LOBBY') return;
-    fillLobbySettings();
+    if (state?.lobby?.state !== 'LOBBY') return;
+    fillLobbySettings(true);
+    window.mobileDesign?.begin();
     if (settingsDialog && !settingsDialog.open) settingsDialog.showModal();
   });
 
@@ -3636,7 +3639,7 @@ function lobbyCarMarkup(player,mine=false,context='lobby'){
     return `<img class="lobbyModelCar${rawClass}" src="${esc(source)}" alt="${esc(player.vehicle || 'Fahrzeug')}" draggable="false" loading="lazy" decoding="async">`;
   }
 
-  return vehicleIllustration({id:player.id,vehicle:player.vehicle,body:player.bodyType,color:player.color,year:player.vehicleYear,series:player.vehicleSeries},context);
+  return vehicleIllustration({id:player.id,vehicle:player.vehicle,body:player.bodyType,color:player.color,year:player.vehicleYear,series:player.vehicleSeries,cosmetics:player.cosmetics},context);
 }
 
 function lobbyProfileMarkup(player) {
@@ -3716,8 +3719,8 @@ if (typeof window !== 'undefined') {
 function updateLobbySettingsAccess(lobby) {
   const host=lobby.hostId===lobby.me.id,waiting=lobby.state==='LOBBY';
   const button=document.getElementById('freshSettingsButton'),dialog=document.getElementById('freshSettingsDialog');
-  if(button){button.hidden=!host;button.disabled=!waiting||!lobby.settings||lobbySettingsSaving;button.title=waiting?'Lobby anpassen':'Während der Runde gesperrt';}
-  if((!host||!waiting)&&dialog?.open)dialog.close();
+  if(button){button.hidden=false;button.disabled=!waiting||!lobby.settings||lobbySettingsSaving;button.title=waiting?(host?'Lobby anpassen':'Regeln ansehen'):'Während der Runde gesperrt';}
+  if(!waiting&&dialog?.open)dialog.close();
 }
 function parkingLayout(players) {
   return lobbyScene.layout(players);
