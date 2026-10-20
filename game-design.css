@@ -324,7 +324,7 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 .garageSceneCar{position:relative;isolation:isolate;height:270px;display:flex;align-items:flex-end;justify-content:center}
 .garageSceneCar>.vehicleIllustration{width:94%;height:88%;margin:0;position:relative}
 .garageSceneCar .vehicleRender{height:100%;width:100%;filter:drop-shadow(0 8px 3px #0009)}
-.garageSceneCar svg{width:100%;height:100%;overflow:visible}
+.garageSceneCar svg{width:100%;height:100%;overflow:hidden}
 .garageSceneCar figcaption{display:none}
 .garageScene h2{font-size:clamp(20px,5vw,30px);margin:20px 0 7px}
 .garageScene p{font-size:11px;line-height:1.6;color:#b5bdcb;margin:0}
@@ -462,3 +462,35 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 
 #petsDialog .petCategories button,#freshSettingsDialog input[type=range]{min-height:44px}
 .resultCrewChat{min-height:44px;border:1px solid var(--game-line);background:var(--game-panel);color:white;border-radius:12px;padding:12px 18px;width:100%;margin:12px 0}
+
+/* Keep atlas neighbours clipped and saved photos fully visible in both garage views. */
+#garageShowroom svg{overflow:hidden!important}
+#garageShowroom .vehicleRender{overflow:hidden;max-width:100%}
+.garageSceneCar>img{width:94%!important;height:92%;max-height:none!important;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 6px 3px #0008)}
+.garageSelector>button>img{height:65px!important;object-fit:contain;margin-bottom:8px}
+.garageSelector .vehicleIllustration,.garageSelector .vehicleRender{width:100%;min-height:0;max-height:65px;overflow:hidden}
+.garageViewTabs{display:flex;padding:10px;gap:8px;background:#111720}
+.garageViewTabs button{flex:1;min-height:46px;border:1px solid var(--game-line);border-radius:10px;background:var(--game-panel);color:#c9d2df;padding:10px;font-size:12px}
+.garageViewTabs button[aria-pressed=true]{color:#fff;border-color:var(--game-accent);background:var(--game-soft)}
+#garageCars[hidden],.vehicleRewards[hidden]{display:none!important}
+#garageCars .garageCarTop,#garageCars .garageCar>.manufacturer,#garageCars .garageCar>h2,#garageCars .vehicleDetails,#garageCars .vehicleSeries{display:none}
+#garageCars{grid-template-columns:minmax(0,1fr)}
+#garageCars .garageCar{min-width:0;padding:16px}
+#garageCars input[type=file]{max-width:100%;font-size:12px;margin-top:8px}
+
+.statsUnlocks{margin-top:24px;border:1px solid var(--game-line);background:var(--game-panel);border-radius:18px;padding:16px}
+.statsUnlocks h3{font-size:17px;margin:0 0 8px}
+.statsUnlocks>p{font-size:12px;color:var(--game-muted)}
+.statsUnlocks>div{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--game-line)}
+.statsUnlocks b{flex-shrink:0;font-size:11px;color:var(--game-accent)}
+.statsUnlocks>div>span{flex:1;font-size:12px;min-width:0}
+.statsUnlocks small{display:block;font-size:10px;line-height:1.5;color:var(--game-muted)}
+.statsUnlocks>div>small{max-width:75px;text-align:right}
+.statsUnlocks .hubButton{width:100%;margin-top:12px}
+.hubVehicleRewardPreview{display:grid;place-items:center;flex-shrink:0;width:42px;height:42px;border-radius:10px;background:var(--game-soft);color:var(--game-accent)}
+.hubVehicleRewardPreview svg{width:24px;height:24px}
+
+#garageShowroom .showroomPhoto .vehicleRender{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+
+.hubLevels>li>.hubHint{display:block;clear:both;padding-top:8px}
+.hubReward>.hubVehicleRewardPreview{flex:0 0 42px}

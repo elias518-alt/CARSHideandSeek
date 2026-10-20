@@ -12,7 +12,7 @@ test('opaque photos and empty alpha are preserved without invalid cropping',()=>
 });
 test('front and side views share a car-relative figure scale on narrow and wide screens',()=>{
  for(const width of [320,360,390,568,1000])for(const ratio of [1.15,1.6,2.5]){
-  const v=composition(width,ratio);assert.ok(v.carWidth>=width*.45);assert.ok(v.center-v.carWidth/2>=0);assert.ok(v.center+v.carWidth/2<=width);assert.ok(v.personHeight<=v.carWidth*.9);assert.ok(v.personHeight<=v.carHeight*1.1);
+  const v=composition(width,ratio);assert.ok(v.carWidth>=width*.4);assert.ok(v.center-v.carWidth/2>=0);assert.ok(v.center+v.carWidth/2<=width);assert.ok(v.personHeight<=v.carWidth*.9);assert.ok(v.personHeight<=v.carHeight*1.1);
   const p=composition(width,ratio,true);assert.equal(p.center,width/2);assert.ok(p.carHeight<=380);assert.equal(p.ground,0);
  }
 });

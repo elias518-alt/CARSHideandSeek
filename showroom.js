@@ -13,7 +13,7 @@
  function composition(width,ratio,profile=false){
   ratio=Number.isFinite(ratio)&&ratio>0?ratio:2;
   const desired=Math.min(width*(profile ? .94 : .86),profile?680:720),limit=profile?Math.min(380,width*.85):Math.min(420,width*.9);
-  const carWidth=Math.min(desired,limit*ratio),carHeight=carWidth/ratio;
+  const carWidth=Math.min(desired,limit*ratio)*(profile?1:.9),carHeight=carWidth/ratio;
   const personHeight=Math.min(carWidth*.9,carHeight*1.08);
   return {carWidth,carHeight,personHeight,center:profile?width/2:width*.45,personLeft:Math.min(width-personHeight*.21,width*.45+carWidth*.46),ground:profile?0:24,personDepth:carHeight*.06};
  }
@@ -49,23 +49,23 @@
  function refresh(){
   if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{
    scheduled=false;
-   for(const [id,profile] of [['homeOwnScene',false],['profileVehicleStage',true]]){
+   for(const [id,profile] of [['homeOwnScene',false],['profileVehicleStage',true],['garage',null]]){
     const host=document.getElementById(id);if(!host)continue;
     for(const svg of host.querySelectorAll('[data-showroom-photo]')){
      if(svg.dataset.measuring)continue;svg.dataset.measuring='true';const source=svg.querySelector('image').getAttribute('href');
      void measure(source).then(bounds=>{
       if(!svg.isConnected||svg.querySelector('image')?.getAttribute('href')!==source)return;
       if(bounds){const {width,height,x,y,w,h}=bounds;svg.setAttribute('viewBox',[x*width,y*height,w*width,h*height].join(' '));const img=svg.querySelector('image');img.setAttribute('width',width);img.setAttribute('height',height);svg.dataset.photoFit='ready';}else svg.dataset.photoFit='unavailable';
-      fit(host,profile);
+      if(profile!==null)fit(host,profile);
      });
     }
-    fit(host,profile);
+    if(profile!==null)fit(host,profile);
    }
   });
  }
  function setup(){
   const observer=new MutationObserver(refresh),resize=new ResizeObserver(refresh);
-  for(const id of ['homeOwnScene','profileVehicleStage']){const el=document.getElementById(id);if(el){observer.observe(el,{childList:true,subtree:true});resize.observe(el);}}
+  for(const id of ['homeOwnScene','profileVehicleStage','garage']){const el=document.getElementById(id);if(el){observer.observe(el,{childList:true,subtree:true});resize.observe(el);}}
   refresh();
  }
  const api={alphaBounds,composition,refresh};

@@ -756,7 +756,7 @@ async function loadAchievements() {
       await Promise.all([
         supabaseClient
           .from('achievements')
-          .select('id,name,description,xp_reward')
+          .select('*')
           .order('id', { ascending: true }),
         supabaseClient
           .from('user_achievements')
@@ -775,11 +775,16 @@ async function loadAchievements() {
   }
 }
 
+function achievementCondition(item){
+ const legacy={FIRST_GAME:'rounds_played',FIRST_FIND:'finds',HIDE_MASTER:'survived_rounds'};
+ const field=item?.condition_field||legacy[item?.id],target=Math.max(1,Number(item?.condition_target)||1);
+ return field?{target,current:Math.min(target,Math.max(0,Number(dbProfile?.[field])||0)),icon:{rounds_played:'flag',wins:'trophy',finds:'target',survived_rounds:'shield'}[field]||'star'}:null;
+}
 function achievementProgressMarkup(id,unlocked){
- const field={FIRST_GAME:'rounds_played',FIRST_FIND:'finds',HIDE_MASTER:'survived_rounds'}[id];
- if(!field)return '<small>'+ (unlocked?'Erreicht':'Bedingung noch nicht erreicht')+'</small>';
- const progress=Math.min(1,Math.max(0,Number(dbProfile?.[field])||0));
- return '<span class="badgeProgress"><progress max="1" value="'+progress+'" aria-label="Fortschritt"></progress><span>'+progress+' / 1</span></span>';
+ const condition=achievementCondition(achievementCatalog.find(item=>item.id===id));
+ if(!condition)return '<small>'+ (unlocked?'Erreicht':'Bedingung noch nicht erreicht')+'</small>';
+ const {target,current}=condition;
+ return '<span class="badgeProgress"><progress max="'+target+'" value="'+current+'" aria-label="Fortschritt"></progress><span>'+current+' / '+target+'</span></span>'+(!unlocked&&current>=target?'<small>Bestätigung nach deiner nächsten abgeschlossenen Runde.</small>':'');
 }
 function renderAchievements() {
   const grid = document.getElementById('achievementGrid');
@@ -795,7 +800,7 @@ function renderAchievements() {
     const unlocked = achievementUnlocked.has(item.id);
     return `
       <button type="button" data-achievement="${esc(item.id)}" class="achievementBadge ${unlocked ? 'isUnlocked' : 'isLocked'}">
-        <div class="achievementIcon" aria-hidden="true">${typeof appIcon==='function'?appIcon({FIRST_GAME:'star',FIRST_FIND:'target',HIDE_MASTER:'shield'}[item.id]||'star'):(unlocked?esc(icons[item.id]||'★'):'🔒')}</div>
+        <div class="achievementIcon" aria-hidden="true">${typeof appIcon==='function'?appIcon(achievementCondition(item)?.icon||'star'):(unlocked?esc(icons[item.id]||'★'):'🔒')}</div>
         <div>
           <strong>${esc(item.name)}</strong>
           <p>${esc(item.description)}</p>
@@ -3326,7 +3331,7 @@ function openProfileStatistics() {
   if(!body){body=document.createElement('div');body.dataset.stats='';dialog.append(body);}
   const number=key=>Math.max(0,Number(dbProfile[key])||0),rounds=number('rounds_played'),wins=number('wins'),rate=rounds?Math.min(100,Math.round(wins/rounds*100)):0;
   const metric=(label,value,icon)=>'<div class="gameMetric">'+appIcon(icon)+'<strong>'+value+'</strong><span>'+label+'</span></div>';
-  body.innerHTML='<p class="gameEyebrow">DEINE BISHERIGEN RUNDEN</p><section class="statsHero"><div class="statsRing" style="--rate:'+rate+'%" role="img" aria-label="Siegquote '+rate+' Prozent"><div><strong>'+rate+'<small>%</small></strong><span>Siegquote</span></div></div><div class="statsTrophy">'+appIcon('trophy')+'<p>'+wins+' Siege aus '+rounds+' Runden</p></div></section><div class="gameMetricGrid">'+metric('Runden',rounds,'flag')+metric('Siege',wins,'trophy')+metric('Funde',number('finds'),'target')+'</div><p class="statsEmpty" '+(rounds?'hidden':'')+'>Deine erste Runde wartet. Hier wächst deine Statistik mit jedem Spiel.</p><div class="statsRoles" data-role-stats aria-live="polite"><p>Rollenstatistik wird geladen …</p></div><div class="statsTotals">'+metric('Überlebte Runden',number('survived_rounds'),'shield')+metric('Level',Math.max(1,number('level')),'star')+metric('Gesamt-XP',number('xp').toLocaleString('de-DE'),'bolt')+'</div>';
+  body.innerHTML='<p class="gameEyebrow">DEINE BISHERIGEN RUNDEN</p><section class="statsHero"><div class="statsRing" style="--rate:'+rate+'%" role="img" aria-label="Siegquote '+rate+' Prozent"><div><strong>'+rate+'<small>%</small></strong><span>Siegquote</span></div></div><div class="statsTrophy">'+appIcon('trophy')+'<p>'+wins+' Siege aus '+rounds+' Runden</p></div></section><div class="gameMetricGrid">'+metric('Runden',rounds,'flag')+metric('Siege',wins,'trophy')+metric('Funde',number('finds'),'target')+'</div><p class="statsEmpty" '+(rounds?'hidden':'')+'>Deine erste Runde wartet. Hier wächst deine Statistik mit jedem Spiel.</p><div class="statsRoles" data-role-stats aria-live="polite"><p>Rollenstatistik wird geladen …</p></div><div class="statsTotals">'+metric('Überlebte Runden',number('survived_rounds'),'shield')+metric('Level',Math.max(1,number('level')),'star')+metric('Gesamt-XP',number('xp').toLocaleString('de-DE'),'bolt')+'</div>'+(window.crewUI?.vehicleProgressMarkup()||'');
   if(!dialog.open)dialog.showModal();
   const actor=authSession?.user?.id,generation=dialog._statsGeneration=(dialog._statsGeneration||0)+1;
   api('personal-stats',{},'GET').then(stats=>{

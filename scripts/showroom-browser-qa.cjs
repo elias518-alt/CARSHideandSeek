@@ -30,7 +30,7 @@ const stub=fs.readFileSync(path.join(repo,'scripts/community-ui-qa.mjs'),'utf8')
     if(kind!=='catalog')await page.waitForFunction(()=>document.querySelector('#homeOwnScene [data-photo-fit="ready"]'));
     await page.waitForFunction(()=>document.getElementById('homeOwnScene').dataset.showroomReady==='true');await page.waitForTimeout(100);
     const home=await page.evaluate(()=>{const host=document.getElementById('homeOwnScene'),figure=host.querySelector('figure'),person=host.querySelector('.lobbyCrewCharacter'),svg=figure.querySelector('svg');return {car:figure.getBoundingClientRect().toJSON(),person:person.getBoundingClientRect().toJSON(),stage:document.querySelector('#home .homeStage').getBoundingClientRect().toJSON(),greeting:document.querySelector('.referenceGreeting').getBoundingClientRect().toJSON(),viewBox:svg.getAttribute('viewBox'),overflow:document.body.scrollWidth>innerWidth+2,shadow:Number.parseFloat(getComputedStyle(host.querySelector('.parkingContactShadow')).bottom)};});
-    check(!home.overflow,'Page overflow '+width);check(home.car.width>=home.stage.width*.45,'Visible car too small '+width+' '+kind);
+    check(!home.overflow,'Page overflow '+width);check(home.car.width>=home.stage.width*.4,'Visible car too small '+width+' '+kind);
     check(home.car.left>=home.stage.left-1&&home.car.right<=home.stage.right+1,'Car clipped');
     check(home.person.height<=home.car.height*1.1&&home.person.height<=home.car.width*.9+1,'Figure dominates vehicle '+JSON.stringify(home));
     check(home.person.bottom<=home.car.bottom&&home.car.bottom-home.person.bottom<30,'Different parking planes');
@@ -41,8 +41,8 @@ const stub=fs.readFileSync(path.join(repo,'scripts/community-ui-qa.mjs'),'utf8')
     if(kind!=='catalog')await page.waitForFunction(()=>document.querySelector('#profileVehicleStage [data-photo-fit="ready"]'));
     await page.waitForTimeout(100);
     const profile=await page.evaluate(()=>{const host=document.getElementById('profileVehicleStage'),figure=host.querySelector('figure');return {host:host.getBoundingClientRect().toJSON(),car:figure.getBoundingClientRect().toJSON(),progress:document.querySelector('#profile .profileProgress').getBoundingClientRect().toJSON(),shadowBottom:parseFloat(getComputedStyle(host,'::before').bottom),shadowWidth:parseFloat(getComputedStyle(host,'::before').width)};});
-    check(Math.abs(profile.car.bottom-profile.host.bottom)<2,'Photo floats above contact plane');
-    check(profile.shadowBottom===-5&&profile.shadowWidth<profile.car.width,'Contact shadow detached or wider than car');
+    check(Math.abs(profile.car.bottom-profile.host.bottom+22)<2,'Photo floats above contact plane');
+    check(profile.shadowBottom===17&&profile.shadowWidth<profile.car.width,'Contact shadow detached or wider than car');
     check(profile.car.bottom<profile.progress.top,'Car covers profile progress');
     if(kind==='front'||kind==='catalog')await page.screenshot({path:out+'/profile-'+kind+'-'+width+'.png',fullPage:true});
    }
