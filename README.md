@@ -1,8 +1,10 @@
 # CAR HIDE & SEEK – Playable Alpha 0.5
 
+Aktuelle mobile Oberflächen, Fahrzeugbelohnungen und Prüfungen: [Umsetzungsstand vom 20. Oktober 2026](docs/mobile-game-redesign.md).
+
 ## Kleiderschrank, Kontosperren und Zustimmung
 
-Der Profilbereich enthält einen Kleiderschrank mit den bisherigen drei Figuren und sechs zusätzlichen frei lizenzierten Quaternius-Figuren. Frisur, Oberteil, Hose/Rock und Schuhe lassen sich innerhalb der jeweiligen Körpergruppe kombinieren; ein Anhänger ist optional. Die Auswahl wird im Supabase-Konto gespeichert und im Warteraum dargestellt. Quellen, Lizenzen und Reproduktion: [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
+Der Kleiderschrank bietet die drei kostenlosen Lobbyfiguren und vier realistische PLUS-Figuren. Je nach Figur lassen sich Oberteil und Hose oder komplette Outfits sowie Kleidungsfarben, Blickrichtung und Siegeranimation wählen. Schuhe gehören zum jeweiligen Outfit. Haustiere werden separat im Profil konfiguriert. Die Foto-zu-Figur-Funktion ist pausiert. Quellen und Assets: [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).
 
 Adminrechte stammen ausschließlich aus der Servervariable `CHS_ADMIN_USER_IDS` (kommagetrennte Auth-Konto-UUIDs). Die Administration zeigt Spieler, Meldungen und ein Moderationsprotokoll. Zeitlich begrenzte oder dauerhafte Sperren und ihre Aufhebung benötigen eine Begründung. Freigeschaltete Admins können nicht über diese Oberfläche gesperrt werden. E-Mails, private Nachrichten und genaue Spielerpositionen werden dort nicht angezeigt. Eine Sperre beendet die Teilnahme an den vom Server verwalteten Lobbys und sperrt den direkten Datenbankzugriff über bestehende RLS-Policies und Social-RPCs. Die Zustimmungsschranke schützt Spielserver-Aktionen; sie ersetzt keine vollständig konsolidierte Zugriffsschicht für alle bisherigen Profil-/Social-RPCs.
 

@@ -27,7 +27,7 @@
     const lobby=state.lobby,game=$('game'),active=ui.playing(lobby);
     game.classList.toggle('roundImmersive',active);game.dataset.roundRole=lobby.me.role||'';
     let dock=$('roundDock');
-    if(!dock){dock=element('section','roundDock',game);dock.setAttribute('aria-label','Spieler und Spielaktionen');dock.innerHTML='<div id="roundHealth" role="status"></div><div id="roundRoster" aria-label="Spielerstatus"></div><div class="roundQuickActions"><button type="button" data-round-action="controls">Spielaktionen ↓</button><button type="button" data-round-action="players">Alle Spieler ↓</button><button type="button" data-round-action="help" aria-label="Spielregeln öffnen">?</button></div>';}
+    if(!dock){dock=element('section','roundDock',game);dock.setAttribute('aria-label','Spieler und Spielaktionen');dock.innerHTML='<p class="roundSafety">Handy nur im sicheren Stand bedienen.</p><div id="roundHealth" role="status"></div><div id="roundRoster" aria-label="Spielerstatus"></div><div class="roundQuickActions"><button type="button" data-round-action="controls">Spielaktionen ↓</button><button type="button" data-round-action="players">Alle Spieler ↓</button><button type="button" data-round-action="help" aria-label="Spielregeln öffnen">?</button></div>';}
     dock.hidden=!active;
     if(active){
       const map=$('freshMapFold');map.open=true;

@@ -9,6 +9,7 @@
     let dialog=document.getElementById(id);
     if(!dialog){dialog=document.createElement('dialog');dialog.id=id;dialog.className='productDialog';document.body.append(dialog);}
     dialog.innerHTML=`<button class="dialogClose" type="button" aria-label="Schließen">×</button><h2>${esc(title)}</h2>`;
+    dialog.setAttribute('aria-labelledby',id+'Title');dialog.querySelector('h2').id=id+'Title';
     dialog.querySelector('.dialogClose').addEventListener('click',()=>dialog.close());return dialog;
   }
   function closePrivateViews(){
@@ -16,7 +17,7 @@
     window.communityUI?.closePrivateViews();
     stopActivity();
     currentAccount=null;document.getElementById('adminMenuButton')?.setAttribute('hidden','');
-    for(const id of ['adminDialog','petsDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.disposePets?.();view?.remove();}
+    for(const id of ['profileEditDialog','profileStatsDialog','adminDialog','petsDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.disposePets?.();view?.remove();}
   }
   async function initialize(){
     const userId=authSession?.user?.id,attempt=++accountCheck;if(!userId)return false;
@@ -75,7 +76,7 @@
     const userId=authSession.user.id;document.getElementById('wardrobeDialog')?.disposeWardrobe?.();
     const dialog=accountDialog('wardrobeDialog','DEIN LOOK');dialog.classList.add('wardrobeDialog');const editorToken={};dialog.wardrobeEditor=editorToken;
     dialog.insertAdjacentHTML('beforeend','<p class="wardrobeIntro">Deine bekannten Crew-Figuren und realistische PLUS-Charaktere mit eigenen Kleidungsfarben.</p><div class="wardrobeLayout"><div class="wardrobePreview" data-wardrobe-preview></div><form class="wardrobeForm"><div data-wardrobe-fields></div><p class="accountError" role="alert"></p><button type="submit" class="primaryButton">LOOK SPEICHERN</button></form></div>');
-    const form=dialog.querySelector('form');let draft=appearance(),busy=false,previewVictory=false;
+    const form=dialog.querySelector('form');let draft=appearance(),busy=false,previewVictory=false,tab="figure";
     if(draft.collection!=='classic')draft=characterStudio.normalize(draft);
     let oldFace=characterStudio.normalizeFace(authSession.user.user_metadata?.chs_appearance?.face);
     if(oldFace?.path.split('/')[0]!==userId)oldFace=null;
@@ -83,28 +84,33 @@
 
     const options=values=>values.map((name,i)=>[i,name]);
     const select=(name,label,values)=>'<label>'+label+'<select name="'+name+'">'+values.map(([value,text])=>'<option value="'+value+'">'+esc(text)+'</option>').join('')+'</select></label>';
-    const card=(value,label,look,premium=false)=>'<button type="button" class="characterChoice" data-character-choice="'+value+'" aria-pressed="'+(draft.collection==='classic'?value==='classic-'+draft.classic:value===draft.figure)+'" '+(premium&&!plus()?'disabled':'')+'>'+wardrobe.markup(look)+'<strong>'+label+'</strong><small>'+(premium?'PLUS · anpassbar':'Kostenlos')+'</small></button>';
+    const card=(value,label,look,premium=false)=>'<button type="button" class="characterChoice" data-character-choice="'+value+'" aria-pressed="'+(draft.collection==='classic'?value==='classic-'+draft.classic:value===draft.figure)+'" '+(premium&&!plus()?'aria-disabled="true"':'')+'>'+wardrobe.markup(look)+'<strong>'+label+'</strong><small>'+(premium?'PLUS · anpassbar':'Kostenlos')+'</small></button>';
     function preview(){dialog.querySelector('[data-wardrobe-preview]').innerHTML='<span class="studioPreviewTag">'+(draft.collection==='classic'?'CREW':previewVictory?'DEIN SIEGERMOMENT':'PLUS AVATAR')+'</span>'+wardrobe.markup(draft,previewVictory?'victory':'standing')+'<span class="studioPreviewGround"></span>';}
+    function choices(key,values,visual=false){return '<div class="'+(key.endsWith('Color')?'studioColors':'studioChoiceGrid')+'">'+values.map(([value,label])=>'<button type="button" class="studioLookChoice" data-look-key="'+key+'" data-look-value="'+value+'" aria-pressed="'+(String(draft[key])===String(value))+'">'+(visual?wardrobe.markup({...draft,[key]:Number(value)}):key.endsWith('Color')?'<i style="--swatch:'+characterStudio.colors[value][1]+'"></i>':'')+'<span>'+esc(label)+'</span></button>').join('')+'</div>';}
     function render(){
       if(dialog.wardrobeEditor!==editorToken)return;
-      const fields=form.querySelector('[data-wardrobe-fields]'),open=[...fields.querySelectorAll('details[open]')].map(el=>el.dataset.section);
+      const fields=form.querySelector('[data-wardrobe-fields]'),studio=draft.collection==='studio'&&plus(),original=studio&&!!characterStudio.figures[draft.figure].atlas;
+      const tabs=[['figure','Figur'],...(studio?[['top',original?'Oberteil':'Outfit'],...(original?[['pants','Hose']]:[]),['pose','Pose']]:[])];
+      if(!tabs.some(([key])=>key===tab))tab='figure';
       let controls='';
-      if(draft.collection==='studio'&&plus()){
-        const garment=characterStudio.garments[draft.gender],colors=Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]);
-        const original=!!characterStudio.figures[draft.figure].atlas;
-        controls='<div class="studioControls">'+select('top',original?'OBERTEIL':'KOMPLETTER LOOK',options(original?garment.tops:characterStudio.outfits))+(original?select('pants','HOSE',options(garment.pants)):'<p class="wardrobeAccess">Abgestimmte Outfits mit natürlichen Proportionen.</p>')+'<details data-section="colors"><summary>Deine Kleidungsfarben</summary><div class="avatarFieldGrid">'+[['topColor','Oberteil'],['pantsColor','Hose']].map(([key,label])=>select(key,label,colors)).join('')+'</div></details>'+select('pose','BLICKRICHTUNG',[[0,'Original'],[1,'Gespiegelt']])+select('winPose','SIEGERANIMATION',[[0,'Freudensprung'],[1,'Goldener Moment'],[2,'Konfetti']])+'<button type="button" data-victory-preview aria-pressed="'+previewVictory+'">'+(previewVictory?'STAND ANSEHEN':'SIEGERMOMENT ANSEHEN')+'</button><p class="wardrobeAccess">Die Selfie-Gestaltung wird überarbeitet und ist bei diesen realistischen Figuren derzeit nicht verfügbar. Haustiere findest du separat im Profil.</p></div>';
+      if(tab==='figure')controls='<h3>Deine Crew-Figuren</h3><div class="characterChoices">'+['Night Rider','Silver Line','Orange Shift'].map((name,i)=>card('classic-'+i,name,{classic:i})).join('')+'</div><h3>Dein PLUS-Studio</h3><div class="characterChoices characterChoices--plus">'+Object.entries(characterStudio.figures).map(([id,figure])=>card(id,figure.label,{collection:'studio',figure:id,gender:figure.gender,top:0,topColor:id==='lea'?'cream':'black'},true)).join('')+'</div>';
+      if(studio&&['top','pants'].includes(tab)){
+        const garment=characterStudio.garments[draft.gender],values=tab==='top'?(original?garment.tops:characterStudio.outfits):garment.pants;
+        controls=choices(tab,options(values),true)+'<h3>'+ (tab==='top'?'Oberteilfarbe':'Hosenfarbe')+'</h3>'+choices(tab+'Color',Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]));
+        if(!original)controls+='<h3>Hosenfarbe</h3>'+choices('pantsColor',Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]));
       }
-      fields.innerHTML='<h3>Deine Crew-Figuren</h3><div class="characterChoices">'+['Night Rider','Silver Line','Orange Shift'].map((name,i)=>card('classic-'+i,name,{classic:i})).join('')+'</div><h3>Dein PLUS-Studio</h3><div class="characterChoices characterChoices--plus">'+Object.entries(characterStudio.figures).map(([id,figure])=>card(id,figure.label,{collection:'studio',figure:id,gender:figure.gender,top:0,topColor:id==='lea'?'cream':'black'},true)).join('')+'</div><p class="wardrobeAccess" role="status">'+(plus()?'PLUS aktiv · Original-Figuren und neue Streetwear-Charaktere freigeschaltet.':'Die drei Crew-Figuren sind kostenlos. Die anpassbaren Studiofiguren benötigen PLUS. Käufe sind noch nicht verfügbar.')+'</p>'+(oldFace?'<p class="avatarMigration">Dein früheres Gesichtsfoto wird nicht mehr dargestellt. Beim Speichern wird es aus dem Bildspeicher entfernt. Deine Figur wird mit ihrem ursprünglichen Gesicht angezeigt.</p>':'')+controls;
-      for(const field of fields.querySelectorAll('select')){const key=field.name;field.value=String(draft[key]);}
-      fields.querySelectorAll('details').forEach(el=>el.open=open.includes(el.dataset.section));preview();
-      if(busy)form.querySelectorAll('button,select,input').forEach(el=>el.disabled=true);
+      if(studio&&tab==='pose')controls='<h3>Blickrichtung</h3>'+choices('pose',[[0,'Original'],[1,'Gespiegelt']])+'<h3>Dein Siegermoment</h3>'+choices('winPose',[[0,'Freudensprung'],[1,'Goldener Moment'],[2,'Konfetti']])+'<button type="button" data-victory-preview aria-pressed="'+previewVictory+'">'+(previewVictory?'Stand ansehen':'Siegermoment ansehen')+'</button>';
+      fields.innerHTML='<div class="studioTabs" role="group" aria-label="Look-Kategorie">'+tabs.map(([key,label])=>'<button type="button" data-studio-tab="'+key+'" aria-pressed="'+(tab===key)+'">'+label+'</button>').join('')+'</div>'+controls+'<p class="wardrobeAccess" role="status">'+(plus()?'PLUS aktiv · Änderungen werden mit „Look speichern“ übernommen.':'Die drei Crew-Figuren sind kostenlos. Anpassbare Studiofiguren benötigen PLUS. Käufe sind noch nicht verfügbar.')+'</p>'+(oldFace?'<p class="avatarMigration">Dein früheres Gesichtsfoto wird nicht mehr dargestellt. Beim Speichern wird es aus dem Bildspeicher entfernt.</p>':'')+'<p class="wardrobeAccess">Schuhe gehören zum jeweiligen Outfit. Foto-zu-Figur ist pausiert. Haustiere findest du separat im Profil.</p>';
+      preview();if(busy)form.querySelectorAll('button,select,input').forEach(el=>el.disabled=true);
     }
     render();dialog.showModal();
     form.addEventListener('click',event=>{
       if(busy)return;
+      const category=event.target.closest('[data-studio-tab]');if(category){tab=category.dataset.studioTab;render();form.querySelector('[data-studio-tab="'+tab+'"]')?.focus();return;}
+      const option=event.target.closest('[data-look-key]');if(option){if(!plus()||draft.collection!=='studio')return;const key=option.dataset.lookKey,value=option.dataset.lookValue;draft=characterStudio.normalize({...draft,[key]:key.endsWith('Color')?value:Number(value)});if(key==='winPose')previewVictory=true;if(key==='pose')previewVictory=false;render();form.querySelector('[data-look-key="'+key+'"][data-look-value="'+value+'"]')?.focus();return;}
       if(event.target.closest('[data-victory-preview]')){previewVictory=!previewVictory;render();return;}
       const button=event.target.closest('[data-character-choice]');if(!button)return;
-      const choice=button.dataset.characterChoice;if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',figure:choice,gender:characterStudio.figures[choice].gender,top:Math.min(draft.top||0,2),pants:Math.min(draft.pants||0,2)});previewVictory=false;render();
+      const choice=button.dataset.characterChoice;if(!choice.startsWith('classic-')&&!plus()){toast('Diese anpassbare Figur gehört zu PLUS. Käufe sind noch nicht verfügbar.');return;}if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',figure:choice,gender:characterStudio.figures[choice].gender,top:Math.min(draft.top||0,2),pants:Math.min(draft.pants||0,2)});previewVictory=false;render();
     });
     form.addEventListener('change',event=>{
       const field=event.target,key=field.name;if(busy||!plus()||draft.collection!=='studio'||!key)return;

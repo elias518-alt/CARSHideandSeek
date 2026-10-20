@@ -1,0 +1,464 @@
+/* Scoped game surfaces: the home screen and lobby waiting room keep their design. */
+:root{--game-bg:#10131b;--game-panel:#1b202b;--game-line:#ffffff18;--game-muted:#b5bdcb;--game-soft:var(--player-accent-soft,#ff985f18);--game-accent:var(--player-accent,#ff985f)}
+
+.gameEyebrow{color:var(--game-accent);font-size:10px;letter-spacing:.15em;font-weight:800}
+.gameSheet,.gameSettingsGroup,.profileDestination,.statsHero,.roleStat{box-sizing:border-box}
+
+.gameSheet{color:#f4f5f8;background:var(--game-bg);border:1px solid var(--game-line);border-radius:24px;width:min(680px,96vw);max-height:92dvh;padding:0 22px 22px;overflow:auto;overscroll-behavior:contain;box-shadow:0 24px 90px #0009}
+
+.gameSheet::backdrop{background:#05080ed9;backdrop-filter:blur(5px)}
+
+.gameSheetHeader{display:flex;align-items:center;gap:14px;position:sticky;top:0;background:#10131bf5;z-index:15;margin:0 -22px 20px;padding:18px 22px;border-bottom:1px solid var(--game-line)}
+
+.gameSheetHeader h2{font-size:clamp(20px,4vw,28px);line-height:1.15;letter-spacing:-.04em;margin:0}
+.sheetBack{width:44px;height:44px;flex:none;font-size:24px;border-radius:13px;background:var(--game-panel);color:#fff;border:1px solid var(--game-line)}
+
+.gameSheet button,.gameSheet input,.gameSheet select,.gameSheet a{min-height:44px}
+.gameSheet button{cursor:pointer}
+.gameSheet button:disabled{cursor:not-allowed;opacity:.5}
+
+.gameSheet :focus-visible,#profile :focus-visible,#garage :focus-visible,#wardrobeDialog :focus-visible,#petsDialog :focus-visible{outline:3px solid var(--game-accent);outline-offset:3px}
+
+.gameSheet .primaryButton,.sheetFooter .primaryButton{background:var(--game-accent)!important;color:#10131b!important;min-height:52px;border:0;border-radius:14px;font-weight:850;width:100%}
+
+.sheetFooter{position:sticky;bottom:-22px;background:linear-gradient(transparent,#10131b 14%);padding:24px 0 18px;z-index:9}
+.gameSheet [role=alert]{color:#ffb6a5;white-space:pre-wrap;font-size:13px}
+
+#profile{max-width:900px;margin-inline:auto}
+#profile .profileHero{display:flex!important;flex-direction:column;align-items:stretch!important;padding:22px!important;min-height:0!important;background:linear-gradient(0deg,#10131b 4%,#10131b88 40%,#10131b33),var(--personal-scene,url('assets/lobby-meetup.webp')) center 45%/cover!important;border-radius:24px!important;margin:0!important;overflow:hidden}
+
+#profile .profileHeading{text-align:left;order:-3;position:relative;z-index:5;padding-right:48px}
+.profileHeading h2{font-size:28px;letter-spacing:-.04em;margin:6px 0 0}
+#profile .settingsButton{position:absolute;right:18px;top:22px;width:44px;height:44px;border:1px solid #ffffff20;border-radius:13px;background:#10131bcc;z-index:7;display:grid;place-items:center}
+.settingsButton svg{width:22px;height:22px}
+
+#profile #profileVehicleStage{order:-2;min-height:235px;height:clamp(235px,42vw,370px)!important;flex:0 0 auto!important;width:100%!important;margin:12px 0 0;right:auto!important;bottom:auto!important;display:block;overflow:visible}
+
+#profile #profileVehicleStage .vehicleIllustration{width:80%!important;height:auto!important;aspect-ratio:2;left:42%;bottom:22px!important;display:block;transform:translateX(-50%);max-width:none}
+
+#profile #profileVehicleStage .vehicleIllustration svg{height:100%;width:100%;overflow:visible}
+
+#profile #profileVehicleStage::before{left:42%;bottom:17px;width:76%;height:15px;z-index:0}
+
+#profile #profileVehicleStage>.lobbyCrewCharacter{position:absolute!important;height:clamp(130px,26vw,280px)!important;width:clamp(78px,13vw,130px)!important;bottom:24px!important;left:78%!important;transform:translateX(-25%)!important;filter:drop-shadow(0 3px 2px #0008);z-index:3}
+
+#profile #profileVehicleStage>.petCompanion{height:calc(clamp(130px,26vw,280px)*var(--pet-scale));width:calc(clamp(130px,26vw,280px)*var(--pet-scale)*var(--pet-ratio));max-width:30%;bottom:21px;left:65%;z-index:4}
+
+#profile .profileIdentity{display:flex;align-items:center;gap:18px;text-align:left;z-index:5;position:relative;min-width:0;padding-top:10px}
+.profileIdentityText{min-width:0}
+#profile .profileHero #profileName,#profile .profileHero #profileTag{max-width:100%;margin:0!important;overflow-wrap:anywhere;text-align:left!important}
+#profile .profileHero #profileName{font-size:clamp(24px,6vw,36px)}
+#profile .profileHero #profileTag{font-size:10px;color:#b5bdcb;margin-top:6px!important}
+#profile #profileAvatar{width:70px;height:70px;min-width:70px;min-height:70px;max-width:70px;max-height:70px;flex:0 0 70px;margin:0 0 8px!important;border:2px solid var(--game-accent);box-shadow:0 3px 18px #0005}
+#profileMembership{display:inline-block;font-size:9px;font-weight:800;border:1px solid var(--game-line);border-radius:5px;padding:3px 8px;margin-top:8px;color:var(--game-muted)}
+#profileMembership[data-plus=true]{color:var(--game-accent);border-color:var(--game-accent)}
+
+#profile .profileProgress{width:100%!important;max-width:none!important;margin:18px 0 0!important;padding:14px!important;background:#131822eb!important;border:1px solid var(--game-line);border-radius:14px!important}
+#profileLevelDetails{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:11px;margin-top:12px}
+#profileLevelDetails button{font-size:11px;min-height:44px;padding:8px}
+
+#profile .profileStats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:14px 0!important;padding:0!important}
+#profile .profileStats>div{display:flex!important;flex-direction:column;align-items:center;padding:14px 4px!important;gap:6px!important;text-align:center!important;border-radius:14px}
+#profile .profileStats strong{font-size:26px!important;line-height:1.1}
+#profile .profileStats span{font-size:8px!important;letter-spacing:.05em}
+#profile .profileStatIcon{height:24px;width:24px;background:none}
+#profile .profileStatIcon svg{width:22px;height:22px}
+
+.profileDestinations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.profileDestination{display:flex;flex-direction:column;align-items:flex-start;position:relative;min-height:150px;border:1px solid var(--game-line);border-radius:18px;overflow:hidden;padding:18px;color:#f2f3f8;text-align:left;background:linear-gradient(110deg,#161c27f7,#161c2799),url('assets/lobby-meetup.webp') center/cover}
+.profileDestination[data-destination=statistik]{background:radial-gradient(ellipse at 100% 0,#4e627650,transparent),#1b202b}
+.profileDestination[data-destination=look]{background:radial-gradient(ellipse at 100% 0,#59413c70,transparent),#1b202b}
+.profileDestination[data-destination=pets]{background:radial-gradient(ellipse at 100% 0,#42654e70,transparent),#1b202b}
+.profileDestination>span svg{width:27px;height:27px;color:var(--game-accent)}
+.profileDestination strong{display:block;font-size:14px;margin-top:18px;line-height:1.3}
+.profileDestination small{display:block;color:var(--game-muted);font-size:11px;margin-top:6px;line-height:1.5}
+.profileDestination>b{position:absolute;right:16px;top:18px;font-size:24px;color:#8893a6}
+#profile .profileUtilityMenu:not(:has(button:not([hidden]))){display:none}
+#profile .profileUtilityMenu button[hidden]{display:none!important}
+
+#profile .achievementGrid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px}
+#profile .achievementBadge{padding:14px 6px!important;display:flex!important;flex-direction:column;text-align:center;background:linear-gradient(150deg,#272b37,#171c26)!important;min-width:0;border:1px solid var(--game-line)!important;border-radius:16px}
+#profile .achievementIcon{height:52px;width:52px;margin:0 auto 10px;background:linear-gradient(140deg,#e2b786,#835537);clip-path:polygon(50% 0,94% 25%,94% 75%,50% 100%,6% 75%,6% 25%);color:#221a15;display:grid;place-items:center}
+#profile .achievementIcon svg{width:26px;height:26px}
+#profile .isLocked .achievementIcon{background:#3b424e;color:#b4bcc9}
+#profile .achievementBadge strong{font-size:10px;line-height:1.4}
+#profile .achievementBadge small{font-size:10px;line-height:1.4}
+#profile .profilePlusCompact{padding:18px!important;border-radius:18px!important;margin-top:20px}
+#profile .profilePlusCompact h2{font-size:26px;margin:5px 0}
+.profileNoVehicle{display:flex;align-items:center;gap:14px;margin:70px auto 0;padding:20px;background:#10131bcc;border:1px solid var(--game-line);color:white;border-radius:15px}
+.profileNoVehicle svg{width:38px}
+.profileNoVehicle small{display:block;color:var(--game-muted);font-size:11px;margin-top:5px}
+
+#profileStatsDialog [data-stats]{display:block!important;margin:0!important}
+.statsHero{display:flex;align-items:center;gap:20px;padding:22px;background:radial-gradient(ellipse at 100% 0,#5c403855,transparent 70%),#1b202b;border:1px solid var(--game-line);border-radius:22px;margin:18px 0}
+.statsRing{flex:none;width:160px;height:160px;border-radius:50%;background:conic-gradient(var(--game-accent) var(--rate),#343b47 0);padding:10px}
+.statsRing>div{height:100%;border-radius:50%;background:#191e28;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.statsRing strong{font-size:48px;line-height:1.1}
+.statsRing strong small{font-size:25px}
+.statsRing span{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--game-muted)}
+.statsTrophy{flex:1;text-align:center}
+.statsTrophy svg{height:65px;width:65px;color:#cf9c6e}
+.statsTrophy p{font-size:12px;line-height:1.5;color:var(--game-muted)}
+.gameMetricGrid,.statsTotals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.gameMetric{display:flex;align-items:center;flex-direction:column;gap:7px;padding:16px 7px;border-radius:14px;background:var(--game-panel);border:1px solid var(--game-line);text-align:center;min-width:0}
+.gameMetric svg{width:23px;height:23px;color:var(--game-accent)}
+.gameMetric strong{font-size:28px;overflow-wrap:anywhere}
+.gameMetric span{font-size:10px;color:var(--game-muted)}
+.statsRoles{display:grid;gap:12px;margin:18px 0}
+.roleStat{position:relative;padding:22px;border:1px solid var(--game-line);border-radius:20px;background:linear-gradient(100deg,#141a24f5,#141a2499),url('assets/lobby-meetup.webp') center/cover}
+.roleStat--hider{background-position:center 65%}
+.roleStat>svg{position:absolute;right:22px;top:22px;width:32px;height:32px;color:var(--game-accent)}
+.roleStat>span{font-size:11px;letter-spacing:.1em;color:var(--game-accent)}
+.roleStat strong{display:block;font-size:42px;margin:12px 0 0}
+.roleStat strong small{font-size:17px}
+.roleStat p{color:var(--game-muted);font-size:12px;margin:5px 0 0}
+.statsSurvival{display:flex;gap:18px;align-items:center;background:var(--game-panel);padding:20px;border-radius:18px}
+.statsSurvival svg{width:38px;height:38px;color:#b4d7e8}
+.statsSurvival span{font-size:12px;color:var(--game-muted)}
+.statsSurvival strong{display:block;font-size:30px;color:white;margin-top:5px}
+.statsEmpty{padding:16px;border:1px dashed var(--game-line);border-radius:14px;font-size:13px;color:var(--game-muted)}
+.statsEmpty[hidden]{display:none}
+
+.settingsIdentity{display:flex;align-items:center;gap:18px;margin:14px 0 24px;padding:20px;background:linear-gradient(120deg,#292d39,#191d27);border-radius:18px}
+.settingsIdentity [data-avatar-preview]{width:70px;height:70px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:#323b4a}
+.settingsIdentity strong{display:block;font-size:17px}
+.settingsIdentity small{display:block;color:var(--game-muted);font-size:11px;margin-top:6px}
+.gameSettingsGroup{border:1px solid var(--game-line);border-radius:18px;background:var(--game-panel);padding:18px;margin:24px 0;display:grid;gap:14px;min-width:0}
+.gameSettingsGroup legend{text-transform:uppercase;font-size:11px;letter-spacing:.14em;padding:0 8px;color:var(--game-accent)}
+.gameSettingsGroup label{display:grid;gap:9px;font-size:12px;color:#d9dfe8}
+.gameSettingsGroup input,.gameSettingsGroup select{box-sizing:border-box;width:100%;min-width:0;background:#121823;border:1px solid #ffffff24;border-radius:11px;color:#fff;font-size:15px;padding:12px}
+.gameSettingsGroup small{font-size:11px;color:var(--game-muted);line-height:1.6}
+.settingsLink{display:flex;align-items:center;gap:13px;width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px 0;min-width:0}
+.settingsLink>svg{width:22px;height:22px;flex:none;color:var(--game-accent)}
+.settingsLink>svg:last-child{margin-left:auto;width:18px}
+.settingsLink span{font-size:14px}
+.settingsLink small{display:block;font-size:11px;margin-top:5px}
+.settingsLegal{display:flex;gap:14px;flex-wrap:wrap}
+.settingsLegal a{display:flex;align-items:center;color:var(--game-muted);font-size:12px}
+.settingsLogout{width:100%;padding:14px;margin-top:12px;background:transparent;color:#c5cbd6;border:1px solid var(--game-line);border-radius:12px}
+.settingsAccountEmail{overflow-wrap:anywhere;color:var(--game-muted);font-size:12px;margin:0}
+.photoUpload input{font-size:12px}
+.photoUpload input::file-selector-button{padding:9px;background:#303848;border:0;color:white;border-radius:8px;margin-right:10px}
+
+/* Shared editors */
+#wardrobeDialog,#petsDialog{background:var(--game-bg)!important;color:#f2f4f8!important;border-color:var(--game-line)!important;padding:24px!important;width:min(960px,96vw)!important;border-radius:24px!important;max-height:94dvh;overflow:auto;overscroll-behavior:contain}
+#wardrobeDialog h2,#petsDialog h2{font-size:26px;letter-spacing:-.04em;margin:12px 48px 18px 0}
+#wardrobeDialog .dialogClose,#petsDialog .dialogClose{width:44px;height:44px;border-radius:12px;background:var(--game-panel);border:1px solid var(--game-line);color:white;position:absolute;right:18px;top:18px}
+.wardrobeIntro,.petIntro{font-size:12px;color:var(--game-muted)}
+
+#wardrobeDialog .wardrobePreview,#petsDialog .petPreview{background:linear-gradient(0deg,#10131b33,#10131b66),url('assets/lobby-meetup.webp') center 65%/cover!important;border-radius:20px!important;border:1px solid var(--game-line);height:420px}
+.wardrobePreview>.lobbyCrewCharacter{max-width:90%}
+.studioTabs{display:flex;gap:7px;overflow:auto;scrollbar-width:thin;margin-bottom:18px;padding-bottom:5px}
+.studioTabs button{flex:0 0 auto;min-height:46px;padding:10px 15px;border-radius:12px;border:1px solid var(--game-line);background:var(--game-panel);color:#c1c9d7;font-size:12px}
+.studioTabs button[aria-pressed=true]{color:#10131b;background:var(--game-accent);border-color:var(--game-accent)}
+.studioChoiceGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.studioLookChoice{position:relative;min-width:0;border:1px solid var(--game-line);background:linear-gradient(140deg,#2b313d,#151b25);border-radius:13px;min-height:140px;padding:8px;color:white}
+.studioLookChoice>.lobbyCrewCharacter{position:relative!important;display:block!important;left:auto!important;bottom:auto!important;transform:none!important;width:100%!important;height:110px!important}
+.studioLookChoice strong{display:block;font-size:11px;padding-top:8px}
+.studioLookChoice[aria-pressed=true]{border:2px solid var(--game-accent)}
+.studioColors{display:flex;flex-wrap:wrap;gap:8px}
+.studioColors button{min-width:44px;min-height:55px;border:1px solid transparent;border-radius:10px;background:none;color:var(--game-muted);font-size:9px;padding:5px}
+.studioColors button>span{display:block;width:25px;height:25px;border:1px solid #ffffff44;border-radius:50%;margin:0 auto 5px;background:var(--swatch)}
+.studioColors button[aria-pressed=true]{border-color:var(--game-accent);color:white}
+.studioControlLabel{font-size:11px;letter-spacing:.08em;color:var(--game-muted);margin:20px 0 12px}
+.studioUnavailable{padding:22px;border:1px dashed var(--game-line);border-radius:14px;color:var(--game-muted);font-size:13px;line-height:1.6}
+.studioAccess{font-size:11px;color:var(--game-muted);line-height:1.6}
+.studioPoseChoices{display:grid;grid-template-columns:1fr;gap:9px}
+.studioPoseChoices button{border:1px solid var(--game-line);border-radius:12px;background:var(--game-panel);color:#fff;padding:15px;text-align:left;min-height:44px}
+.studioPoseChoices button[aria-pressed=true]{border-color:var(--game-accent)}
+#wardrobeDialog .primaryButton,#petsDialog .primaryButton{background:var(--game-accent)!important;color:#10131b!important;border-radius:14px;min-height:52px;width:100%;margin-top:20px}
+#petsDialog .petChoice[aria-pressed=true]{border-color:var(--game-accent);box-shadow:inset 0 0 0 1px var(--game-accent)}
+#petsDialog .petCategories button[aria-pressed=true]{background:var(--game-accent);color:#10131b}
+.petControlGroup{border:0;padding:0;margin:12px 0;min-width:0}
+.petControlGroup legend{font-size:10px;color:var(--game-muted);margin-bottom:12px;letter-spacing:.08em}
+.petSwatches{display:flex;gap:7px;flex-wrap:wrap}
+.petSwatches button{min-width:48px;min-height:59px;border:1px solid var(--game-line);background:var(--game-panel);color:#c2cad6;border-radius:12px;padding:7px;font-size:10px}
+.petSwatches button>span{display:block;width:25px;height:25px;border-radius:50%;background:var(--swatch);border:1px solid #ffffff33;margin:0 auto 6px}
+.petSwatches button[aria-pressed=true]{border-color:var(--game-accent);color:white}
+.petControlGroup input[type=range]{width:100%;accent-color:var(--game-accent)}
+
+/* Lobby settings only; no rules or waiting-room visual changes. */
+#freshSettingsDialog{background:var(--game-bg)!important;border:1px solid var(--game-line)!important;width:min(720px,96vw)!important;padding:0!important;border-radius:24px!important;max-height:94dvh!important;overflow:auto!important}
+#freshSettingsDialog .freshDrawerHeader{position:sticky;top:0;z-index:10;background:#10131bf5;padding:20px;border-bottom:1px solid var(--game-line)}
+#freshSettingsDialog .freshDrawerHeader h3{font-size:20px;line-height:1.2}
+#freshSettingsDialog .freshDrawerHeader>button{min-width:44px;min-height:44px}
+#lobbySettingsPanel{padding:20px!important;display:flex;flex-direction:column;gap:18px}
+#lobbySettingsPanel .settingsGrid{gap:18px;display:grid;grid-template-columns:1fr}
+#lobbySettingsPanel label{display:block;font-size:11px;letter-spacing:.07em;color:var(--game-muted);min-width:0}
+#lobbySettingsPanel .settingSegments{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+#lobbySettingsPanel .settingSegments button{min-height:44px;min-width:52px;padding:10px 13px;font-size:12px;border:1px solid #ffffff22;background:var(--game-panel);color:#dbe1ea;border-radius:12px;flex:1}
+#lobbySettingsPanel .settingSegments button[aria-pressed=true]{background:var(--game-accent);color:#10131b;border-color:var(--game-accent)}
+#lobbySettingsPanel #lobbyPresetControls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+#lobbyPresetControls button{white-space:normal;line-height:1.6;min-height:100px!important;background:linear-gradient(0deg,#161c28ed,#161c28aa),url('assets/lobby-meetup.webp') center/cover!important}
+#lobbyPresetControls button[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--game-accent);color:var(--game-accent)!important}
+#lobbyPresetControls button[data-value=custom]{grid-column:1/-1;min-height:44px!important}
+#lobbyRadiusSlider{accent-color:var(--game-accent);width:100%;height:44px;margin-top:10px}
+#lobbyRadius{max-width:160px;min-height:44px;margin:8px 0;border:1px solid var(--game-line);background:var(--game-panel);color:white;border-radius:12px;padding:10px}
+#lobbySettingsPanel .gameSettingsMore{border:1px solid var(--game-line);padding:16px;border-radius:16px;display:block}
+#lobbySettingsPanel .gameSettingsMore summary{min-height:34px;cursor:pointer;font-size:13px;color:white}
+#lobbySettingsPanel .gameSettingsMore label{margin-top:20px}
+.lobbySettingsFooter{position:sticky;bottom:0;background:#10131bf5;padding:14px 20px;border-top:1px solid var(--game-line);z-index:10}
+.lobbySettingsFooter button{width:100%;background:var(--game-accent);color:#10131b;border:0;border-radius:13px;min-height:52px;font-weight:800}
+.lobbySettingsFooter p{font-size:11px;color:var(--game-muted);margin:9px 0 0}
+.lobbySettingsFooter [role=alert]{color:#ffb6a5}
+.lobbySettingsPreview{height:90px;position:relative;background:repeating-linear-gradient(22deg,transparent 0 25px,#64718525 26px 28px,transparent 29px 50px),#1b2532;border-radius:16px;overflow:hidden;display:grid;place-items:center}
+.lobbySettingsPreview::before{content:'';width:75px;height:75px;border:1px dashed var(--game-accent);border-radius:50%;position:absolute;background:var(--player-accent-soft,#ff762d15)}
+.lobbySettingsPreview span{z-index:1;font-size:12px;color:#fff}
+
+/* Friends and crew */
+#friends,#crew{max-width:900px;margin-inline:auto}
+#friends .pageHeading h1,#crew .pageHeading h1{font-size:30px;letter-spacing:-.04em}
+#friends .searchBar{background:var(--game-panel);border:1px solid var(--game-line);border-radius:14px;min-height:50px}
+#friends .socialRow{padding:16px 12px!important;background:linear-gradient(130deg,#222936,#171d28)!important;border:1px solid var(--game-line)!important;border-radius:17px!important;gap:12px;min-width:0}
+#friends .socialPerson{min-width:0}
+#friends .socialPerson strong{font-size:15px;overflow-wrap:anywhere}
+#friends .socialPerson small{font-size:11px;line-height:1.6}
+#friends .socialActions button{min-width:44px;min-height:44px;border-radius:12px!important}
+#friends .socialAvatar{width:54px!important;height:54px!important;min-width:54px!important;border:1px solid #ffffff36}
+#friends .friendsTabs{display:flex;gap:8px;margin:18px 0}
+#friends .friendsTabs button{min-height:44px;border:1px solid var(--game-line);border-radius:12px;font-size:12px;flex:1}
+.socialMapPreview{position:relative;margin:18px 0;border-radius:20px;overflow:hidden;border:1px solid var(--game-line);background:#18202d}
+.socialMapPreviewCanvas{height:230px}
+.socialMapPreview>header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;gap:10px;background:#161c26}
+.socialMapPreview>header span{font-size:11px;color:#b9d9e5}
+.socialMapPreview button{min-height:44px;border:1px solid var(--game-line);border-radius:10px;background:#242c39;color:#fff;padding:8px 12px;font-size:11px}
+.socialMapPreview>footer{display:flex;align-items:center;gap:10px;padding:12px}
+.socialMapPreviewStatus{font-size:11px;color:var(--game-muted);line-height:1.6;margin:0;flex:1}
+.socialMapDialog{background:var(--game-bg)!important;border-color:var(--game-line)!important;border-radius:20px!important}
+.socialMapDialog button,.socialMapDialog select{min-height:44px}
+#socialMapPeople .socialMapPerson{border:1px solid var(--game-line);background:var(--game-panel);border-radius:14px}
+#crew .hubCrewHero,#crew .hubCard,#crew .hubMember{background:var(--game-panel)!important;border-color:var(--game-line)!important;border-radius:18px!important}
+
+/* Active play: large map, compact HUD, safe areas. */
+body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
+#game.roundImmersive .freshRoomHeader{top:18px!important;left:16px!important;transform:none!important;width:calc(100% - 125px)!important;max-width:430px}
+#game.roundImmersive .gameStats{display:grid!important;grid-template-columns:1fr 1fr!important;align-items:center;text-align:left;gap:8px!important;padding:14px!important;background:#10131bf2!important;border:1px solid var(--game-line);border-radius:18px}
+#game.roundImmersive .gameStats>div:nth-child(3){order:0}
+#game.roundImmersive #role{background:transparent!important;color:var(--game-accent)!important;border:1px solid var(--game-accent);font-size:11px!important;padding:10px!important;border-radius:9px;letter-spacing:.04em}
+#game.roundImmersive #timer{font-size:35px!important;color:var(--game-accent)!important;letter-spacing:-1px}
+#roundPhase{grid-column:1/-1;font-size:10px!important;color:var(--game-muted)}
+#game.roundImmersive .freshLobbyTools{top:18px!important;right:12px!important;max-width:95px!important}
+#game.roundImmersive .freshToolButtons button{width:44px!important;min-width:44px!important;min-height:44px!important}
+#game.roundImmersive #proximity{top:143px!important;background:#10131bd9}
+#game.roundImmersive .mapStatus{top:185px!important}
+#game.roundImmersive .mapFollow{top:145px!important;width:44px;height:44px}
+#game.roundImmersive #gps{top:230px!important}
+#game.roundImmersive #roundDock{top:auto!important;bottom:auto;position:absolute;transform:none!important;left:12px!important;right:12px!important;width:auto!important;margin:0;top:calc(max(100dvh,540px) - 210px - env(safe-area-inset-bottom))!important;background:#10131bf0;border-radius:20px;padding:13px}
+#game.roundImmersive #freshMapFold,#game.roundImmersive .mapShell,#game.roundImmersive #liveMap{min-height:540px!important}
+.roundQuickActions button{min-height:44px!important;font-size:12px!important}
+.roundQuickActions button:first-child{background:var(--game-accent)!important;color:#10131b!important}
+.roundSafety{margin:10px 0 0;font-size:10px;color:#c6cfdd;text-align:center}
+.roundPlayer{border-left-color:var(--game-accent);background:var(--game-panel)}
+#roundHealth{font-size:11px}
+#game.roundImmersive #escapeBox{top:290px!important}
+
+/* Everyone remains visible after the round, including disconnected players. */
+#game #result{background:var(--game-bg)!important;border:1px solid var(--game-line)!important;border-radius:24px;padding:22px!important;width:100%;max-width:1000px;margin:20px auto!important;overflow:hidden}
+#resultTitle{font-size:clamp(25px,7vw,44px)!important;line-height:1.1;margin:18px 0 10px}
+#resultText{color:var(--game-muted);font-size:13px}
+#referenceResultScene{height:auto!important;min-height:0!important;background:none!important;padding:0!important;margin:20px 0}
+.resultCrewHeading{text-align:left;font-size:13px;color:var(--game-accent);margin:18px 0}
+.resultCrewGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.resultCrewCard{min-width:0;border:1px solid var(--game-line);border-radius:17px;background:linear-gradient(0deg,#131924ee,#13192455),url('assets/lobby-meetup.webp') center/cover;overflow:hidden;position:relative;text-align:left}
+.resultCrewCard.isWinner{border-color:#c4945a80}
+.resultCrewVisual{position:relative;height:145px;isolation:isolate}
+.resultCrewVisual>.vehicleIllustration{position:absolute;bottom:12px;left:4%;width:75%;height:auto;margin:0}
+.resultCrewVisual>.vehicleIllustration svg{width:100%;height:100%}
+.resultCrewVisual>.vehicleIllustration figcaption{display:none}
+.resultCrewVisual>.lobbyModelCar{position:absolute;bottom:12px;left:3%;width:75%;height:90px;object-fit:contain}
+.resultCrewVisual>.lobbyCrewCharacter{position:absolute!important;width:55px!important;height:110px!important;left:70%!important;bottom:14px!important;transform:none!important}
+.resultCrewVisual>.petCompanion{height:calc(100px * var(--pet-scale))!important;width:calc(100px * var(--pet-scale) * var(--pet-ratio))!important;max-width:35%;left:58%!important;bottom:12px!important}
+.resultCrewVisual::after{content:'';position:absolute;bottom:9px;left:12%;width:72%;height:8px;z-index:-1;background:radial-gradient(ellipse,#000c,transparent 70%)}
+.resultCrewInfo{padding:12px;background:#111722e8}
+.resultCrewInfo strong{display:block;font-size:13px;overflow-wrap:anywhere}
+.resultCrewInfo small{display:block;color:var(--game-muted);font-size:10px;margin-top:5px}
+.resultCrewInfo .resultWinner{color:#e4ba83}
+#result #rematch{background:var(--game-accent)!important;color:#10131b!important;border-radius:14px;min-height:52px;width:100%;margin-top:20px}
+#referenceResultPeople .referenceResultPerson{font-size:12px;background:var(--game-panel)!important}
+.resultDetails{margin:18px 0;text-align:left}
+.resultDetails summary{min-height:44px;cursor:pointer;display:flex;align-items:center;font-size:13px;color:#c0c8d5}
+.resultWait{background:var(--game-panel);border-radius:12px;padding:15px;color:var(--game-muted);font-size:12px}
+
+@media(min-width:760px){.resultCrewGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.resultCrewVisual{height:190px}
+.resultCrewVisual>.lobbyCrewCharacter{height:145px!important;width:70px!important}
+.gameSheet .statsRoles{grid-template-columns:1fr 1fr}
+.statsSurvival{grid-column:1/-1}
+}
+
+@media(max-width:600px){.gameSheet{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;padding:0 18px 18px;border-radius:0;border:0}
+.gameSheetHeader{margin:0 -18px 16px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px}
+.sheetFooter{bottom:-18px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+#profile .profileHero{padding:16px!important}
+#profile #profileVehicleStage{min-height:220px;height:220px!important}
+#profile .profileHero #profileName{font-size:26px}
+.profileDestinations{gap:9px}
+.profileDestination{padding:14px;min-height:145px}
+.profileDestination strong{font-size:12px}
+.statsHero{padding:18px 12px;gap:12px}
+.statsRing{width:145px;height:145px}
+.statsTrophy svg{width:50px;height:50px}
+#wardrobeDialog,#petsDialog{width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;margin:0!important;padding:20px 16px calc(20px + env(safe-area-inset-bottom))!important;border-radius:0!important;border:0!important}
+.wardrobeLayout{grid-template-columns:1fr}
+.wardrobePreview{position:relative!important}
+#wardrobeDialog .wardrobePreview,#petsDialog .petPreview{height:300px}
+.studioTabs{position:sticky;top:-1px;padding:10px 0;background:var(--game-bg);z-index:7}
+.studioLookChoice{min-height:120px}
+.studioLookChoice>.lobbyCrewCharacter{height:90px!important}
+.petControls{grid-template-columns:1fr!important}
+#freshSettingsDialog{width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;border:0!important;border-radius:0!important;margin:0!important}
+.lobbySettingsFooter{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+#game #result{padding:16px!important}
+.resultCrewVisual{height:135px}
+.resultCrewVisual>.lobbyCrewCharacter{height:100px!important;width:45px!important}
+}
+
+@media(prefers-reduced-motion:reduce){.gameSheet *,#profile *,#wardrobeDialog *,#petsDialog *,#result *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+
+/* Vehicle selection and earned, server-checked cosmetic loadouts. */
+#garage{max-width:1050px;margin-inline:auto}
+#garageShowroom{border:1px solid var(--game-line);border-radius:24px;overflow:hidden;background:var(--game-bg);margin-bottom:18px}
+.garageScene{padding:22px 16px 20px;background:radial-gradient(ellipse at 50% 70%,#48515d66,transparent 55%),linear-gradient(0deg,#10131b,#10131b22),url('assets/lobby-meetup.webp') center 70%/cover;text-align:center;min-width:0}
+.garageSceneLabel{display:block;font-size:10px;letter-spacing:.14em;color:#d5dce7}
+.garageSceneCar{position:relative;isolation:isolate;height:270px;display:flex;align-items:flex-end;justify-content:center}
+.garageSceneCar>.vehicleIllustration{width:94%;height:88%;margin:0;position:relative}
+.garageSceneCar .vehicleRender{height:100%;width:100%;filter:drop-shadow(0 8px 3px #0009)}
+.garageSceneCar svg{width:100%;height:100%;overflow:visible}
+.garageSceneCar figcaption{display:none}
+.garageScene h2{font-size:clamp(20px,5vw,30px);margin:20px 0 7px}
+.garageScene p{font-size:11px;line-height:1.6;color:#b5bdcb;margin:0}
+.garageSelector{display:flex;gap:9px;overflow-x:auto;padding:16px;background:#111720}
+.garageSelector>button{flex:0 0 142px;min-width:0;border:1px solid var(--game-line);background:var(--game-panel);border-radius:12px;padding:10px;color:white;text-align:left}
+.garageSelector>button[aria-pressed=true]{border-color:var(--game-accent);background:var(--game-soft)}
+.garageSelector .vehicleIllustration{height:65px;margin:0 0 8px}
+.garageSelector .vehicleRender{height:65px}
+.garageSelector svg{width:100%;height:100%}
+.garageSelector figcaption{display:none}
+.garageSelector strong,.garageSelector small{display:block;font-size:11px;overflow-wrap:anywhere}
+.garageSelector small{color:#aeb9ca;font-size:10px;margin-top:5px}
+.vehicleRewards{padding:22px}
+.vehicleRewards>header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.vehicleRewards>header small{font-size:9px;letter-spacing:.12em;color:var(--game-accent)}
+.vehicleRewards h3{font-size:20px;margin:5px 0}
+.vehicleRewards>header>span{font-size:11px;border:1px solid var(--game-line);padding:8px;border-radius:8px;white-space:nowrap}
+.vehicleRewards p{font-size:12px;line-height:1.6;color:var(--game-muted)}
+.vehicleRewards fieldset{border:0;min-width:0;padding:0;margin:22px 0}
+.vehicleRewards legend{font-size:12px;margin-bottom:10px;font-weight:700}
+.vehicleRewardChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.vehicleRewardChoices button{min-width:0;padding:12px 6px;border-radius:12px;border:1px solid var(--game-line);background:var(--game-panel);color:white;min-height:105px}
+.vehicleRewardChoices button[aria-pressed=true]{border-color:var(--game-accent);box-shadow:inset 0 0 0 1px var(--game-accent)}
+.vehicleRewardChoices button[aria-disabled=true]{color:#a8b1bf;background:#171d28}
+.vehicleRewardChoices strong,.vehicleRewardChoices small{display:block;font-size:11px}
+.vehicleRewardChoices small{margin-top:6px;font-size:9px;line-height:1.5}
+.rewardSample{display:block;margin:0 auto 12px;width:37px;height:37px}
+.rewardSample--rims{border:5px solid #05090d;border-radius:50%;box-shadow:inset 0 0 0 2px #aab6c3;background:repeating-conic-gradient(#c7d2de 0deg 9deg,#151e28 10deg 36deg)}
+.rewardSample--graphite{background:repeating-conic-gradient(#687482 0deg 9deg,#151e28 10deg 36deg)}
+.rewardSample--package{border-bottom:8px solid #697586;border-radius:0 0 5px 5px}
+.rewardSample--sport{border-color:#12151b;box-shadow:0 4px 0 #525d6c}
+.rewardSample--glow{width:55px;height:14px;margin-top:12px;margin-bottom:23px;border-radius:50%;background:#404956}
+.rewardSample--cyan{background:#55dfff;box-shadow:0 0 14px #31c6ff}
+.rewardSample--amber{background:#ffb74d;box-shadow:0 0 14px #ff9f2a}
+.vehicleRewardActions{display:flex;gap:10px}
+.vehicleRewardActions button{border:1px solid var(--game-line);border-radius:12px;padding:12px;min-height:48px;background:var(--game-panel);color:white}
+.vehicleRewardActions button:first-child{flex:1;background:var(--game-accent);color:#10131b;font-weight:800}
+.vehicleRewardActions button:disabled{opacity:.5}
+#garageCars .garageCar[hidden]{display:none!important}
+#garageCars .garageVehicleVisual{display:none!important}
+#garageCars .garageCar{background:var(--game-panel);border-radius:20px}
+#garageRewardCard{margin-top:20px}
+#garageRewardCard h3{font-size:17px}
+#garageRewardCard p{font-size:12px}
+.garageSceneCar[data-glow=cyan]:before,.garageSceneCar[data-glow=amber]:before{content:'';position:absolute;z-index:-1;bottom:-5px;left:15%;width:70%;height:18px;border-radius:50%;background:#50dfff;filter:blur(12px);opacity:.8}
+.garageSceneCar[data-glow=amber]:before{background:#ffae45}
+
+#profileVehicleStage .vehicleIllustration[data-glow=cyan]{filter:drop-shadow(0 8px 7px #25b7e099)}
+#profileVehicleStage .vehicleIllustration[data-glow=amber]{filter:drop-shadow(0 8px 7px #ff9e3399)}
+
+.studioColors{display:flex;flex-wrap:wrap;gap:8px}
+.studioColors .studioLookChoice{min-height:65px;min-width:58px;font-size:10px}
+.studioColors i,.petSwatches i{display:block;width:26px;height:26px;border-radius:50%;background:var(--swatch);border:1px solid #ffffff66;margin:0 auto 8px}
+.petSwatches button>span{display:inline;width:auto;height:auto;background:none;margin:0;border:0;border-radius:0}
+.petSegments{display:flex;flex-wrap:wrap;gap:8px}
+.petSegments button{min-height:44px;border:1px solid var(--game-line);border-radius:12px;padding:10px 14px;background:var(--game-panel);color:white}
+.petSegments button[aria-pressed=true]{border-color:var(--game-accent);background:var(--game-soft)}
+.lobbySettingsPreview{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;background:radial-gradient(ellipse,#ff985f20,transparent 70%),repeating-linear-gradient(35deg,transparent 0 35px,#ffffff05 36px 38px);border-radius:15px;position:relative;overflow:hidden}
+.lobbyPreviewCircle{width:90px;height:90px;border:1px dashed var(--game-accent);border-radius:50%;background:#ff985f14}
+.lobbySettingsPreview small{font-size:10px;color:var(--game-muted)}
+.socialMapPreview>header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.socialMapPreview h3{font-size:17px;margin:5px 0 10px}
+.socialMapPreview small{font-size:9px;letter-spacing:.1em;color:var(--game-muted)}
+.socialMapPreview button{min-height:44px;border-radius:10px;border:1px solid var(--game-line);background:var(--game-panel);color:white;padding:10px}
+.socialMapPreview>p{font-size:11px;line-height:1.6;color:var(--game-muted)}
+.socialMapPreviewCanvas:empty{background:radial-gradient(ellipse,#243140,#141a24);min-height:130px}
+.resultCrewHeading{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.06em;padding:12px 0}
+.resultCrewInfo>span,.resultCrewInfo>small{display:block}
+.resultCrewInfo>small{font-size:10px;margin-top:6px;color:#b6c1d0}
+
+@media(max-width:600px){.garageSceneCar{height:205px}
+.vehicleRewards{padding:16px}
+.vehicleRewards>header{align-items:flex-start}
+.vehicleRewards h3{font-size:17px}
+.vehicleRewardChoices button{padding:10px 5px}
+.garageSelector>button{flex-basis:125px}
+.vehicleRewards>header>span{font-size:9px}
+.garageSceneCar>.vehicleIllustration{height:95%}
+}
+
+
+/* Reset old centred product-dialog rules before the mobile full-screen layout. */
+#wardrobeDialog,#petsDialog{inset:0!important;transform:none!important;margin:auto!important;box-sizing:border-box;overflow:auto!important}
+#wardrobeDialog .dialogClose,#petsDialog .dialogClose{position:absolute;top:18px;right:16px;min-height:44px;min-width:44px}
+#wardrobeDialog h2,#petsDialog h2{padding-right:48px}
+#wardrobeDialog .studioColors .studioLookChoice>span{display:block!important;position:static!important;width:auto!important;height:auto!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;overflow-wrap:anywhere;color:#d8dfe8;font-size:10px}
+#wardrobeDialog .studioColors .studioLookChoice{padding:9px 5px!important;min-width:59px;flex:0 0 auto;border-radius:12px!important}
+.garageSceneCar .vehicleRender{display:block!important}
+.garageSceneCar .vehicleRender svg{display:block!important}
+.profileUtilityMenu:empty{display:none}
+.socialMapPreviewCanvas{overflow:hidden}
+#profile .profileHero{position:relative!important}
+
+@media(max-width:600px){#wardrobeDialog,#petsDialog{inset:0!important;margin:0!important;transform:none!important;width:100%!important;height:100dvh!important;max-height:100dvh!important}
+#freshSettingsDialog{inset:0!important;transform:none!important}
+#wardrobeDialog .wardrobePreview{top:auto!important}
+}
+
+#game.freshLobby.active.roundImmersive{width:100%;box-sizing:border-box;overflow-x:clip}
+#game.roundImmersive .freshLobbyTools{left:auto!important;right:12px!important;width:98px!important;max-width:98px!important}
+#game.roundImmersive .freshToolButtons{display:grid!important;grid-template-columns:44px 44px;gap:6px;margin:0!important}
+#game.roundImmersive .freshRoomHeader{width:calc(100% - 130px)!important}
+#game.roundImmersive .gameStats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;box-sizing:border-box;padding:12px!important}
+#game.roundImmersive[data-round-role] #role{background:transparent!important;color:var(--game-accent)!important;font-size:10px!important;letter-spacing:0!important;padding:8px 5px!important;display:block;overflow-wrap:anywhere;box-sizing:border-box}
+#roundRoster{max-width:100%;min-width:0}
+#roundDock{box-sizing:border-box}
+#game.roundImmersive #timer{font-size:32px!important}
+
+.resultTableScroll{max-width:100%;overflow-x:auto;border:1px solid var(--game-line);border-radius:12px}
+.resultTableScroll:focus-visible{outline:2px solid var(--game-accent)}
+#gameplayDetails{min-width:0;box-sizing:border-box;max-width:100%}
+.resultTableScroll .gameplayResults{margin:0;white-space:nowrap}
+#game #result:has(.resultCrewGrid){box-sizing:border-box}
+.resultDetails summary{list-style:none}
+.resultDetails summary::after{content:'+';margin-left:auto;font-size:20px}
+.resultDetails[open] summary::after{content:'−'}
+
+#game:has(#result:not(.hidden)){box-sizing:border-box;max-width:100%;overflow-x:clip}
+.resultDetails:not([open])>.resultTableScroll{display:none}
+.resultTableScroll{width:100%;box-sizing:border-box}
+#gameplayDetails>.resultDetails{min-width:0;max-width:100%}
+
+
+#game:has(#result:not(.hidden)) .freshCrewBoard,#game:has(#result:not(.hidden)) .freshRoomHeader,#game:has(#result:not(.hidden)) .freshLobbyTools,#game:has(#result:not(.hidden)) #communityLobbyMeta{display:none!important}
+#game:has(#result:not(.hidden)){padding-top:12px!important}
+.resultCrewVisual>.lobbyCrewCharacter{height:clamp(60px,14vw,110px)!important;width:clamp(32px,7vw,55px)!important;bottom:14px!important}
+.resultCrewVisual>.petCompanion{height:calc(clamp(60px,14vw,110px) * var(--pet-scale))!important;width:calc(clamp(60px,14vw,110px) * var(--pet-scale) * var(--pet-ratio))!important}
+.lobbySettingsPreview::before,.lobbySettingsPreview::after{display:none!important}
+#result .resultIcon{font-size:28px}
+#result .resultState{font-size:10px}
+#result .gameplayResults{font-size:11px}
+
+.parkingVehicleStage .vehicleIllustration[data-glow=cyan],.resultCrewVisual .vehicleIllustration[data-glow=cyan]{filter:drop-shadow(0 6px 5px #25b7e099)}
+.parkingVehicleStage .vehicleIllustration[data-glow=amber],.resultCrewVisual .vehicleIllustration[data-glow=amber]{filter:drop-shadow(0 6px 5px #ff9e3399)}
+
+#petsDialog .petCategories button,#freshSettingsDialog input[type=range]{min-height:44px}
+.resultCrewChat{min-height:44px;border:1px solid var(--game-line);background:var(--game-panel);color:white;border-radius:12px;padding:12px 18px;width:100%;margin:12px 0}
