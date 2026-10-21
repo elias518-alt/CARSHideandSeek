@@ -16,7 +16,7 @@
     accountCheck++;
     window.communityUI?.closePrivateViews();
     stopActivity();
-    currentAccount=null;document.getElementById('adminMenuButton')?.setAttribute('hidden','');
+    currentAccount=null;window.feedbackUI?.reset();document.getElementById('adminMenuButton')?.setAttribute('hidden','');
     for(const id of ['profileEditDialog','profileStatsDialog','adminDialog','petsDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.disposePets?.();view?.remove();}
   }
   async function initialize(){
@@ -25,7 +25,7 @@
     try{
       const account=await api('account-status',{},'GET');
       if(!valid())return false;
-      currentAccount=account;
+      currentAccount=account;void window.feedbackUI?.refreshInbox();
       const previewNotice=document.getElementById('developerPreviewNotice');if(previewNotice)previewNotice.hidden=!account.developerPreview;
       const button=document.getElementById('adminMenuButton');if(button)button.hidden=!currentAccount.admin||currentAccount.banned;
       if(currentAccount.banned){await gate(currentAccount);return false;}

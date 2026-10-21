@@ -22,12 +22,14 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     try{response=await backend.request(resource,{method,body,prefer,timeout:10000});}
     catch{throw error(503,'Kontoschutz ist vorübergehend nicht erreichbar.');}
     if(!response.ok){
-      if(resource.startsWith('rpc/chs_admin_')&&response.status===400){
+      if((resource.startsWith('rpc/chs_admin_')||['rpc/chs_submit_feedback','rpc/chs_report_message_evidence'].includes(resource))&&response.status===400){
         let message='';try{message=(await response.json()).message||'';}catch{}
+        if(/Zu viele Meldungen/.test(message))throw error(429,'Zu viele Meldungen. Bitte später erneut versuchen.');
         if(/forbidden|protected/i.test(message))throw error(403,'Diese Aktion ist nicht erlaubt.');
         if(/not found/i.test(message))throw error(404,'Eintrag nicht gefunden.');
         throw error(409,'Die Aktion konnte nicht bestätigt werden. Bitte Ansicht neu laden und erneut prüfen.');
       }
+      if(['rpc/chs_admin_set_level','rpc/chs_submit_feedback','rpc/chs_report_message_evidence','rpc/chs_admin_inbox'].includes(resource)||resource.startsWith('chs_player_reports?')&&resource.includes('evidence'))throw error(503,'Der Feedback- und Adminbereich benötigt die aktuelle Datenbank- und Gateway-Einrichtung oder ist vorübergehend nicht erreichbar.');
       throw error(503,'Kontoschutz konnte nicht geprüft oder gespeichert werden.');
     }
     return response.status===204?null:response.json();
@@ -74,13 +76,42 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     await requireAdmin(actor);
     const search=String(q).trim().slice(0,40).replace(/[^\p{L}\p{N} _-]/gu,'');
     const offset=Math.max(0,Math.min(100000,Math.trunc(Number(page)||0)))*25;
-    const query=new URLSearchParams({select:'id,username,player_tag,level,rounds_played,wins,created_at,last_seen_at',order:'created_at.desc,id',limit:'26',offset:String(offset)});
-    if(search)query.set('or',`(username.ilike.*${search}*,player_tag.ilike.*${search}*)`);
+    const query=new URLSearchParams({select:'id,username,player_tag,level,xp,rounds_played,wins,created_at,last_seen_at',order:'created_at.desc,id',limit:'26',offset:String(offset)});
+    if(uuid(search))query.set('id','eq.'+search);else if(search)query.set('or',`(username.ilike.*${search}*,player_tag.ilike.*${search}*)`);
     const rows=await request('profiles?'+query);
     const ids=rows.slice(0,25).map(p=>p.id).filter(uuid);
     const [bans,staff,regions]=await Promise.all([ids.length?request('chs_account_bans?user_id=in.('+ids.join(',')+')&select=user_id,reason,until_at,revoked_at'):[],ids.length?request('chs_staff_roles?user_id=in.('+ids.join(',')+')&select=user_id,role'):[],coarseRegions(ids)]);
     return {players:rows.slice(0,25).map(p=>({...p,region:regions.find(r=>r.user_id===p.id)||null,role:adminIds(env).includes(p.id)?'super_admin':staff.find(r=>r.user_id===p.id)?.role||'user',admin:adminIds(env).includes(p.id),ban:bans.find(b=>b.user_id===p.id&&!b.revoked_at&&(!b.until_at||Date.parse(b.until_at)>Date.now()))||null})),hasMore:rows.length>25};
   }
+  async function setLevel(actor,data){
+    const role=await requirePermission(actor,'levels'),{targetId,level,expectedXp}=data,reason=String(data.reason||'').trim();
+    if(!uuid(targetId)||!Number.isInteger(level)||level<1||level>50||!Number.isSafeInteger(expectedXp)||expectedXp<0||reason.length<5||reason.length>500)throw error(400,'Level 1 bis 50 und eine Begründung angeben.');
+    if(targetId!==actor&&role!=='super_admin'&&(await roleFor(targetId))==='super_admin')throw error(403,'Dieses Administratorkonto ist geschützt.');
+    const result=await request('rpc/chs_admin_set_level',{method:'POST',body:{p_actor:actor,p_target:targetId,p_level:level,p_expected_xp:expectedXp,p_reason:reason}});
+    return {ok:true,profile:result};
+  }
+  async function feedbackTargets(actor,{q=''}={}){
+    await requireAccess(actor);const search=String(q).trim().replace(/[^\p{L}\p{N} _-]/gu,'').slice(0,40);
+    if(search.length<2)return {players:[]};
+    const query=new URLSearchParams({select:'id,username,player_tag',order:'username,id',limit:'12',or:`(username.ilike.*${search}*,player_tag.ilike.*${search}*)`});
+    return {players:(await request('profiles?'+query)).filter(p=>p.id!==actor)};
+  }
+  async function feedback(actor,data,context={}){
+    const areas=['home','lobby','garage','profile','stats','friends','crew','map','wardrobe','pets','other'];
+    const kind=data.kind,area=data.area,comment=String(data.comment||'').trim(),target=context.target||data.targetId||null;
+    const category=data.category;
+    if(!['feedback','player'].includes(kind)||!areas.includes(area)||comment.length>500||comment.length<5||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(comment))throw error(400,'Bitte Bereich und eine Beschreibung mit 5 bis 500 Zeichen angeben.');
+    if(!(kind==='player'?Object.keys(rules.CATEGORIES):['bug','idea','ui']).includes(category)||kind==='player'&&(!uuid(target)||target===actor))throw error(400,'Bitte gültigen Spieler und Kategorie auswählen.');
+    await requireAccess(actor);
+    let evidence=context.evidence||{};
+    if(data.messageId){
+      if(kind!=='player'||!uuid(data.messageId))throw error(400,'Ungültige Chatmeldung.');
+      evidence=await request('rpc/chs_report_message_evidence',{method:'POST',body:{p_actor:actor,p_target:target,p_message:data.messageId}});
+    }
+    await request('rpc/chs_submit_feedback',{method:'POST',body:{p_actor:actor,p_id:require('node:crypto').randomUUID(),p_kind:kind,p_area:area,p_target:kind==='player'?target:null,p_category:category,p_comment:comment,p_lobby:context.code||null,p_evidence:evidence}});
+    return {ok:true};
+  }
+  async function inbox(actor){await requirePermission(actor,'reports');return request('rpc/chs_admin_inbox',{method:'POST',body:{p_actor:actor}});}
   async function coarseRegions(ids){const valid=[...new Set(ids.filter(uuid))],rows=[];for(let i=0;i<valid.length;i+=100)rows.push(...await request('chs_user_regions?user_id=in.('+valid.slice(i,i+100).join(',')+')&select=user_id,country,region'));return rows;}
   async function ban(actor,data){
     const actorRole=await requirePermission(actor,'bans');
@@ -116,12 +147,16 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     const {category,comment}=rules.reportInput(record);
     await request('chs_player_reports',{method:'POST',ignoreDuplicates:true,body:{id:record.id,reporter_id:id,target_id:record.target,lobby_code:record.code,category,comment}});
   }
-  async function reportList(actor,{status='open',page=0}={}){
+  async function reportList(actor,{status='open',page=0,kind='all',area='all'}={}){
     await requirePermission(actor,'reports');
     if(status!=='all'&&!rules.STATUSES.includes(status))throw error(400,'Ungültiger Meldungsstatus.');
-    const query=new URLSearchParams({select:'id,reporter_id,target_id,lobby_code,category,comment,status,resolution,created_at,updated_at',order:'created_at.desc,id',limit:'51',offset:String(Math.max(0,Math.min(10000,Number(page)||0))*50)});
+    const query=new URLSearchParams({select:'id,reporter_id,target_id,lobby_code,category,comment,status,resolution,created_at,updated_at,kind,area,evidence',order:'created_at.desc,id',limit:'51',offset:String(Math.max(0,Math.min(10000,Number(page)||0))*50)});
     if(status!=='all')query.set('status','eq.'+status);
-    const rows=await request('chs_player_reports?'+query);return {reports:rows.slice(0,50),hasMore:rows.length>50};
+    if(kind!=='all'){if(!['feedback','player'].includes(kind))throw error(400,'Ungültiger Eingang.');query.set('kind','eq.'+kind);}
+    if(area!=='all'){if(!['home','lobby','garage','profile','stats','friends','crew','map','wardrobe','pets','other'].includes(area))throw error(400,'Ungültiger Bereich.');query.set('area','eq.'+area);}
+    const rows=await request('chs_player_reports?'+query),ids=[...new Set(rows.slice(0,50).flatMap(r=>[r.reporter_id,r.target_id]).filter(uuid))];
+    const people=ids.length?await request('profiles?id=in.('+ids.join(',')+')&select=id,username,player_tag'):[];
+    return {reports:rows.slice(0,50).map(r=>({...r,reporter_name:people.find(p=>p.id===r.reporter_id)?.username||null,target_name:people.find(p=>p.id===r.target_id)?.username||null})),hasMore:rows.length>50};
   }
   async function updateReport(actor,data){
     await requirePermission(actor,'reports');
@@ -170,6 +205,6 @@ function createAccountService({url,key,fetchImpl=fetch,env=process.env}={}){
     if(attestations.size>2000)attestations.delete(attestations.keys().next().value);
   }
   async function prune(){if(backend.configured)await request('rpc/chs_beta_retention',{method:'POST',body:{}});}
-  return {status,requireAccess,requireAdmin,requirePermission,roleFor,accept,players,ban,audit,prune,attest,setRole,saveBlock,saveReport,reportList,updateReport,stats,logClose,markActive,onboard,recordMatch,recordOperations,personalStats,initializeModeration,coarseRegions};
+  return {setLevel,feedback,feedbackTargets,inbox,status,requireAccess,requireAdmin,requirePermission,roleFor,accept,players,ban,audit,prune,attest,setRole,saveBlock,saveReport,reportList,updateReport,stats,logClose,markActive,onboard,recordMatch,recordOperations,personalStats,initializeModeration,coarseRegions};
 }
 module.exports={createAccountService,adminIds,uuid};

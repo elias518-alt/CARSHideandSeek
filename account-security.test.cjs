@@ -80,7 +80,11 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
   try{
     assert.equal((await request('admin-players',{},'player-token','GET')).status,403);
     assert.equal((await request('create',{name:'Testspieler',vehicle:'Testauto'})).status,428);
+    assert.equal((await request('admin-level',{targetId:player,level:50,expectedXp:0,reason:'Eigene Manipulation'})).status,403);
+    assert.equal((await request('feedback',{kind:'feedback',area:'home',category:'ui',comment:'Testfeedback vor Zustimmung'})).status,428);
     const legal=documents(process.env);assert.equal((await request('legal-accept',{version:legal.version,hash:legal.hash,terms:true,safety:true,adult:true,privacyRead:true})).status,200);
+    assert.equal((await request('feedback',{kind:'feedback',area:'home',category:'ui',comment:'Testfeedback nach Zustimmung',evidence:{messages:['erfunden']}})).status,200);
+    assert.deepEqual(JSON.parse(f.calls.filter(c=>c.url.includes('/rpc/chs_submit_feedback')).at(-1).options.body).p_evidence,{});
     const denied=await request('wardrobe-save',{appearance:{collection:'studio',gender:'female'},plus:true});assert.equal(denied.status,403);
     const forged=await request('create',{name:'Free',vehicle:'Auto',appearance:{collection:'studio',gender:'female'},pet:{breed:'horse',coat:'brown'},plus:true});assert.equal(forged.data.lobby.players[0].appearance.collection,'classic');assert.equal(forged.data.lobby.players[0].pet,null);assert.equal((await request('pets-save',{pet:{breed:'husky'},plus:true})).status,403);assert.equal((await request('pets-save',{pet:null})).status,200);
     assert.equal((await request('wardrobe-access',{},'player-token','GET')).data.plus,false);
@@ -98,10 +102,10 @@ test('HTTP entry points enforce legal acceptance and admin bans, including exist
     const moderation={code:created.data.lobby.code,userId:created.data.userId,targetId:joined.data.userId,reason:'Testmeldung für die Prüfung'};
     assert.equal((await request('report',moderation,'player-token','GET')).status,405);
     assert.equal((await request('report',moderation)).status,200);
-    server.reports.length=0;const beforeReports=f.calls.filter(c=>c.url.includes('/chs_player_reports')).length;
+    server.reports.length=0;const beforeReports=f.calls.filter(c=>c.url.includes('/rpc/chs_submit_feedback')).length;
     const duplicates=await Promise.all([request('report',moderation),request('report',moderation)]);
     assert.deepEqual(duplicates.map(r=>r.status),[200,200]);
-    assert.equal(f.calls.filter(c=>c.url.includes('/chs_player_reports')).length-beforeReports,1);
+    assert.equal(f.calls.filter(c=>c.url.includes('/rpc/chs_submit_feedback')).length-beforeReports,1);
     assert.equal((await request('block',{targetAuthId:owner,blocked:true})).status,200);
     assert.equal((await request('join',{code:created.data.lobby.code},'owner-token')).status,403);
     assert.equal((await request('block',{targetAuthId:owner,blocked:false})).status,200);

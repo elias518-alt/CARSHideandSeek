@@ -258,7 +258,7 @@ function renderFriends() {
     <div class="socialRow">
       ${socialAvatarMarkup(row)}
       <div class="socialPerson"><strong>${esc(friendDisplayName(row))}</strong><small>${esc(row.player_tag || '')} · Lv. ${Number(row.level) || 1}${row.status === 'pending' ? (row.incoming ? ' · Anfrage erhalten' : ' · Anfrage gesendet') : ''}</small>${row.status==='accepted'?'<small class="friendPresence '+(friendIsOnline(row)?'isOnline':'')+'">'+esc(friendActivityLabel(row))+'</small><small data-friend-location="'+esc(row.peer_id)+'"></small>':''}</div>
-      <div class="socialActions">
+      <div class="socialActions"><button type="button" data-report-peer="${esc(row.peer_id)}" data-report-name="${esc(friendDisplayName(row))}">Melden</button>
         ${row.status === 'accepted' ? `<button data-dm="${esc(row.peer_id)}">CHAT${Number(row.unread_count)>0?'<span class="notificationBadge">'+esc(Math.min(99,Number(row.unread_count)))+'</span>':''}</button><button data-remove="${row.request_id}" aria-label="Freund entfernen">×</button>` : row.incoming ? `<button data-accept="${row.request_id}">ANNEHMEN</button><button data-decline="${row.request_id}" aria-label="Ablehnen">×</button>` : `<button data-remove="${row.request_id}">ZURÜCKZIEHEN</button>`}
       </div>
     </div>`).join('') : `<div class="emptyState">${socialTab === 'friends' ? 'Noch keine Freunde. Suche oben nach einem Spielernamen.' : 'Keine offenen Anfragen.'}</div>`;
@@ -305,7 +305,7 @@ async function loadDm() {
  try{
   const messages=(await socialRpc('chs_get_messages',{peer})||[]).reverse();if(!current())return;
   const last=messages.at(-1)?.message_id||null;
-  if(dmLastId!==last){dmLastId=last;$('#dmMessages').innerHTML=messages.length?messages.map(msg=>`<div class="message ${msg.sender_id===account?'mine':''}"><small>${msg.sender_id===account?'DU':esc(friendDisplayName(activePeer))} · ${new Date(msg.sent_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</small><span>${esc(msg.body)}</span></div>`).join(''):'<p class="muted">Schreib die erste Nachricht.</p>';$('#dmMessages').scrollTop=$('#dmMessages').scrollHeight;}
+  if(dmLastId!==last){dmLastId=last;$('#dmMessages').innerHTML=messages.length?messages.map(msg=>`<div class="message ${msg.sender_id===account?'mine':''}"><small>${msg.sender_id===account?'DU':esc(friendDisplayName(activePeer))} · ${new Date(msg.sent_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</small><span>${esc(msg.body)}</span>${msg.sender_id===peer?`<button type="button" data-report-peer="${esc(peer)}" data-report-name="${esc(friendDisplayName(activePeer))}" data-report-message="${esc(msg.message_id)}">Nachricht melden</button>`:''}</div>`).join(''):'<p class="muted">Schreib die erste Nachricht.</p>';$('#dmMessages').scrollTop=$('#dmMessages').scrollHeight;}
   const latestIncoming=messages.filter(msg=>msg.sender_id===peer).at(-1);
   const list=$('#dmMessages'),rect=list.getBoundingClientRect?.();
   const visible=(!rect||rect.bottom>0&&rect.top<window.innerHeight)&&list.scrollHeight-list.scrollTop-list.clientHeight<40;

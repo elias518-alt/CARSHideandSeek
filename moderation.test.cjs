@@ -3,16 +3,16 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {createAccountService}=require('./account-service');
 const rules=require('./moderation-rules'),{createMonitor}=require('./beta-monitor');
 const actor='11111111-1111-4111-8111-111111111111',target='22222222-2222-4222-8222-222222222222';
-function fixture(role='user'){
+function fixture(role='user',consent=false){
  const calls=[];let offline=false,onboarded=false;
- const service=createAccountService({url:'https://test.invalid',key:'sb_secret_test',env:{CHS_ADMIN_USER_IDS:role==='super_admin'?actor:''},fetchImpl:async(url,o={})=>{
+ const service=createAccountService({url:'https://test.invalid',key:'sb_secret_test',env:{CHS_ADMIN_USER_IDS:role==='super_admin'?actor:'',...(consent?{CHS_OPERATOR_NAME:'Test',CHS_OPERATOR_ADDRESS:'Teststraße 1',CHS_OPERATOR_EMAIL:'test@example.invalid',CHS_LEGAL_REVIEWED:'true'}:{})},fetchImpl:async(url,o={})=>{
  const path=new URL(url).pathname.split('/').pop(),body=o.body?JSON.parse(o.body):{};calls.push({path,body,url,method:o.method});if(offline)return {ok:false,status:503};
- let result=[];if(path==='chs_staff_roles')result=[{user_id:actor,role}];if(path==='profiles')result=[{id:target}];if(path==='chs_onboarding'){if(o.method==='POST')onboarded=true;result=onboarded?[{version:rules.ONBOARDING_VERSION}]:[];}
+ let result=[];if(path==='chs_legal_acceptances'&&consent)result=[{accepted_at:'2026-10-21'}];if(path==='chs_staff_roles')result=[{user_id:actor,role}];if(path==='profiles')result=[{id:target}];if(path==='chs_onboarding'){if(o.method==='POST')onboarded=true;result=onboarded?[{version:rules.ONBOARDING_VERSION}]:[];}
  if(path==='chs_personal_beta_stats')result={recordedRounds:3000,seekerRounds:1000,hiderRounds:2000};
  return {ok:true,status:200,json:async()=>result};}});
  return {service,calls,offline:v=>offline=v};
 }
-for(const role of rules.ROLES)for(const permission of ['reports','players','bans','lobbies','stats','audit','roles'])test(role+' permission '+permission,async()=>{
+for(const role of rules.ROLES)for(const permission of ['reports','players','levels','bans','lobbies','stats','audit','roles'])test(role+' permission '+permission,async()=>{
  const f=fixture(role);if(rules.permitted(role,permission))assert.equal(await f.service.requirePermission(actor,permission),role);else{await assert.rejects(f.service.requirePermission(actor,permission),{status:403});assert.equal(f.calls.some(c=>!['chs_staff_roles'].includes(c.path)),false);}
 });
 test('report category is mandatory, comments are optional and hostile input is bounded',()=>{
@@ -47,4 +47,24 @@ test('monitor concurrent flush sends each batch once',async()=>{
 });
 test('revoked or unavailable permissions fail closed',async()=>{
  const f=fixture('moderator');f.offline(true);await assert.rejects(f.service.reportList(actor,{}),{status:503});assert.equal(f.calls.some(c=>c.path==='chs_player_reports'),false);
+});
+
+test('level edits validate input, allow admin self-edit and use audited RPC',async()=>{
+ const f=fixture('super_admin');
+ for(const level of [0,51,2.5,'4'])await assert.rejects(f.service.setLevel(actor,{targetId:actor,level,expectedXp:1000,reason:'Korrektur geprüft'}),{status:400});
+ assert.equal(f.calls.some(c=>c.path==='chs_admin_set_level'),false);
+ await f.service.setLevel(actor,{targetId:actor,level:8,expectedXp:1000,reason:'Korrektur geprüft'});
+ assert.deepEqual(f.calls.at(-1).body,{p_actor:actor,p_target:actor,p_level:8,p_expected_xp:1000,p_reason:'Korrektur geprüft'});
+});
+test('feedback does not trust caller evidence, actor, status or resolution',async()=>{
+ const f=fixture('user',true);await f.service.feedback(actor,{kind:'feedback',area:'garage',category:'ui',comment:'Das Auto ist nicht sichtbar.',evidence:{messages:['forged']},reporter:target,status:'resolved'});
+ const call=f.calls.at(-1);assert.equal(call.path,'chs_submit_feedback');assert.equal(call.body.p_actor,actor);assert.deepEqual(call.body.p_evidence,{});assert.equal(call.body.p_target,null);assert.equal(call.body.status,undefined);
+});
+test('feedback requires a meaningful comment and player reports require another real identity',async()=>{
+ const f=fixture();for(const data of [{kind:'feedback',area:'garage',category:'ui',comment:''},{kind:'player',area:'friends',targetId:actor,category:'harassment',comment:'Eine Beschreibung'},{kind:'feedback',area:'invalid',category:'ui',comment:'Eine Beschreibung'}])await assert.rejects(f.service.feedback(actor,data),{status:400});
+ assert.equal(f.calls.length,0);
+});
+test('lobby evidence is bounded and omits GPS, credentials and private fields',()=>{
+ const evidence=rules.lobbyEvidence({players:[{id:'p',name:'Alex',location:{lat:1,lng:2},authId:actor}],messages:Array.from({length:100},(_,i)=>({id:String(i),sender:'p',body:'Ä'.repeat(500),at:12,token:'secret'})),events:Array.from({length:100},(_,i)=>({id:String(i),type:'FOUND',body:'Spieler gefunden',at:13,location:{lat:5,lng:6},targetId:'private'}))});
+ assert.ok(evidence.messages.length<=30&&evidence.events.length<=50);assert.ok(Buffer.byteLength(JSON.stringify(evidence),'utf8')<=32000);assert.doesNotMatch(JSON.stringify(evidence),/lat|lng|token|secret|authId|private/);assert.equal(evidence.messages.at(-1).id,'99');
 });

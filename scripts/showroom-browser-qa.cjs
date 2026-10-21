@@ -40,11 +40,21 @@ const stub=fs.readFileSync(path.join(repo,'scripts/community-ui-qa.mjs'),'utf8')
     await page.evaluate(()=>openPage('profile'));
     if(kind!=='catalog')await page.waitForFunction(()=>document.querySelector('#profileVehicleStage [data-photo-fit="ready"]'));
     await page.waitForTimeout(100);
-    const profile=await page.evaluate(()=>{const host=document.getElementById('profileVehicleStage'),figure=host.querySelector('figure');return {host:host.getBoundingClientRect().toJSON(),car:figure.getBoundingClientRect().toJSON(),progress:document.querySelector('#profile .profileProgress').getBoundingClientRect().toJSON(),shadowBottom:parseFloat(getComputedStyle(host,'::before').bottom),shadowWidth:parseFloat(getComputedStyle(host,'::before').width)};});
-    check(Math.abs(profile.car.bottom-profile.host.bottom+22)<2,'Photo floats above contact plane');
-    check(profile.shadowBottom===17&&profile.shadowWidth<profile.car.width,'Contact shadow detached or wider than car');
+    const profile=await page.evaluate(()=>{const host=document.getElementById('profileVehicleStage'),figure=host.querySelector('figure');return {person:host.querySelector('.lobbyCrewCharacter')?.getBoundingClientRect().toJSON(),host:host.getBoundingClientRect().toJSON(),car:figure.getBoundingClientRect().toJSON(),progress:document.querySelector('#profile .profileProgress').getBoundingClientRect().toJSON(),shadowBottom:parseFloat(getComputedStyle(host,'::before').bottom),shadowWidth:parseFloat(getComputedStyle(host,'::before').width)};});
+    check(Math.abs(profile.car.bottom-profile.host.bottom+18)<2,'Photo floats above contact plane');
+    check(profile.person&&profile.person.top>=profile.host.top&&profile.person.bottom<=profile.host.bottom,'Profile character clipped');
+    check(profile.car.top>=profile.host.top,'Profile car clipped');
+    check(profile.shadowBottom===13&&profile.shadowWidth<profile.car.width,'Contact shadow detached or wider than car');
     check(profile.car.bottom<profile.progress.top,'Car covers profile progress');
     if(kind==='front'||kind==='catalog')await page.screenshot({path:out+'/profile-'+kind+'-'+width+'.png',fullPage:true});
+   }
+   if(width===390){
+    const looks=[...Array.from({length:3},(_,classic)=>({collection:'classic',classic})),...['alex','maya','nico','lea'].map(figure=>({collection:'studio',figure}))];
+    for(const look of looks){await page.evaluate(look=>{accountUI.appearance=()=>look;openPage('profile');referenceUI.renderOwn();},look);await page.waitForTimeout(50);
+     const fitted=await page.evaluate(()=>{const stage=document.getElementById('profileVehicleStage').getBoundingClientRect(),figure=document.querySelector('#profileVehicleStage>.lobbyCrewCharacter').getBoundingClientRect();return figure.top>=stage.top&&Math.abs(figure.bottom-(stage.bottom-18))<2;});check(fitted,'Figure floor '+JSON.stringify(look));}
+    const breeds=await page.evaluate(()=>Object.keys(pets.breeds));
+    for(const breed of breeds){await page.evaluate(breed=>{petUI.selection=()=>pets.normalize({breed,size:2});referenceUI.renderOwn();},breed);await page.waitForTimeout(50);
+     const fitted=await page.evaluate(()=>{const stage=document.getElementById('profileVehicleStage').getBoundingClientRect(),pet=document.querySelector('#profileVehicleStage>.petCompanion').getBoundingClientRect();return pet.top>=stage.top&&Math.abs(pet.bottom-(stage.bottom-18))<2;});check(fitted,'Pet floor '+breed);}
    }
    for(const scene of ['hangar','skyline']){await page.evaluate(scene=>{document.documentElement.style.setProperty('--personal-scene','url("assets/scenes/'+scene+'.webp")');localGarage[0].photo='';openPage('home');referenceUI.renderOwn();},scene);await page.waitForTimeout(100);if(width===390)await page.screenshot({path:out+'/home-'+scene+'.png',fullPage:true});}
    check(!errors.length,errors.join(';'));await page.close();
