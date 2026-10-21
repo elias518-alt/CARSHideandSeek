@@ -26,3 +26,5 @@ jobs:
         run: node scripts/social-map-sql-qa.mjs /tmp/chs-sql-qa/node_modules/@electric-sql/pglite/dist/index.js
       - name: Verify achievement thresholds, XP and result claim permissions
         run: node scripts/achievements-sql-qa.mjs /tmp/chs-sql-qa/node_modules/@electric-sql/pglite/dist/index.js
+      - name: Verify admin levels and feedback evidence permissions
+        run: node scripts/admin-feedback-sql-qa.mjs /tmp/chs-sql-qa/node_modules/@electric-sql/pglite/dist/index.js

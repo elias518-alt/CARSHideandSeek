@@ -44,7 +44,7 @@ async function ensureAdStore(){if(adStoreReady)return;if(!adStoreLoading)adStore
 const ads=require('./ad-service').createAdService({history:()=>[...roundHistory.values()],unsafe:id=>[...lobbies.values()].some(l=>l.players.some(p=>p.authId===id&&!p.left)),persist:()=>adStore.save(ads.snapshot())});
 const rateWindows=new Map();
 function rateLimit(authId,action,now=Date.now()) {
-  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000],'client-error':[10,60000],'ads-status':[20,60000],'ads-begin':[5,60000],'ads-complete':[5,60000],'ads-cancel':[10,60000]};
+  const policies={create:[5,60000],join:[30,60000],location:[30,10000],found:[30,60000],chat:[10,10000],report:[5,60000],feedback:[5,60000],'feedback-targets':[20,60000],block:[20,60000],invite:[20,60000],settings:[20,10000],state:[40,10000],'client-error':[10,60000],'ads-status':[20,60000],'ads-begin':[5,60000],'ads-complete':[5,60000],'ads-cancel':[10,60000]};
   const policy=policies[action]||(action.startsWith('admin-')?[60,60000]:null);if(!policy)return;
   const key=authId+':'+action;let window=rateWindows.get(key);
   if(!window||now>=window.until){window={count:0,until:now+policy[1]};rateWindows.set(key,window);}
@@ -393,7 +393,7 @@ async function route(action, data, authId) {
     return serialModeration('report:'+authId+':'+target.authId,async()=>{
     if(reports.some(r=>r.reporter===authId&&r.target===target.authId&&now-r.at<60000))return {ok:true};
     const record={id:crypto.randomUUID(),reporter:authId,target:target.authId,code:lobby.code,at:now,...input};
-    await accounts.saveReport(authId,record);reports.push(record);
+    await accounts.feedback(authId,{kind:'player',area:'lobby',targetId:target.authId,...input,comment:input.comment||'Spieler aus der Lobby gemeldet.'},{code:lobby.code,evidence:moderation.lobbyEvidence(lobby)});reports.push(record);
     if(reports.length>2000)reports.splice(0,reports.length-2000);
     return {ok:true};});
   }
@@ -823,8 +823,8 @@ async function handler(req, res) {
         if(req.method!=='GET')fail(405,'Methode nicht erlaubt.');
         send(res,200,documents());return;
       }
-      if(['account-status','legal-accept','onboarding','personal-stats','client-error','admin-players','admin-ban','admin-audit','admin-reports','admin-report-update','admin-role','admin-stats','admin-lobbies','admin-lobby-close','admin-test'].includes(action)) {
-        const method=['legal-accept','onboarding','client-error','admin-ban','admin-report-update','admin-role','admin-lobby-close','admin-test'].includes(action)?'POST':'GET';
+      if(['feedback','feedback-targets','admin-inbox','admin-level','account-status','legal-accept','onboarding','personal-stats','client-error','admin-players','admin-ban','admin-audit','admin-reports','admin-report-update','admin-role','admin-stats','admin-lobbies','admin-lobby-close','admin-test'].includes(action)) {
+        const method=['feedback','admin-level','legal-accept','onboarding','client-error','admin-ban','admin-report-update','admin-role','admin-lobby-close','admin-test'].includes(action)?'POST':'GET';
         if(req.method!==method)fail(405,'Methode nicht erlaubt.');
         const authId=await verifyAuth(req,action.startsWith('admin-'));
         rateLimit(authId,action);
@@ -838,6 +838,17 @@ async function handler(req, res) {
           if(action==='personal-stats')response=await accounts.personalStats(authId);
           if(action==='client-error'){monitor.record(['FRONTEND','VEHICLE','CHAT','SUPABASE','NETWORK','GPS'].includes(data.category)?data.category:'FRONTEND','CLIENT_ERROR');response={ok:true};}
         }
+        if(action==='feedback-targets')response=await accounts.feedbackTargets(authId,data);
+        if(action==='feedback'){
+          const context={},lobby=lobbies.get(clean(data.code,5).toUpperCase());
+          if(['lobby','map'].includes(data.area)&&lobby&&lobby.players.some(p=>p.authId===authId&&p.id===data.userId)){
+            context.code=lobby.code;context.evidence=moderation.lobbyEvidence(lobby);
+            if(data.lobbyPlayerId)context.target=lobby.players.find(p=>p.id===data.lobbyPlayerId)?.authId;
+          }
+          response=await accounts.feedback(authId,data,context);
+        }
+        if(action==='admin-inbox')response=await accounts.inbox(authId);
+        if(action==='admin-level')response=await accounts.setLevel(authId,data);
         if(action==='admin-players')response=await accounts.players(authId,data);
         if(action==='admin-audit')response=await accounts.audit(authId);
         if(action==='admin-reports'){

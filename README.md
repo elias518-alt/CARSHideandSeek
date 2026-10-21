@@ -4,6 +4,8 @@ Aktuelle mobile Oberflächen, Fahrzeugbelohnungen und Prüfungen: [Umsetzungssta
 
 Garagenkorrektur, leicht kleinere Startfahrzeuge und neue Erfolge: [Änderungen, Vorschau und erforderliche SQL-Migration](docs/garage-progress-fixes.md).
 
+Admin-Levelverwaltung, Feedback-/Meldeeingang und Profilboden: [Umsetzung und Bereitstellung vom 21. Oktober 2026](docs/admin-feedback-profile.md).
+
 ## Kleiderschrank, Kontosperren und Zustimmung
 
 Der Kleiderschrank bietet die drei kostenlosen Lobbyfiguren und vier realistische PLUS-Figuren. Je nach Figur lassen sich Oberteil und Hose oder komplette Outfits sowie Kleidungsfarben, Blickrichtung und Siegeranimation wählen. Schuhe gehören zum jeweiligen Outfit. Haustiere werden separat im Profil konfiguriert. Die Foto-zu-Figur-Funktion ist pausiert. Quellen und Assets: [THIRD-PARTY-ASSETS.md](THIRD-PARTY-ASSETS.md).

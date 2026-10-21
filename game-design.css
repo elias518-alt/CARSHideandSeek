@@ -494,3 +494,34 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 
 .hubLevels>li>.hubHint{display:block;clear:both;padding-top:8px}
 .hubReward>.hubVehicleRewardPreview{flex:0 0 42px}
+
+/* A scene-local parking plane: background and feet no longer depend on profile text height. */
+#profile .profileHero{background:var(--game-bg)!important}
+#profile #profileVehicleStage{isolation:isolate;background:linear-gradient(0deg,#10131b66,transparent 32%),var(--personal-scene,url('assets/lobby-meetup.webp')) center bottom/cover;border-radius:16px;overflow:hidden}
+#profile #profileVehicleStage .vehicleIllustration{width:var(--showroom-carWidth,78%)!important;height:var(--showroom-carHeight,160px)!important;aspect-ratio:auto;left:42%;bottom:18px!important;margin:0;z-index:1}
+#profile #profileVehicleStage .vehicleRender{height:100%!important;background:none!important;border:0!important;box-shadow:none!important;overflow:hidden}
+#profile #profileVehicleStage .vehicleIllustration svg{overflow:hidden!important;display:block;object-fit:contain}
+#profile #profileVehicleStage::before{left:42%;bottom:13px;width:calc(var(--showroom-carWidth,78%)*.86);height:12px;z-index:0}
+#profile #profileVehicleStage>.lobbyCrewCharacter{height:var(--showroom-personHeight,160px)!important;width:calc(var(--showroom-personHeight,160px)*.45)!important;bottom:18px!important;left:78%!important;transform:translateX(-25%)!important}
+#profile #profileVehicleStage>.lobbyCrewCharacter::after{content:'';position:absolute;left:12%;right:12%;bottom:-3px;height:7px;border-radius:50%;background:#0007;filter:blur(2px);z-index:-1}
+#profile #profileVehicleStage>.petCompanion{bottom:18px;height:calc(var(--showroom-personHeight,170px)*var(--pet-scale));width:calc(var(--showroom-personHeight,170px)*var(--pet-scale)*var(--pet-ratio))}
+#feedbackMenuButton,#adminInboxButton{color:var(--game-accent);border:1px solid var(--game-line);background:var(--game-panel);border-radius:12px;padding:12px 16px;min-height:44px;font:inherit;cursor:pointer}
+#adminInboxButton{width:100%;margin:12px 0}
+#adminInboxButton[hidden],#feedbackDialog [hidden]{display:none!important}
+#feedbackDialog{width:min(540px,94vw);max-height:90dvh;overflow:auto}
+#feedbackDialog label{display:block;margin:14px 0;font-size:13px}
+#feedbackDialog input,#feedbackDialog select,#feedbackDialog textarea{box-sizing:border-box;width:100%;min-height:44px;padding:12px;background:#171f2b;color:#fff;border:1px solid #ffffff30;border-radius:10px;margin-top:7px;font:inherit}
+#feedbackDialog button,#adminDialog button{min-height:44px}
+.feedbackEvidenceHint,#adminDialog details>p{font-size:12px;line-height:1.6;color:#b5bdcb}
+.adminInboxFilters{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#adminDialog details{margin:14px 0;padding:12px;background:#0c121b;border-radius:10px}
+#adminDialog blockquote{margin:12px 0;padding:10px;border-left:2px solid var(--game-accent);overflow-wrap:anywhere}
+#adminDialog blockquote small{display:block;color:#b5bdcb;font-size:11px;margin-top:5px}
+#adminDialog pre{white-space:pre-wrap;overflow-wrap:anywhere}
+#dmMessages [data-report-message]{display:block;padding:8px;margin-top:8px;min-height:36px;color:#c4cddd;background:#ffffff0a;border:1px solid #ffffff20;border-radius:7px;font-size:11px}
+
+#profile #profileVehicleStage{height:max(235px,calc(var(--showroom-personHeight,170px) + 42px),calc(var(--showroom-carHeight,170px) + 42px))!important;min-height:235px}
+#adminDialog button,#feedbackDialog button{border:1px solid var(--game-line);border-radius:10px;background:var(--game-panel);color:#edf1f7;padding:10px 14px;font:inherit;font-size:12px;cursor:pointer}
+#adminDialog .betaMutation button:not([type=button]),#feedbackDialog button[type=submit]{background:var(--game-accent);color:#10131b;font-weight:800}
+#adminDialog .betaCheck input[type=checkbox]{width:20px!important;height:20px!important;min-height:20px;padding:0;flex:none}
+#adminDialog>.dialogClose{position:sticky;top:0;float:right;z-index:10;min-width:44px}

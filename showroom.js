@@ -12,7 +12,7 @@
  }
  function composition(width,ratio,profile=false){
   ratio=Number.isFinite(ratio)&&ratio>0?ratio:2;
-  const desired=Math.min(width*(profile ? .94 : .86),profile?680:720),limit=profile?Math.min(380,width*.85):Math.min(420,width*.9);
+  const desired=Math.min(width*(profile ? .78 : .86),profile?630:720),limit=profile?Math.min(270,width*.62):Math.min(420,width*.9);
   const carWidth=Math.min(desired,limit*ratio)*(profile?1:.9),carHeight=carWidth/ratio;
   const personHeight=Math.min(carWidth*.9,carHeight*1.08);
   return {carWidth,carHeight,personHeight,center:profile?width/2:width*.45,personLeft:Math.min(width-personHeight*.21,width*.45+carWidth*.46),ground:profile?0:24,personDepth:carHeight*.06};
