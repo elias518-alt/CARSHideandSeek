@@ -37,3 +37,7 @@ Für dieses Projekt generierte, lokal ausgelieferte transparente WebP-Grafiken: 
 Magenta/Cyan bzw. grüne Iris dienen als Materialkanäle. Die App färbt Kleidung/Fell und Augen unabhängig ein. Bestehende Figuren und Tierdateien bleiben erhalten. Die vorhandenen Fahrzeugatlanten sind dadurch nicht als logo-frei verifiziert; offene Grafikprüfungen stehen in `docs/vehicle-asset-audit.json`.
 
 Zusätzlich: `assets/vehicles/bmw-e36-coupe.webp`, eigenständige generierte, visuell logo-frei geprüfte E36-inspirierte Zweitürer-Grafik. Original `/workspace/generated_images/exec-331508dd-1b62-4445-b9f2-ece9effac044.png` (1536 × 1024). Magenta-Karosseriematerial, neutrale Scheiben/Reifen/Felgen; eigene Radanker getrennt von der Limousine. Keine Aussage offizieller Herstellerfreigabe.
+
+# Profilkarten-Motive (22.10.2026)
+
+`assets/profile/wardrobe.webp` und `assets/profile/pets.webp` sind für dieses Projekt generierte Originalmotive. Die PNG-Originale liegen unter `/workspace/generated_images/exec-f9ca1aa3-f684-474d-8860-645372cf22fa.png` und `/workspace/generated_images/exec-5e2861e4-f6f2-4daf-9d11-838ab99cc8a5.png`; die WebP-Dateien wurden mit Qualität 86 konvertiert. Keine fremden Logos oder Textvorlagen verwendet.

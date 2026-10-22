@@ -8,7 +8,7 @@
   const signature=html.replace(/(avatar|character-studio|studio-car|pet)-\d+/g,'$1-id');
   if(box.dataset.designMarkup!==signature||!box.querySelector('.lobbyCrewCharacter,.profileNoVehicle')){box.innerHTML=html;box.dataset.designMarkup=signature;window.showroom?.refresh();}
  }
- function destinationArt(){for(const button of document.querySelectorAll('.profileDestination')){let art=button.querySelector('.destinationArt');if(!art){art=document.createElement('div');art.className='destinationArt';art.setAttribute('aria-hidden','true');button.prepend(art);}const type=button.dataset.destination;const html=type==='look'?wardrobe.markup(window.accountUI?.appearance?.()):type==='pets'?pets.render(window.petUI?.selection?.()||{breed:'husky'}):type==='statistik'?appIcon('trophy'):'';const signature=html.replace(/(character-studio|pet)-\d+/g,'$1-id');if(art.dataset.signature!==signature){art.innerHTML=html;art.dataset.signature=signature;}}}
+ function destinationArt(){for(const button of document.querySelectorAll('.profileDestination')){let art=button.querySelector('.destinationArt');if(!art){art=document.createElement('div');art.className='destinationArt';art.setAttribute('aria-hidden','true');button.prepend(art);}const html=button.dataset.destination==='statistik'?appIcon('trophy'):'';if(art.innerHTML!==html)art.innerHTML=html;}}
  function identity(){destinationArt();
   const badge=$('profileMembership');if(badge){badge.textContent=window.plusUI?.active?'PLUS':'BASIS';badge.dataset.plus=String(window.plusUI?.active===true);}
  }
