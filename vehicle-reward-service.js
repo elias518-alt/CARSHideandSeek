@@ -1,5 +1,6 @@
 'use strict';
 const rewards=require('./vehicle-rewards');
+const configuration=require('./vehicle-configuration');
 function createVehicleRewardService({url,key,fetcher=(...args)=>fetch(...args)}){
  const queues=new Map();
  const fail=(status,message)=>{throw Object.assign(new Error(message),{status});};
@@ -15,9 +16,9 @@ function createVehicleRewardService({url,key,fetcher=(...args)=>fetch(...args)})
    request(authorization,'/auth/v1/user')
   ]);
   if(user?.id!==actor||!Array.isArray(cars)||!Number.isFinite(Number(progress?.level)))fail(503,'Der gespeicherte Fortschritt konnte nicht geprüft werden.');
-  const level=Math.max(1,Math.min(50,Math.floor(Number(progress.level)))),loadouts={};
-  for(const car of cars)loadouts[car.id]=rewards.supported(rewards.restrict(user.user_metadata?.chs_vehicle_loadouts?.[car.id],level),car);
-  return {level,loadouts,cars};
+  const level=Math.max(1,Math.min(50,Math.floor(Number(progress.level)))),loadouts={},presentations={};
+  for(const car of cars){loadouts[car.id]=rewards.supported(rewards.restrict(user.user_metadata?.chs_vehicle_loadouts?.[car.id],level),car);presentations[car.id]=configuration.presentation(user.user_metadata?.chs_vehicle_presentations?.[car.id]);}
+  return {level,loadouts,presentations,cars,title:progress.title||''};
  }
  async function save(actor,authorization,input){
   const previous=queues.get(actor)||Promise.resolve();
@@ -32,12 +33,13 @@ function createVehicleRewardService({url,key,fetcher=(...args)=>fetch(...args)})
    }
    if(JSON.stringify(rewards.normalize(candidate))!==JSON.stringify(rewards.supported(candidate,car)))fail(400,'Felgen und Sportpaket sind für diese Baureihe noch nicht angepasst.');
    state.loadouts[car.id]=rewards.normalize(candidate);
+   if(input.presentation)state.presentations[car.id]=configuration.presentation(input.presentation);
    // Only the cosmetic metadata key is changed. XP and membership remain untouched.
-   await request(authorization,'/auth/v1/user','PUT',{data:{chs_vehicle_loadouts:state.loadouts}});
-   return {level:state.level,loadouts:state.loadouts};
+   await request(authorization,'/auth/v1/user','PUT',{data:{chs_vehicle_loadouts:state.loadouts,...(input.presentation?{chs_vehicle_presentations:state.presentations}:{})}});
+   return {level:state.level,loadouts:state.loadouts,presentations:state.presentations,title:state.title};
   });
   queues.set(actor,work);try{return await work;}finally{if(queues.get(actor)===work)queues.delete(actor);}
  }
- return {async read(actor,authorization){const {level,loadouts}=await read(actor,authorization);return {level,loadouts};},save};
+ return {async read(actor,authorization){const {level,loadouts,presentations,title}=await read(actor,authorization);return {level,loadouts,presentations,title};},save};
 }
 module.exports={createVehicleRewardService};

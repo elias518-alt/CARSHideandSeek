@@ -7,7 +7,7 @@ const lobbyScene=require('./lobby-scene');
 function lobbyFixture(phase='LOBBY',count=4){
   const nodes=new Map();
   const node=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{},classes:new Set(),writes:0,
-    before(){},after(){},close(){this.open=false;},classList:{toggle(name,on){const classes=nodes.get(id).classes;on?classes.add(name):classes.delete(name);}},
+    setAttribute(name,value){(this.attributes||={})[name]=String(value);},getAttribute(name){return this.attributes?.[name]??null;},before(){},after(){},close(){this.open=false;},classList:{toggle(name,on){const classes=nodes.get(id).classes;on?classes.add(name):classes.delete(name);}},
     set innerHTML(value){this.html=value;this.writes++;},get innerHTML(){return this.html||'';}});return nodes.get(id);};
   const players=Array.from({length:count},(_,index)=>({id:'p'+index,profileId:'account'+index,name:'Player '+index,
     connected:true,ready:true,hasLocation:true,vehicle:'Ford Focus',color:'Blau',role:index===0?'SEEKER':'HIDER'}));
@@ -16,11 +16,11 @@ function lobbyFixture(phase='LOBBY',count=4){
   node('targets').nextElementSibling=node('freshMapFold');
   node('crewBoard').nextElementSibling=node('freshMapFold');
   node('freshMapFold').nextElementSibling=node(phase==='LOBBY'?'targets':'crewBoard');
-  const context=vm.createContext({lobbySettingsSaving:false,lobbyScene,state,freshLobbyPhase:'',ensureFreshLobby(){},updateFreshChat(){},
+  const context=vm.createContext({window:{addEventListener(){},vehicleConfiguration:require('./vehicle-configuration'),vehicleStudio:require('./vehicle-studio')},lobbySettingsSaving:false,lobbyScene,state,freshLobbyPhase:'',ensureFreshLobby(){},updateFreshChat(){},
     document:{getElementById:id=>id==='lobbySettingsPanel'?null:node(id),querySelector:selector=>node(selector==='.freshRoomHeader'?'roomHeader':'crewBoard')},
     esc:value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),
     vehiclePhotoSource:value=>value||'',profileImageSource:value=>value||'',activeCar:()=>null,
-    vehicleIllustration:()=>'<figure class="vehicleIllustration"></figure>',initials:name=>name.slice(0,1)
+    carPhotoMarkup:car=>car.photo?'<img class="lobbyModelCar" src="'+car.photo+'">':'<figure class="vehicleIllustration"></figure>',vehicleIllustration:()=>'<figure class="vehicleIllustration"></figure>',initials:name=>name.slice(0,1)
   });
   const source=fs.readFileSync(__dirname+'/app.js','utf8');
   vm.runInContext(source.slice(source.indexOf('function freshPlayerColor(id)')),context);
@@ -67,7 +67,7 @@ test('legacy uploaded vehicle photos stay visible instead of falling back to the
   f.state.lobby.players[0].photoUrl='https://example.com/user-car.jpg';
   f.render();
   const markup=f.node('players').innerHTML;
-  assert.match(markup,/class="lobbyModelCar lobbyModelCar--raw"/);
+  assert.match(markup,/<img class="lobbyModelCar" src="https:/);
   assert.match(markup,/https:\/\/example\.com\/user-car\.jpg/);
 });
 

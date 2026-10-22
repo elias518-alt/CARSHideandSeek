@@ -17,7 +17,7 @@
     window.communityUI?.closePrivateViews();
     stopActivity();
     currentAccount=null;window.feedbackUI?.reset();document.getElementById('adminMenuButton')?.setAttribute('hidden','');
-    for(const id of ['profileEditDialog','profileStatsDialog','adminDialog','petsDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.disposePets?.();view?.remove();}
+    for(const id of ['profileEditDialog','profileStatsDialog','adminDialog','allAchievementsDialog','petProfileDialog','petsDialog','wardrobeDialog','accountGate','onboardingDialog','reportDialog']){const view=document.getElementById(id);view?.disposeWardrobe?.();view?.disposePets?.();view?.remove();}
   }
   async function initialize(){
     const userId=authSession?.user?.id,attempt=++accountCheck;if(!userId)return false;
@@ -70,7 +70,7 @@
     dialog.querySelector('[data-account-logout]').addEventListener('click',async()=>{stopActivity();await logout();});
     if(!dialog.open)dialog.showModal();
   }
-  async function openWardrobe(){
+  async function openWardrobe(settings={}){
     if(!authSession?.user?.id){toast('Bitte zuerst anmelden.');return;}
     if(document.getElementById('wardrobeDialog')?.open)return;
     const userId=authSession.user.id;document.getElementById('wardrobeDialog')?.disposeWardrobe?.();
@@ -78,6 +78,7 @@
     dialog.insertAdjacentHTML('beforeend','<p class="wardrobeIntro">Deine bekannten Crew-Figuren und realistische PLUS-Charaktere mit eigenen Kleidungsfarben.</p><div class="wardrobeLayout"><div class="wardrobePreview" data-wardrobe-preview></div><form class="wardrobeForm"><div data-wardrobe-fields></div><p class="accountError" role="alert"></p><button type="submit" class="primaryButton">LOOK SPEICHERN</button></form></div>');
     const form=dialog.querySelector('form');let draft=appearance(),busy=false,previewVictory=false,tab="figure";
     if(draft.collection!=='classic')draft=characterStudio.normalize(draft);
+    if(settings.dresscode&&window.plusUI?.active){draft=characterStudio.normalize(crewOutfit.draft(settings.dresscode,{...draft,collection:'studio',figure:draft.gender==='female'?'mia':'luca'}));}
     let oldFace=characterStudio.normalizeFace(authSession.user.user_metadata?.chs_appearance?.face);
     if(oldFace?.path.split('/')[0]!==userId)oldFace=null;
     const plus=()=>window.plusUI?.active===true;
@@ -89,16 +90,18 @@
     function choices(key,values,visual=false){return '<div class="'+(key.endsWith('Color')?'studioColors':'studioChoiceGrid')+'">'+values.map(([value,label])=>'<button type="button" class="studioLookChoice" data-look-key="'+key+'" data-look-value="'+value+'" aria-pressed="'+(String(draft[key])===String(value))+'">'+(visual?wardrobe.markup({...draft,[key]:Number(value)}):key.endsWith('Color')?'<i style="--swatch:'+characterStudio.colors[value][1]+'"></i>':'')+'<span>'+esc(label)+'</span></button>').join('')+'</div>';}
     function render(){
       if(dialog.wardrobeEditor!==editorToken)return;
-      const fields=form.querySelector('[data-wardrobe-fields]'),studio=draft.collection==='studio'&&plus(),original=studio&&!!characterStudio.figures[draft.figure].atlas;
-      const tabs=[['figure','Figur'],...(studio?[['top',original?'Oberteil':'Outfit'],...(original?[['pants','Hose']]:[]),['pose','Pose']]:[])];
+      const fields=form.querySelector('[data-wardrobe-fields]'),studio=draft.collection==='studio'&&plus(),original=studio&&(!!characterStudio.figures[draft.figure].atlas||characterStudio.figures[draft.figure].extended);
+      const tabs=[['figure','Figur'],...(studio?[['top',original?'Oberteil':'Outfit'],...(original?[['pants','Hose']]:[]),['pose','Pose'],...(characterStudio.figures[draft.figure].extended?[['accessories','Accessoires'],['shoes','Schuhe']]:[])]:[])];
       if(!tabs.some(([key])=>key===tab))tab='figure';
       let controls='';
       if(tab==='figure')controls='<h3>Deine Crew-Figuren</h3><div class="characterChoices">'+['Night Rider','Silver Line','Orange Shift'].map((name,i)=>card('classic-'+i,name,{classic:i})).join('')+'</div><h3>Dein PLUS-Studio</h3><div class="characterChoices characterChoices--plus">'+Object.entries(characterStudio.figures).map(([id,figure])=>card(id,figure.label,{collection:'studio',figure:id,gender:figure.gender,top:0,topColor:id==='lea'?'cream':'black'},true)).join('')+'</div>';
       if(studio&&['top','pants'].includes(tab)){
-        const garment=characterStudio.garments[draft.gender],values=tab==='top'?(original?garment.tops:characterStudio.outfits):garment.pants;
+        const garment=(characterStudio.figures[draft.figure].extended?characterStudio.extendedGarments:characterStudio.garments)[draft.gender],values=tab==='top'?(original?garment.tops:characterStudio.outfits):garment.pants;
         controls=choices(tab,options(values),true)+'<h3>'+ (tab==='top'?'Oberteilfarbe':'Hosenfarbe')+'</h3>'+choices(tab+'Color',Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]));
         if(!original)controls+='<h3>Hosenfarbe</h3>'+choices('pantsColor',Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]));
       }
+      if(studio&&tab==='shoes')controls='<h3>Sneakerfarbe</h3>'+choices('shoeColor',Object.entries(characterStudio.colors).map(([key,value])=>[key,value[0]]));
+      if(studio&&tab==='accessories')controls='<h3>Schmuck</h3>'+choices('jewelry',[['none','Ohne'],['silver','Silber'],['gold','Gold']])+['glasses','earrings','watch'].map((key,i)=>'<h3>'+['Sonnenbrille','Ohrringe','Uhr'][i]+'</h3>'+choices(key,[[false,'Ohne'],[true,'Anlegen']])).join('');
       if(studio&&tab==='pose')controls='<h3>Blickrichtung</h3>'+choices('pose',[[0,'Original'],[1,'Gespiegelt']])+'<h3>Dein Siegermoment</h3>'+choices('winPose',[[0,'Freudensprung'],[1,'Goldener Moment'],[2,'Konfetti']])+'<button type="button" data-victory-preview aria-pressed="'+previewVictory+'">'+(previewVictory?'Stand ansehen':'Siegermoment ansehen')+'</button>';
       fields.innerHTML='<div class="studioTabs" role="group" aria-label="Look-Kategorie">'+tabs.map(([key,label])=>'<button type="button" data-studio-tab="'+key+'" aria-pressed="'+(tab===key)+'">'+label+'</button>').join('')+'</div>'+controls+'<p class="wardrobeAccess" role="status">'+(plus()?'PLUS aktiv · Änderungen werden mit „Look speichern“ übernommen.':'Die drei Crew-Figuren sind kostenlos. Anpassbare Studiofiguren benötigen PLUS. Käufe sind noch nicht verfügbar.')+'</p>'+(oldFace?'<p class="avatarMigration">Dein früheres Gesichtsfoto wird nicht mehr dargestellt. Beim Speichern wird es aus dem Bildspeicher entfernt.</p>':'')+'<p class="wardrobeAccess">Schuhe gehören zum jeweiligen Outfit. Foto-zu-Figur ist pausiert. Haustiere findest du separat im Profil.</p>';
       preview();if(busy)form.querySelectorAll('button,select,input').forEach(el=>el.disabled=true);
@@ -107,10 +110,10 @@
     form.addEventListener('click',event=>{
       if(busy)return;
       const category=event.target.closest('[data-studio-tab]');if(category){tab=category.dataset.studioTab;render();form.querySelector('[data-studio-tab="'+tab+'"]')?.focus();return;}
-      const option=event.target.closest('[data-look-key]');if(option){if(!plus()||draft.collection!=='studio')return;const key=option.dataset.lookKey,value=option.dataset.lookValue;draft=characterStudio.normalize({...draft,[key]:key.endsWith('Color')?value:Number(value)});if(key==='winPose')previewVictory=true;if(key==='pose')previewVictory=false;render();form.querySelector('[data-look-key="'+key+'"][data-look-value="'+value+'"]')?.focus();return;}
+      const option=event.target.closest('[data-look-key]');if(option){if(!plus()||draft.collection!=='studio')return;const key=option.dataset.lookKey,value=option.dataset.lookValue;draft=characterStudio.normalize({...draft,[key]:key.endsWith('Color')||key==='jewelry'?value:['glasses','earrings','watch'].includes(key)?value==='true':Number(value)});if(key==='winPose')previewVictory=true;if(key==='pose')previewVictory=false;render();form.querySelector('[data-look-key="'+key+'"][data-look-value="'+value+'"]')?.focus();return;}
       if(event.target.closest('[data-victory-preview]')){previewVictory=!previewVictory;render();return;}
       const button=event.target.closest('[data-character-choice]');if(!button)return;
-      const choice=button.dataset.characterChoice;if(!choice.startsWith('classic-')&&!plus()){toast('Diese anpassbare Figur gehört zu PLUS. Käufe sind noch nicht verfügbar.');return;}if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',figure:choice,gender:characterStudio.figures[choice].gender,top:Math.min(draft.top||0,2),pants:Math.min(draft.pants||0,2)});previewVictory=false;render();
+      const choice=button.dataset.characterChoice;if(!choice.startsWith('classic-')&&!plus()){toast('Diese anpassbare Figur gehört zu PLUS. Käufe sind noch nicht verfügbar.');return;}if(choice.startsWith('classic-'))draft=wardrobe.normalize({classic:Number(choice.slice(-1))});else if(plus())draft=characterStudio.normalize({...draft,collection:'studio',figure:choice,gender:characterStudio.figures[choice].gender,top:Math.min(draft.top||0,characterStudio.figures[choice].extended?11:2),pants:Math.min(draft.pants||0,characterStudio.figures[choice].extended?11:2)});previewVictory=false;render();
     });
     form.addEventListener('change',event=>{
       const field=event.target,key=field.name;if(busy||!plus()||draft.collection!=='studio'||!key)return;

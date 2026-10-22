@@ -8,7 +8,8 @@
   const signature=html.replace(/(avatar|character-studio|studio-car|pet)-\d+/g,'$1-id');
   if(box.dataset.designMarkup!==signature||!box.querySelector('.lobbyCrewCharacter,.profileNoVehicle')){box.innerHTML=html;box.dataset.designMarkup=signature;window.showroom?.refresh();}
  }
- function identity(){
+ function destinationArt(){for(const button of document.querySelectorAll('.profileDestination')){let art=button.querySelector('.destinationArt');if(!art){art=document.createElement('div');art.className='destinationArt';art.setAttribute('aria-hidden','true');button.prepend(art);}const type=button.dataset.destination;const html=type==='look'?wardrobe.markup(window.accountUI?.appearance?.()):type==='pets'?pets.render(window.petUI?.selection?.()||{breed:'husky'}):type==='statistik'?appIcon('trophy'):'';const signature=html.replace(/(character-studio|pet)-\d+/g,'$1-id');if(art.dataset.signature!==signature){art.innerHTML=html;art.dataset.signature=signature;}}}
+ function identity(){destinationArt();
   const badge=$('profileMembership');if(badge){badge.textContent=window.plusUI?.active?'PLUS':'BASIS';badge.dataset.plus=String(window.plusUI?.active===true);}
  }
  function setupProfile(){
@@ -41,6 +42,7 @@
   setupProfile();
   document.addEventListener('chs:plus-changed',identity);
   document.addEventListener('click',event=>{
+   if(event.target.closest('[data-all-achievements]')){document.getElementById('allAchievementsButton')?.click();return;}
    const action=event.target.closest('[data-design-action]')?.dataset.designAction;if(!action)return;
    if(action==='privacy')void window.socialMap?.settings();
    if(action==='accent')void window.plusUI?.open();
@@ -49,6 +51,6 @@
   });
   const reward=$('garageRewardCard');if(reward)$('garageAddCar')?.after(reward);
  }
- window.gameDesign={identity,profileScene,onPage};
+ window.gameDesign={destinationArt,identity,profileScene,onPage};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
 })();

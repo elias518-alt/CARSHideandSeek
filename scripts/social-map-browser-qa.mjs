@@ -67,7 +67,7 @@ try{
   check(await page.locator('#profile .profileStats').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'Profile stats fit '+width);
   await page.screenshot({animations:'disabled',path:output+'/profile-'+width+'.png'});
   await page.evaluate(()=>openProfileStatistics());
-  check(await page.locator('#profileStatsDialog .gameMetric').count()===6 && (await page.locator('.statsRing').getAttribute('aria-label')).includes('50 Prozent'),'Detailed statistics show real account fields and win rate');
+  check(await page.locator('#profileStatsDialog .gameMetric').count()===7 && (await page.locator('.statsRing').getAttribute('aria-label')).includes('50 Prozent'),'Detailed statistics show real account fields and win rate');
   await page.screenshot({animations:'disabled',path:output+'/statistics-'+width+'.png'});
   await page.evaluate(()=>document.getElementById('profileStatsDialog').close());
   await page.evaluate(()=>plusUI.open());await page.waitForFunction(()=>document.querySelector('#plusStatus')?.textContent.includes('noch nicht'));
@@ -109,8 +109,8 @@ try{
   check((await page.locator('#socialMapSharing').textContent()).includes('Aus'),'Default-off label');
   check(await page.evaluate(()=>qa.gps===0),'Opening map must not request GPS');
   check(await page.locator('.socialMapPerson').count()===1,'Friend with explicit incoming share visible');
-  check((await page.locator('.socialMapPerson').textContent()).includes('Standort vor 20 Min.'),'Last coordinate timestamp');
-  check((await page.locator('.socialMapPerson').textContent()).includes('Zuletzt aktiv vor 1 Min.'),'Separate last-active timestamp');
+  check(await page.locator('.socialMapPerson time').first().evaluate(el=>el.textContent.startsWith('Standort vor ')&&Math.abs(Date.now()-Date.parse(el.dateTime)-1200000)<60000),'Last coordinate timestamp');
+  check(await page.locator('.socialMapPerson time').nth(1).evaluate(el=>el.textContent.startsWith('Zuletzt aktiv ' )&&Math.abs(Date.now()-Date.parse(el.dateTime)-60000)<60000),'Separate last-active timestamp');
   check(await page.locator('#socialMapPeople img').count()===0,'Untrusted name escaped');
   check(await page.locator('#socialMapDialog').evaluate(el=>el.scrollWidth<=el.clientWidth+2),'Dialog fits width '+width);
   check(await page.locator('#socialMapCanvas canvas').count()===1,'Real MapLibre canvas');

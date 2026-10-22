@@ -10,3 +10,5 @@ Sources are preserved in the development workspace:
 - `large-pets.webp`: `/workspace/generated_images/exec-02b6c843-c33b-4a91-b716-c71f4a4b6fd9.png` (1536 × 1024)
 
 Format conversion: WebP quality 94, transparency retained. Magenta coat areas and green irises are technical color channels; players see the selected natural palette. Alpha-bound crop metadata and two corner clips separate neighboring animal silhouettes. Coat, eye and neutral-detail pixels are checked by `scripts/companions-visual-qa.cjs`.
+
+`parrot-shoulder.webp` ersetzt für die Schulterdarstellung den Papagei samt Ständer. Original: `/workspace/generated_images/exec-1544f7c6-1724-4d9b-8ce0-6eee4fc52997.png` (1274 × 1235), WebP Qualität 94, Alpha erhalten. Die Fußanker sind getrennt vom unteren Schwanzrand definiert.

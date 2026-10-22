@@ -238,7 +238,7 @@ function newPlayer(data, authId) {
     avatarUrl: safePhotoUrl(data.avatarUrl),
     characterStyle: Math.max(0, Math.min(2, Math.trunc(number(data.characterStyle) || 0))),
     appearance: data.appearance ? wardrobe.normalize(data.appearance) : null,
-    pet:pets.normalize(data.pet),cosmetics:vehicleRewards.normalize(data.cosmetics),
+    presentation:require('./vehicle-configuration').presentation(data.presentation),title:clean(data.title,60),pet:pets.normalize(data.pet),cosmetics:vehicleRewards.normalize(data.cosmetics),
     mode: data.mode === 'DRIVER' ? 'DRIVER' : 'PASSENGER',
     level: Math.max(1, Math.min(50, Math.trunc(number(data.level) || 1))),
     role: null, ready: false, found: false, roundFinds: 0, location: null,
@@ -248,7 +248,7 @@ function newPlayer(data, authId) {
 function publicPlayer(p, now, maxAge = ACTIVE_LOCATION_MAX_AGE_MS) {
   return {
     id: p.id, profileId: p.authId, name: p.name, vehicle: p.vehicle, color: p.color, bodyType: p.bodyType || '', vehicleYear:p.vehicleYear||'', vehicleSeries:p.vehicleSeries||'',
-    photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, pet:pets.normalize(p.pet),cosmetics:vehicleRewards.normalize(p.cosmetics), mode: p.mode,
+    presentation:require('./vehicle-configuration').presentation(p.presentation),title:clean(p.title,60),photoUrl: p.photoUrl || '', avatarUrl: p.avatarUrl || '', characterStyle: Number.isInteger(p.characterStyle) ? p.characterStyle : 0, appearance: p.appearance ? wardrobe.normalize(p.appearance) : null, pet:pets.normalize(p.pet),cosmetics:vehicleRewards.normalize(p.cosmetics), mode: p.mode,
     level: p.level, role: p.role, ready: p.ready, found: p.found, eliminated: !!p.eliminated, left: !!p.left, eliminationReason: p.eliminationReason || "",
     connected: now - p.lastSeen < 30000, hasLocation: fresh(p, now, maxAge), hasStoredLocation: !!p.location
   };
@@ -508,6 +508,8 @@ async function route(action, data, authId) {
       if (data.appearance) existing.appearance=wardrobe.normalize(data.appearance);
       if(Object.hasOwn(data,'pet'))existing.pet=pets.normalize(data.pet);
       if(Object.hasOwn(data,'cosmetics'))existing.cosmetics=vehicleRewards.normalize(data.cosmetics);
+      if(data.presentation)existing.presentation=require('./vehicle-configuration').presentation(data.presentation);
+      if(Object.hasOwn(data,'title'))existing.title=clean(data.title,60);
       if(['DRIVER','PASSENGER'].includes(data.mode))existing.mode=data.mode;
       existing.level = Math.max(1, Math.min(50, Math.trunc(number(data.level) || existing.level || 1)));
       if(now-existing.lastSeen>=30000)monitor.record('REJOIN','REJOIN_ACCEPTED');
@@ -893,8 +895,8 @@ async function handler(req, res) {
       if(['create','join','identity'].includes(action)){
         // Never accept unlocks sent by the browser. Optional cosmetics must not
         // block joining a game when the progression backend is unavailable.
-        data.cosmetics=vehicleRewards.normalize();
-        if(uuid(data.vehicleId)){try{const earned=await vehicleRewardsService.read(authId,req.headers.authorization);data.cosmetics=earned.loadouts[data.vehicleId]||vehicleRewards.normalize();}catch{monitor.record('BACKEND','VEHICLE_REWARDS_UNAVAILABLE');}}
+        data.cosmetics=vehicleRewards.normalize();data.presentation=require('./vehicle-configuration').presentation();data.title='';
+        if(uuid(data.vehicleId)){try{const earned=await vehicleRewardsService.read(authId,req.headers.authorization);data.cosmetics=earned.loadouts[data.vehicleId]||vehicleRewards.normalize();data.presentation=earned.presentations[data.vehicleId];data.title=earned.title;}catch{monitor.record('BACKEND','VEHICLE_REWARDS_UNAVAILABLE');}}
       }
       if(['create','join','identity'].includes(action)&&data.appearance&&wardrobe.normalize(data.appearance).collection!=='classic'){
         data.appearance=wardrobe.normalize(data.appearance);

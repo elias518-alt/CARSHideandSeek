@@ -30,13 +30,16 @@
   "audi-more-detail":{"file":"audi-more-detail","width":1774,"height":887,"crops":[[9,91,454,206],[463,94,434,203],[899,91,425,206],[1330,92,433,205],[4,354,458,212],[462,353,431,212],[893,353,427,212],[1325,351,444,215],[4,598,440,228],[449,594,444,227],[893,622,436,203],[1330,614,438,209]]},
   "mini-cooper-s":{"file":"mini-cooper-s","width":1536,"height":1024,"crops":[[11,124,373,217],[399,124,367,217],[777,124,374,217],[1162,122,366,218],[9,415,377,218],[400,422,368,212],[780,415,372,220],[1163,424,363,207],[5,724,380,203],[398,729,370,207],[771,708,381,219],[1154,708,382,216]]}
  });
+ const namedPaints={'madeira violett':'#51364f','madeira-violett':'#51364f','madeira violet':'#51364f'};
  const palette=[[/schwarz|black/,'#171b20'],[/weiß|weiss|white/,'#eef0ed'],[/silber|silver/,'#a8b2bc'],[/grau|gray|grey|anthrazit/,'#69727a'],[/blau|blue/,'#2257a0'],[/rot|red/,'#b52332'],[/grün|gruen|green/,'#276548'],[/orange/,'#dc7025'],[/gelb|yellow/,'#d5b92c'],[/lila|purple|violett?|violet/,'#7541a0'],[/rosa|pink/,'#d16ba0'],[/braun|brown/,'#725140'],[/beige|cream/,'#c5b89a']];
- function color(value){const s=String(value||'').trim().toLowerCase();return /^#[0-9a-f]{6}$/.test(s)?s:palette.find(([pattern])=>pattern.test(s))?.[1]||'#bfc6cc';}
+ function color(value){const s=String(value||'').trim().toLowerCase();return namedPaints[s]||(/^#[0-9a-f]{6}$/.test(s)?s:palette.find(([pattern])=>pattern.test(s))?.[1]||'#bfc6cc');}
+ sheets.bmwe36coupe={file:'bmw-e36-coupe',width:1536,height:1024,cols:1,rows:1,codes:['E36'],crops:[[12,180,1515,670]]};
  function select(car={}){
   const result=generations?.resolve(car);if(!result)return null;
   const expected=generations.bodyType(result.body);
   const explicit=generations.bodyType(car.body||car.body_type||car.bodyType);
   const named=generations.bodyType(car.model||car.vehicle);
+  if(result.family==='bmw3'&&result.code==='E36'&&(explicit||named)==='coupe')return {...result,body:'Coupé',asset:['bmwe36coupe',0],wheelKey:'E36_COUPE'};
   if(explicit&&explicit!==expected||named&&named!==expected)return null;
   return result;
  }
@@ -49,12 +52,12 @@
   const row=Math.floor(index/sheet.cols),col=index%sheet.cols;
   const crop=sheet.crops?.[index]||[sheet.bounds[row][col],row*sheet.height/sheet.rows+sheet.top[row],sheet.bounds[row][col+1]-sheet.bounds[row][col],sheet.bottom[row]-sheet.top[row]];
   const [x,y,w,h]=crop;
-  const id='studio-car-'+(++serial),paint=color(car.color),channels=[1,3,5].map(i=>parseInt(paint.slice(i,i+2),16)/255);
+  const id='studio-car-'+(++serial),paint=color(car.paintColor||car.color),channels=[1,3,5].map(i=>parseInt(paint.slice(i,i+2),16)/255);
   // R-G and B-G together isolate magenta paint: neutral glass/chrome and
   // red or amber lamps fail at least one channel and retain their source color.
   const matrix=channels.map(v=>`${v.toFixed(5)} ${(1-v).toFixed(5)} 0 0 0`).join(' ')+' 0 0 0 1 0';
   const label=`${selected.brand} ${selected.model} ${selected.code} · ${selected.from}${selected.to?'–'+selected.to:'+'} · Illustration`;
-  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}" data-studio-generation="${selected.code}" data-paint="${paint}" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 12 -12 0 0 -.02" result="redMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 -12 12 0 -.02" result="blueMask"/><feComposite in="redMask" in2="blueMask" operator="in" result="paintMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="${matrix}" result="recolored"/><feComposite in="recolored" in2="paintMask" operator="in" result="body"/><feComposite in="SourceGraphic" in2="paintMask" operator="out" result="details"/><feMerge><feMergeNode in="details"/><feMergeNode in="body"/></feMerge></filter></defs><image href="assets/vehicles/${sheet.file}.webp" x="${-x}" y="${-y}" width="${sheet.width}" height="${sheet.height}" filter="url(#${id})"/>${rewards?.overlay(selected.code,crop,car.cosmetics)||''}</svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}" data-studio-generation="${selected.code}" data-paint="${paint}" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 12 -12 0 0 -.02" result="redMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 -12 12 0 -.02" result="blueMask"/><feComposite in="redMask" in2="blueMask" operator="in" result="paintMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="${matrix}" result="recolored"/><feComposite in="recolored" in2="paintMask" operator="in" result="body"/><feComposite in="SourceGraphic" in2="paintMask" operator="out" result="details"/><feMerge><feMergeNode in="details"/><feMergeNode in="body"/></feMerge></filter></defs><image href="assets/vehicles/${sheet.file}.webp" x="${-x}" y="${-y}" width="${sheet.width}" height="${sheet.height}" filter="url(#${id})"/>${rewards?.overlay(selected.wheelKey||selected.code,crop,car.cosmetics)||''}</svg>`;
  }
  const api={select,render,color,sheets,identify:generations.identify};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.vehicleStudio=api;
 })(typeof window==='undefined'?{}:window);

@@ -4,7 +4,7 @@
  let crewRows=[];
  // Unique SVG IDs must not restart an unchanged avatar animation on each poll.
  const avatarSignature=html=>html.replace(/(avatar|character-studio|studio-car|pet)-\d+/g,'$1-id');
- function ownPlayer(car=activeCar()){return {id:'own-reference',profileId:authSession?.user?.id,name:dbProfile?.username||authSession?.user?.user_metadata?.full_name||'Spieler',avatarUrl:dbProfile?.avatar_url,vehicle:car?[car.brand,car.model].filter(Boolean).join(' '):'Dein Fahrzeug',bodyType:car?.body,vehicleYear:car?.year,vehicleSeries:car?.series,color:car?.color,cosmetics:car?.cosmetics,photoUrl:car?.photo,appearance:window.accountUI?.appearance?.(),pet:window.petUI?.selection?.(),characterStyle:getCharacterStyle()};}
+ function ownPlayer(car=activeCar()){return {id:'own-reference',profileId:authSession?.user?.id,name:dbProfile?.username||authSession?.user?.user_metadata?.full_name||'Spieler',avatarUrl:dbProfile?.avatar_url,vehicle:car?[car.brand,car.model].filter(Boolean).join(' '):'Dein Fahrzeug',bodyType:car?.body,vehicleYear:car?.year,vehicleSeries:car?.series,color:car?.color,cosmetics:car?.cosmetics,presentation:car?.presentation,photoUrl:car?.photo,appearance:window.accountUI?.appearance?.(),pet:window.petUI?.selection?.(),characterStyle:getCharacterStyle()};}
  function renderOwn(){
   const target=document.getElementById('homeOwnScene');if(!target)return;const car=activeCar(),player=ownPlayer(car),name=player.name;
   const intro=document.getElementById('homeGreeting');intro.textContent='Hey '+name.split(/\s+/)[0];
@@ -13,6 +13,7 @@
   const markup=car?'<article class="parkingPlayer isHost"><div class="parkingVehicleStage">'+carPhotoMarkup(car,'home-hero')+lobbyCharacterMarkup(player)+'<span class="parkingContactShadow"></span></div></article>':'<button class="referenceNoCar" type="button" data-page="garage">Fahrzeug hinzufügen <span>Dein Auto und Charakter erscheinen hier.</span></button>';
   if(target.dataset.markup!==avatarSignature(markup)){target.innerHTML=markup;target.dataset.markup=avatarSignature(markup);}
   window.gameDesign?.profileScene(car,player);
+  window.gameDesign?.destinationArt();window.petUI?.greeting?.();
   renderPhotoPreview();
  }
  function renderCrew(rows=crewRows){
@@ -38,7 +39,7 @@
    // Only server-filtered appearance data is used for other participants.
    if(result.id===self){player.appearance=window.accountUI?.appearance?.();player.pet=window.petUI?.selection?.();}
    const appearance=player.appearance||{classic:player.characterStyle||0};
-   return '<article class="resultCrewCard" data-own="'+(result.id===self)+'"><div class="resultCrewVisual">'+(player.vehicle?lobbyCarMarkup(player,result.id===self,'result-scene'):'')+wardrobe.markup(appearance,won?'victory':'standing')+pets.render(player.pet)+'</div><div class="resultCrewInfo"><strong>'+esc(result.name)+(result.id===self?' · Du':'')+'</strong><span>'+esc(label)+(won?' · Gewonnen':'')+'</span><small>'+Number(result.finds||0)+' Funde · '+Number(result.baseXp||0)+' Basis-XP</small></div></article>';
+   return '<article class="resultCrewCard" data-own="'+(result.id===self)+'"><div class="resultCrewVisual">'+(player.vehicle?lobbyCarMarkup(player,result.id===self,'result-scene'):'')+wardrobe.markup(appearance,won?'victory':'standing')+pets.render(player.pet)+'</div><div class="resultCrewInfo"><strong>'+esc(result.name)+(result.id===self?' · Du':'')+'</strong><span class="playerTitle">'+esc(player.title||'')+'</span><span>'+esc(label)+(won?' · Gewonnen':'')+'</span><small>'+Number(result.finds||0)+' Funde · '+Number(result.baseXp||0)+' Basis-XP</small></div></article>';
   }).join('')+'</div>';
   scene.hidden=!participants.length;if(scene.dataset.markup!==avatarSignature(sceneHtml)){scene.innerHTML=sceneHtml;scene.dataset.markup=avatarSignature(sceneHtml);}
   document.getElementById('referenceResultPeople')?.remove();

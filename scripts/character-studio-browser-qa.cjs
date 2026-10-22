@@ -32,6 +32,19 @@ stub+=`;const originalClient=window.supabase.createClient;window.supabase.create
    check(await page.locator('[data-photo-file]').count()===0,'No unsupported selfie overlay');check(await page.locator('.wardrobeAvatar').count()===0,'No rejected vector avatars');
    await page.locator('#wardrobeDialog').evaluate(e=>e.scrollTop=0);await page.locator('#wardrobeDialog').screenshot({path:output+'/realistic-wardrobe-'+width+'.png'});
    await page.locator('#wardrobeDialog button[type=submit]').click();await page.locator('#wardrobeDialog').waitFor({state:'hidden'});check(appearance.version===6&&appearance.figure==='lea'&&appearance.top===2&&appearance.topColor==='cream','Realistic look saved');
+   for(const [figure,gender]of [['luca','male'],['mia','female']]){
+    await page.evaluate(()=>accountUI.openWardrobe());await page.locator('[data-character-choice='+figure+']').click();
+    await page.locator('[data-studio-tab=top]').click();check(await page.locator('[data-look-key=top]').count()===12,'Twelve new tops '+gender);
+    await page.locator('[data-look-key=top][data-look-value="5"]').click();await page.locator('[data-look-key=topColor][data-look-value=black]').click();
+    await page.locator('[data-studio-tab=pants]').click();check(await page.locator('[data-look-key=pants]').count()===12,'Twelve independent bottoms '+gender);
+    await page.locator('[data-look-key=pants][data-look-value="9"]').click();await page.locator('[data-look-key=pantsColor][data-look-value=gray]').click();
+    await page.locator('[data-studio-tab=accessories]').click();for(const [key,value]of [['jewelry','silver'],['glasses','true'],['earrings','true'],['watch','true']])await page.locator('[data-look-key='+key+'][data-look-value='+value+']').click();
+    await page.locator('[data-studio-tab=shoes]').click();await page.locator('[data-look-key=shoeColor][data-look-value=cream]').click();
+    if(width===390)await page.locator('[data-wardrobe-preview]').screenshot({path:output+'/extended-'+gender+'.png'});
+    await page.locator('#wardrobeDialog button[type=submit]').click();await page.locator('#wardrobeDialog').waitFor({state:'hidden'});
+    check(appearance.figure===figure&&appearance.top===5&&appearance.pants===9&&appearance.topColor==='black'&&appearance.pantsColor==='gray'&&appearance.shoeColor==='cream'&&appearance.glasses&&appearance.watch&&appearance.jewelry==='silver','Independent outfit persisted '+gender);
+   }
+   await page.evaluate(()=>accountUI.openWardrobe());await page.locator('[data-character-choice=lea]').click();await page.locator('#wardrobeDialog button[type=submit]').click();await page.locator('#wardrobeDialog').waitFor({state:'hidden'});
    await page.evaluate(()=>petUI.open());
    for(const [category,ids]of [['Hunde',['shepherd','husky','doberman']],['Katzen',['bengal','shorthair']],['Weitere Tiere',['parrot','fish','hamster','horse','monkey','donkey']]]){
     await page.locator('[data-pet-category="'+category+'"]').click();

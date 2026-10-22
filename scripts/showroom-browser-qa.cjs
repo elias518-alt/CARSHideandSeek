@@ -49,12 +49,12 @@ const stub=fs.readFileSync(path.join(repo,'scripts/community-ui-qa.mjs'),'utf8')
     if(kind==='front'||kind==='catalog')await page.screenshot({path:out+'/profile-'+kind+'-'+width+'.png',fullPage:true});
    }
    if(width===390){
-    const looks=[...Array.from({length:3},(_,classic)=>({collection:'classic',classic})),...['alex','maya','nico','lea'].map(figure=>({collection:'studio',figure}))];
+    const looks=[...Array.from({length:3},(_,classic)=>({collection:'classic',classic})),...['alex','maya','nico','lea','luca','mia'].map(figure=>({collection:'studio',figure}))];
     for(const look of looks){await page.evaluate(look=>{accountUI.appearance=()=>look;openPage('profile');referenceUI.renderOwn();},look);await page.waitForTimeout(50);
      const fitted=await page.evaluate(()=>{const stage=document.getElementById('profileVehicleStage').getBoundingClientRect(),figure=document.querySelector('#profileVehicleStage>.lobbyCrewCharacter').getBoundingClientRect();return figure.top>=stage.top&&Math.abs(figure.bottom-(stage.bottom-18))<2;});check(fitted,'Figure floor '+JSON.stringify(look));}
     const breeds=await page.evaluate(()=>Object.keys(pets.breeds));
     for(const breed of breeds){await page.evaluate(breed=>{petUI.selection=()=>pets.normalize({breed,size:2});referenceUI.renderOwn();},breed);await page.waitForTimeout(50);
-     const fitted=await page.evaluate(()=>{const stage=document.getElementById('profileVehicleStage').getBoundingClientRect(),pet=document.querySelector('#profileVehicleStage>.petCompanion').getBoundingClientRect();return pet.top>=stage.top&&Math.abs(pet.bottom-(stage.bottom-18))<2;});check(fitted,'Pet floor '+breed);}
+     const fitted=await page.evaluate(()=>{const stage=document.getElementById('profileVehicleStage').getBoundingClientRect(),node=document.querySelector('#profileVehicleStage>.petCompanion'),pet=node.getBoundingClientRect(),person=document.querySelector('#profileVehicleStage>.lobbyCrewCharacter').getBoundingClientRect(),car=document.querySelector('#profileVehicleStage .vehicleIllustration').getBoundingClientRect();return pet.top>=stage.top&&pet.right<=stage.right+1&&(node.dataset.anchor==='shoulder'?pet.bottom>person.top&&pet.bottom<person.top+person.height*.4:Math.abs(pet.bottom-(stage.bottom-18))<2&&pet.left>=car.right);});check(fitted,'Pet floor '+breed);}
    }
    for(const scene of ['hangar','skyline']){await page.evaluate(scene=>{document.documentElement.style.setProperty('--personal-scene','url("assets/scenes/'+scene+'.webp")');localGarage[0].photo='';openPage('home');referenceUI.renderOwn();},scene);await page.waitForTimeout(100);if(width===390)await page.screenshot({path:out+'/home-'+scene+'.png',fullPage:true});}
    check(!errors.length,errors.join(';'));await page.close();
