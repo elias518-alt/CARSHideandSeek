@@ -19,21 +19,19 @@
 .playerTitle{display:block;color:#c4b2ff;font-size:12px;font-weight:650;letter-spacing:.04em}
 .parkingNameplate .playerTitle{grid-column:2/-1;line-height:1.2}
 .profileDestination{isolation:isolate;overflow:hidden;min-height:150px!important;background-size:cover!important;background-position:center!important}
-.profileDestination::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#10131bef 0%,#10131b90 45%,#10131b0a);z-index:-1}
-.profileDestination>*{position:relative;z-index:2}.profileDestination .destinationArt{position:absolute!important;inset:0!important;z-index:-2!important;display:flex;justify-content:center;align-items:center;pointer-events:none}
-.destinationArt .wardrobeCharacter{position:static!important;width:130px!important;height:260px!important;transform:translateY(35px)!important}
-.destinationArt .petCompanion{position:static!important;height:160px!important;width:150px!important;transform:none!important}
-.profileDestination[data-destination=statistik]{background-image:radial-gradient(ellipse at 65% 30%,#9060d977,transparent),url('assets/scenes/skyline.webp')!important}
+.profileDestination::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#10131bf2 0%,#10131bb0 38%,#10131b16 90%);z-index:1;pointer-events:none}
+.profileDestination>*{position:relative;z-index:2}.profileDestination .destinationArt{position:absolute!important;inset:0!important;z-index:1!important;display:flex;justify-content:center;align-items:center;pointer-events:none}
+.profileDestination[data-destination=statistik]{background-image:radial-gradient(ellipse at 65% 30%,#9060d944,transparent),url('assets/scenes/skyline.webp')!important}
 .destinationArt>.appIcon{width:85px;height:85px;color:#ffbd70;filter:drop-shadow(0 6px 8px #110d1b)}
-.profileDestination[data-destination=look]{background:radial-gradient(ellipse at 50% 25%,#a47b8d66,#202433)!important}
-.profileDestination[data-destination=pets]{background:radial-gradient(ellipse at 50% 25%,#b6906355,#202a2b)!important}
+.profileDestination[data-destination=look]{background-image:url('assets/profile/wardrobe.webp')!important;background-position:57% center!important}
+.profileDestination[data-destination=pets]{background-image:url('assets/profile/pets.webp')!important;background-position:61% center!important}
 .homePetPortrait{width:44px;height:44px;border-radius:50%;border:2px solid #a98ae5;background:#252332;overflow:hidden;padding:0;position:relative;flex:none}
 .homePetPortrait .petCompanion{position:absolute!important;width:56px!important;height:82px!important;left:-6px!important;top:3px!important;bottom:auto!important;transform:none!important}
 .titleChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.titleChoice{padding:15px;background:linear-gradient(135deg,#2c2541,#181d29);border:1px solid #ffffff1c;border-radius:14px;text-align:left}.titleChoice[aria-pressed=true]{border-color:#b49bff}.titleChoice small{display:block;margin-top:8px;color:#bbc2d3}
 .titlePreview{display:flex;gap:12px;align-items:center;padding:18px;background:#202333;border-radius:16px;margin:18px 0}
 #profile .profileStats>div,.hubPerformanceStats .hubStatCard{background:radial-gradient(ellipse at 90% 0%,#9157d22e,transparent 75%),linear-gradient(145deg,#232735,#141822);border:1px solid #ffffff12;box-shadow:inset 0 1px #ffffff09;border-radius:16px}
 .hubPerformanceStats .hubStatWins{background:linear-gradient(140deg,#573420,#231c27)}
-#allAchievementsDialog{max-width:700px;width:calc(100% - 24px)}#allAchievementsDialog .achievementGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#allAchievementsDialog{max-width:430px;width:calc(100% - 24px);max-height:min(68dvh,620px);overflow-y:auto}#allAchievementsDialog .achievementGrid{display:grid;grid-template-columns:1fr;gap:8px}
 .crewDresscode{padding:18px;border:1px solid #9874cd55;background:linear-gradient(120deg,#30263e,#171e29);border-radius:16px;margin:16px 0}.crewDresscode p{color:#c7ccda}.crewDresscodeForm{display:grid;gap:14px}
 .crewRecommendations{display:grid;gap:12px;margin:16px 0}.crewRecommendations .hubSearchCrew{background:linear-gradient(130deg,#2e2940,#191e2b);border:1px solid #ffffff15;border-radius:18px;padding:16px}
 .maplibregl-ctrl-attrib{font-size:10px!important;max-width:calc(100vw - 90px)}
