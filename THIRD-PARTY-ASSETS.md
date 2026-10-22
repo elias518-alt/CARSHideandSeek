@@ -25,3 +25,15 @@ Python benötigt CairoSVG und Pillow. Der Renderer verwendet Three.js unter MIT;
 [Gem pendant](https://game-icons.net/1x1/lorc/gem-pendant.html), Lorc / Game-icons.net, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Datei: `assets/characters/gem-pendant.svg`. Änderungen: Größenanpassung und gold- beziehungsweise silberfarbige Darstellung als CSS-Maske. Der Urheberhinweis mit Lizenzlink erscheint auch im Kleiderschrank.
 
 Diese Angaben betreffen die neue Kollektion. Bereits vorhandene Fahrzeug- und Hintergrunddateien wurden nicht neu lizenziert oder ersetzt.
+
+## Neue Studio-Kleidung und Schulter-Papagei (Oktober 2026)
+
+Für dieses Projekt generierte, lokal ausgelieferte transparente WebP-Grafiken: `assets/characters/studio/wardrobe-male.webp`, `wardrobe-female.webp` und `assets/pets/parrot-shoulder.webp`. Im Spiel erfolgt kein Aufruf eines Bildgenerierungsdienstes. Die Original-PNGs bleiben in der Entwicklungsumgebung erhalten:
+
+- Mann: `/workspace/generated_images/exec-e41c6829-66ef-4c76-84bf-de93e94f52b2.png`
+- Frau: `/workspace/generated_images/exec-5c4e1cda-1a5c-4585-8daf-b361693d19fb.png`
+- Papagei ohne Ständer: `/workspace/generated_images/exec-1544f7c6-1724-4d9b-8ce0-6eee4fc52997.png`
+
+Magenta/Cyan bzw. grüne Iris dienen als Materialkanäle. Die App färbt Kleidung/Fell und Augen unabhängig ein. Bestehende Figuren und Tierdateien bleiben erhalten. Die vorhandenen Fahrzeugatlanten sind dadurch nicht als logo-frei verifiziert; offene Grafikprüfungen stehen in `docs/vehicle-asset-audit.json`.
+
+Zusätzlich: `assets/vehicles/bmw-e36-coupe.webp`, eigenständige generierte, visuell logo-frei geprüfte E36-inspirierte Zweitürer-Grafik. Original `/workspace/generated_images/exec-331508dd-1b62-4445-b9f2-ece9effac044.png` (1536 × 1024). Magenta-Karosseriematerial, neutrale Scheiben/Reifen/Felgen; eigene Radanker getrennt von der Limousine. Keine Aussage offizieller Herstellerfreigabe.

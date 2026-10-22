@@ -7,11 +7,12 @@ function createAdService({provider=null,history=()=>[],unsafe=()=>false,persist=
  const configured=()=>!!provider?.name&&typeof provider.createSession==='function'&&typeof provider.verifyReward==='function';
  function snapshot(){return structuredClone(records);}
  function restore(value){records=value&&typeof value==='object'&&!Array.isArray(value)?Object.assign(Object.create(null),structuredClone(value)):Object.create(null);}
- const empty=()=>({interstitials:[],rewarded:[],pending:null,rewardUntil:0,rewardPermanent:false,events:[]});
+ const total=r=>r?.rewardPermanent?10:Math.min(10,Math.max(0,Number(r?.rewardCount)||0,(r?.rewarded||[]).length,(r?.events||[]).length));
+ const empty=()=>({rewardCount:0,interstitials:[],rewarded:[],pending:null,rewardUntil:0,rewardPermanent:false,events:[]});
  function recent(values){return values.filter(at=>Number.isFinite(at)&&now()-at<86400000);}
  function status(actor){const r=records[actor],last=r?.interstitials?.at(-1)||0;
   const eligible=configured()&&!unsafe(actor)&&(!last||now()-last>=POLICY.intervalMs)&&recent(r?.interstitials||[]).length<POLICY.maxInterstitialsPer24h&&history().filter(x=>x.participants?.includes(actor)&&!x.result?.aborted&&x.result.endedAt>last).length>=POLICY.roundsBetween;
-  return {enabled:configured(),interstitialEligible:eligible,provider:configured()?provider.name:null,reason:configured()?null:'PROVIDER_NOT_CONFIGURED',policy:POLICY,reward:{id:'neon-garage',label:r?.rewardPermanent?'Neon-Garagen-Look dauerhaft':'Neon-Garagen-Look für 2 Stunden',permanent:r?.rewardPermanent===true,progress:recent(r?.rewarded||[]).length,target:POLICY.permanentRewardThreshold,expiresAt:r?.rewardPermanent?null:r?.rewardUntil>now()?r.rewardUntil:null}};}
+  return {enabled:configured(),interstitialEligible:eligible,provider:configured()?provider.name:null,reason:configured()?null:'PROVIDER_NOT_CONFIGURED',policy:POLICY,reward:{id:'neon-garage',label:r?.rewardPermanent?'Garagenhintergründe freigeschaltet':'Garagenhintergründe dauerhaft freischalten',permanent:r?.rewardPermanent===true,progress:total(r),target:POLICY.permanentRewardThreshold,expiresAt:r?.rewardPermanent?null:r?.rewardUntil>now()?r.rewardUntil:null}};}
  async function locked(actor,work){const old=queues.get(actor)||Promise.resolve();const next=old.catch(()=>{}).then(work);queues.set(actor,next);try{return await next;}finally{if(queues.get(actor)===next)queues.delete(actor);}}
  async function change(actor,work){return locked('ledger',async()=>{const previous=records[actor]?structuredClone(records[actor]):null;const r=records[actor]||empty();const result=await work(r);records[actor]=r;try{await persist();}catch{if(previous)records[actor]=previous;else delete records[actor];throw failure(503,'Werbestatus konnte nicht gespeichert werden.');}return result;});}
  async function providerCall(work){let timer;try{return await Promise.race([work(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(failure(503,'Werbeanbieter antwortet nicht.')),10000);})]);}finally{clearTimeout(timer);}}
@@ -22,7 +23,7 @@ function createAdService({provider=null,history=()=>[],unsafe=()=>false,persist=
   if(!['interstitial','rewarded'].includes(input.kind))throw failure(400,'Unbekannter Werbeplatz.');
   return change(actor,async r=>{
    if(r.pending&&r.pending.expiresAt>now())throw failure(409,'Eine Werbeanfrage läuft bereits.');
-   r.interstitials=recent(r.interstitials);r.rewarded=recent(r.rewarded);
+   r.rewardCount=total(r);r.interstitials=recent(r.interstitials);r.rewarded=recent(r.rewarded);
    if(input.kind==='interstitial'){
     const rounds=history().filter(x=>x.participants?.includes(actor)&&!x.result?.aborted);
     const selected=rounds.find(x=>x.result?.id===input.resultId);
@@ -50,12 +51,12 @@ function createAdService({provider=null,history=()=>[],unsafe=()=>false,persist=
    if(r.pending?.id!==pending.id||pending.expiresAt<=now())throw failure(403,'Belohnungsanfrage ist abgelaufen.');
    if(!proof||proof.actor!==actor||proof.sessionId!==pending.id||proof.completed!==true||typeof proof.eventId!=='string'||!proof.eventId||proof.eventId.length>200||!Number.isFinite(proof.at)||proof.at<pending.createdAt||proof.at>now()+30000||Object.values(records).some(record=>record.events.some(e=>e.id===proof.eventId)))throw failure(403,'Der Anbieter hat die Belohnung nicht bestätigt.');
    if(unsafe(actor))throw failure(409,'Belohnung während einer Spielsitzung gesperrt.');
-   r.events.push({id:proof.eventId,at:now()});r.rewarded=recent(r.rewarded);r.rewarded.push(now());r.rewardUntil=now()+POLICY.rewardDurationMs;r.rewardPermanent=r.rewardPermanent||r.rewarded.length>=POLICY.permanentRewardThreshold;r.pending=null;
-   return {reward:{id:'neon-garage',label:r.rewardPermanent?'Neon-Garagen-Look dauerhaft':'Neon-Garagen-Look für 2 Stunden',permanent:r.rewardPermanent,progress:r.rewarded.length,target:POLICY.permanentRewardThreshold,expiresAt:r.rewardPermanent?null:r.rewardUntil}};
+   r.events.push({id:proof.eventId,at:now()});r.rewarded=recent(r.rewarded);r.rewarded.push(now());r.rewardCount=Math.min(10,(r.rewardCount||0)+1);r.rewardPermanent=r.rewardPermanent||r.rewardCount>=POLICY.permanentRewardThreshold;r.pending=null;
+   return {reward:{id:'neon-garage',label:r.rewardPermanent?'Garagenhintergründe freigeschaltet':'Garagenhintergründe dauerhaft freischalten',permanent:r.rewardPermanent,progress:total(r),target:POLICY.permanentRewardThreshold,expiresAt:r.rewardPermanent?null:r.rewardUntil>now()?r.rewardUntil:null}};
   });
  }
  async function cancel(actor){if(!records[actor]?.pending)return {ok:true};return change(actor,r=>{r.pending=null;return {ok:true};});}
- async function prune(){return locked('ledger',async()=>{const previous=snapshot();for(const [id,r]of Object.entries(records)){r.events=r.events.filter(e=>now()-e.at<30*86400000);r.interstitials=recent(r.interstitials);r.rewarded=recent(r.rewarded);if(r.pending?.expiresAt<=now())r.pending=null;if(!r.rewardPermanent&&!r.pending&&r.rewardUntil<=now()&&!r.interstitials.length&&!r.rewarded.length&&!r.events.length)delete records[id];}if(JSON.stringify(previous)!==JSON.stringify(records)){try{await persist();}catch(error){restore(previous);throw error;}}});}
+ async function prune(){return locked('ledger',async()=>{const previous=snapshot();for(const [id,r]of Object.entries(records)){r.rewardCount=total(r);r.events=r.events.filter(e=>now()-e.at<30*86400000);r.rewardCount=total(r);r.interstitials=recent(r.interstitials);r.rewarded=recent(r.rewarded);if(r.pending?.expiresAt<=now())r.pending=null;if(!r.rewardCount&&!r.rewardPermanent&&!r.pending&&r.rewardUntil<=now()&&!r.interstitials.length&&!r.rewarded.length&&!r.events.length)delete records[id];}if(JSON.stringify(previous)!==JSON.stringify(records)){try{await persist();}catch(error){restore(previous);throw error;}}});}
  return {status,begin,complete,cancel,snapshot,restore,prune};
 }
 module.exports={createAdService,POLICY};

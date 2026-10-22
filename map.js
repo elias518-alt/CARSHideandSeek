@@ -86,18 +86,20 @@ function initialize(data) {
       zoom: initial ? 13 : 5,
       minZoom: 4,
       maxZoom: 19,
-      attributionControl: true
+      attributionControl: {compact:true}
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
     setStatus('Straßenkarte wird geladen…');
     loadTimer = setTimeout(() => { if (!ready) setStatus('Kartendaten laden zu lange. Internetverbindung oder Netzwerkfilter prüfen und neu laden.'); }, 20000);
     map.on('load', () => {
+      window.gameMapStyle?.apply(map);
       clearTimeout(loadTimer);
       ready = true;
       shell.classList.add('mapReady');
       setStatus('');
       map.addSource('game-radius', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({ id: 'game-radius-fill', type: 'fill', source: 'game-radius', paint: { 'fill-color': '#ff762b', 'fill-opacity': 0.09 } });
+      map.addLayer({id:'game-radius-glow',type:'line',source:'game-radius',paint:{'line-color':'#a880e8','line-width':10,'line-opacity':.25,'line-blur':4}});
       map.addLayer({ id: 'game-radius-outline', type: 'line', source: 'game-radius', paint: { 'line-color': '#ff762b', 'line-width': 3, 'line-dasharray': [2, 2] } });
       map.addSource('find-trail',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
       map.addLayer({id:'find-trail-line',type:'line',source:'find-trail',paint:{'line-color':'#ffcc44','line-width':4}});
@@ -145,7 +147,8 @@ function updateCircle(data) {
 function makeMarker(player, mine) {
   const element = document.createElement('div');
   element.className = `mapPlayer ${mine ? 'isMe' : 'isOther'} ${player.stale || player.connected === false ? 'isStale' : ''}`;
-  element.textContent = mine ? '▲' : (player.role === 'SEEKER' ? '⌕' : '🚘');
+  element.dataset.role = player.role === 'SEEKER' ? 'seeker' : 'hider';
+  element.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">'+(mine?'<path d="M12 3 3 21l9-5 9 5Z"/>':player.role==='SEEKER'?'<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>':'<path d="m5 9 2-5h10l2 5M4 9h16v9H4zM7 18v3m10-3v3M7 13h2m6 0h2"/>')+'</svg>';
   element.setAttribute('aria-label', mine ? 'Mein Standort' : `Standort von ${player.name}`);
   const popupContent = document.createElement('div');
   const title = document.createElement('strong');

@@ -32,41 +32,44 @@
   });
   cache.set(source,pending);if(cache.size>32)cache.delete(cache.keys().next().value);return pending;
  }
- function set(el,key,value){const next=Number(value.toFixed(2))+'px';if(el.style.getPropertyValue(key)!==next)el.style.setProperty(key,next);}
+ function set(el,key,value){if(!el)return;const next=Number(value.toFixed(2))+'px';if(el.style.getPropertyValue(key)!==next)el.style.setProperty(key,next);}
  function fit(host,profile){
   if(!host)return;const figure=host.querySelector('.vehicleIllustration'),svg=figure?.querySelector('svg');if(!svg)return;
   const box=svg.viewBox.baseVal;if(!box.width||!box.height)return;
   const width=host.clientWidth;if(!width)return;
-  const layout=composition(width,box.width/box.height,profile);
+  const pet=host.querySelector('[data-pet]'),character=host.querySelector('.lobbyCrewCharacter'),cfg=root.sceneLayout;
+  const layout=cfg?cfg.layout({width,ratio:box.width/box.height,pet:pet?.dataset.pet,petRatio:parseFloat(pet?.style.getPropertyValue('--pet-ratio'))||1,petScale:parseFloat(pet?.style.getPropertyValue('--pet-scale'))/(root.pets?.breeds[pet?.dataset.pet]?.height||1),petFlip:pet?.querySelector('svg')?.style.transform==='scaleX(-1)',pose:Number(character?.dataset.pose),mode:profile?'profile':'home',hasCharacter:!!character,scale:Number(figure.dataset.vehicleScale)||1,translateX:Number(figure.dataset.vehicleTranslateX)||0}):composition(width,box.width/box.height,profile);
+  host.classList.add('unifiedScene');if(host.classList.contains('parkingVehicleStage'))set(host.closest('.parkingPlayer'),'--parking-scene-height',layout.sceneHeight);if(pet)pet.dataset.anchor=layout.petKind||'ground';
   if(!profile&&host.querySelector('.wardrobeAvatar'))layout.personLeft=Math.min(layout.personLeft,width-layout.personHeight*.265);
   if(!profile&&!host.querySelector('.wardrobeStudio'))layout.personLeft=Math.min(layout.personLeft,width-layout.personHeight/3);
-  for(const [key,value]of Object.entries(layout))set(host,'--showroom-'+key,value);
+  for(const [key,value]of Object.entries(layout))if(typeof value==='number')set(host,'--showroom-'+key,value);
   if(!profile)set(host.closest('.homeStage'),'--showroom-height',Math.max(width<600?330:400,Math.max(layout.carHeight,layout.personHeight+layout.personDepth)+layout.ground+(width<600?100:112)));
-  else set(host,'--showroom-height',layout.carHeight);
+  else set(host,'--showroom-height',layout.sceneHeight||layout.carHeight);
   host.dataset.showroomReady='true';
  }
  let scheduled=false;
  function refresh(){
   if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{
    scheduled=false;
-   for(const [id,profile] of [['homeOwnScene',false],['profileVehicleStage',true],['garage',null]]){
+   for(const [id,profile] of [['homeOwnScene',false],['profileVehicleStage',true],['garage',null],['players',null],['lobbyPlayerCardDialog',null],['referenceResultScene',null],['crewProfileDialog',null],['crewMemberProfileDialog',null]]){
     const host=document.getElementById(id);if(!host)continue;
     for(const svg of host.querySelectorAll('[data-showroom-photo]')){
      if(svg.dataset.measuring)continue;svg.dataset.measuring='true';const source=svg.querySelector('image').getAttribute('href');
      void measure(source).then(bounds=>{
       if(!svg.isConnected||svg.querySelector('image')?.getAttribute('href')!==source)return;
       if(bounds){const {width,height,x,y,w,h}=bounds;svg.setAttribute('viewBox',[x*width,y*height,w*width,h*height].join(' '));const img=svg.querySelector('image');img.setAttribute('width',width);img.setAttribute('height',height);svg.dataset.photoFit='ready';}else svg.dataset.photoFit='unavailable';
-      if(profile!==null)fit(host,profile);
+      if(profile!==null)fit(host,profile);else svg.closest('.unifiedScene')&&fit(svg.closest('.unifiedScene'),true);
      });
     }
     if(profile!==null)fit(host,profile);
+    else if(id!=='garage')host.querySelectorAll('.parkingVehicleStage,.resultCrewVisual,.lobbyPlayerCardVehicle,.communityFriendScene').forEach(el=>fit(el,true));
    }
   });
  }
  function setup(){
   const observer=new MutationObserver(refresh),resize=new ResizeObserver(refresh);
-  for(const id of ['homeOwnScene','profileVehicleStage','garage']){const el=document.getElementById(id);if(el){observer.observe(el,{childList:true,subtree:true});resize.observe(el);}}
-  refresh();
+  for(const id of ['homeOwnScene','profileVehicleStage','garage','players','result']){const el=document.getElementById(id);if(el){observer.observe(el,{childList:true,subtree:true});resize.observe(el);}}
+  window.addEventListener('resize',refresh,{passive:true});refresh();
  }
  const api={alphaBounds,composition,refresh};
  if(typeof module==='object'&&module.exports)module.exports=api;

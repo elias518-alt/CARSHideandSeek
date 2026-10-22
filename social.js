@@ -224,7 +224,7 @@ function friendActivityLabel(row) {
 function friendDisplayName(row) { return row.username?.trim() || row.player_tag || 'Spieler'; }
 function socialAvatarMarkup(row){
  const name=friendDisplayName(row),v=row.active_vehicle;
- const player={name,avatarUrl:row.avatar_url,vehicle:v?[v.brand,v.model].filter(Boolean).join(' '):'',bodyType:v?.body_type,color:v?.color,photoUrl:v?.photo_path?vehiclePhotoUrl(v.photo_path):v?.photoUrl};
+ const player={name,avatarUrl:row.avatar_url,vehicle:v?[v.brand,v.model].filter(Boolean).join(' '):'',bodyType:v?.body_type,vehicleYear:v?.model_year,vehicleSeries:v?.series,cosmetics:v?.cosmetics,presentation:v?.presentation,color:v?.color,photoUrl:v?.photo_path?vehiclePhotoUrl(v.photo_path):v?.photoUrl};
  const src=profileImageSource(row.avatar_url);
  const content=src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async">':v?parkingAvatarMarkup(player):'<span>'+esc(name.slice(0,2).toUpperCase())+'</span>';
  return '<span class="socialAvatar" aria-hidden="true">'+content+'</span>';

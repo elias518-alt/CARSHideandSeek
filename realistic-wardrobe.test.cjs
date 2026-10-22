@@ -27,7 +27,7 @@ test('legacy customizable looks render a complete studio character without old l
 
 test('studio choices are normalized, allowlisted and restricted by membership',()=>{
  const input={collection:'studio',gender:'female',outfit:2,topColor:'cream',pantsColor:'black',classic:2};
- assert.deepEqual(wardrobe.normalize(JSON.parse(JSON.stringify(input))),{version:6,collection:'studio',figure:'maya',gender:'female',top:2,pants:2,shoes:0,topColor:'cream',pantsColor:'black',shoeColor:'white',pose:0,winPose:0,traits:require('./character-avatar').traits({},'female'),classic:2,face:null});
+ assert.deepEqual(wardrobe.normalize(JSON.parse(JSON.stringify(input))),{version:6,collection:'studio',figure:'maya',gender:'female',top:2,pants:2,shoes:0,topColor:'cream',pantsColor:'black',shoeColor:'white',pose:0,winPose:0,traits:require('./character-avatar').traits({},'female'),classic:2,jewelry:'none',glasses:false,earrings:false,watch:false,face:null});
  assert.equal(wardrobe.restrict(input,false).collection,'classic');assert.equal(wardrobe.restrict(input,false).classic,2);
  assert.equal(wardrobe.restrict(input,true).collection,'studio');
  const invalid=wardrobe.normalize({collection:'studio',outfit:99,gender:'../bad',topColor:'" onload="evil'});

@@ -72,7 +72,7 @@ function finish(lobby,seekersWin,reason='TIME',now=Date.now()){
   const players=lobby.players.map(p=>{
     if(p.outsideSince)p.stats.outsideMs+=Math.max(0,now-p.outsideSince);
     delete p.outsideSince;
-    return {id:p.id,name:p.name,vehicle:p.vehicle,bodyType:p.bodyType,vehicleYear:p.vehicleYear,vehicleSeries:p.vehicleSeries,color:p.color,cosmetics:p.cosmetics?structuredClone(p.cosmetics):null,photoUrl:p.photoUrl,avatarUrl:p.avatarUrl,appearance:p.appearance?structuredClone(p.appearance):null,pet:p.pet?structuredClone(p.pet):null,characterStyle:p.characterStyle,left:!!p.left,role:p.role,startRole:p.roundStartRole||p.role,found:!!p.found,foundBy:p.foundBy||null,
+    return {id:p.id,name:p.name,vehicle:p.vehicle,bodyType:p.bodyType,vehicleYear:p.vehicleYear,vehicleSeries:p.vehicleSeries,color:p.color,title:p.title||'',presentation:p.presentation?structuredClone(p.presentation):null,cosmetics:p.cosmetics?structuredClone(p.cosmetics):null,photoUrl:p.photoUrl,avatarUrl:p.avatarUrl,appearance:p.appearance?structuredClone(p.appearance):null,pet:p.pet?structuredClone(p.pet):null,characterStyle:p.characterStyle,left:!!p.left,role:p.role,startRole:p.roundStartRole||p.role,found:!!p.found,foundBy:p.foundBy||null,
       eliminated:!!p.eliminated,reason:p.eliminationReason||'',...p.stats,
       survivalSeconds:Math.max(0,Math.round(((p.foundAt||p.eliminatedAt||now)-(lobby.roundStartedAt||now))/1000))};
   });

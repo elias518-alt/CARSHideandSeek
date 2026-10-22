@@ -58,3 +58,11 @@ test('calibrated wheel rendering changes only the supported illustration',()=>{
  const original=studio.render(car).replace(/studio-car-\d+/g,'id'),stock=studio.render({...car,cosmetics:rewards.defaults}).replace(/studio-car-\d+/g,'id');
  assert.equal(original,stock);
 });
+test('photo preference persists per owned car and a new session reads the same clamped transform',async()=>{
+ const f=fixture();
+ await f.service.save(actor,'Bearer user',{vehicleId:'a',loadout:rewards.defaults,presentation:{mode:'model',customVehicleTransform:{scale:1.1,translateX:.04,translateY:200}}});
+ const read=await f.service.read(actor,'Bearer user');assert.equal(read.presentations.a.mode,'model');assert.equal(read.presentations.a.customVehicleTransform.scale,1.1);assert.equal(read.presentations.a.customVehicleTransform.translateX,.04);assert.equal(read.presentations.a.customVehicleTransform.translateY,0);assert.equal(read.presentations.b.mode,'photo');
+ await f.service.save(actor,'Bearer user',{vehicleId:'b',loadout:rewards.defaults,presentation:{mode:'photo'}});
+ assert.equal((await f.service.read(actor,'Bearer user')).presentations.a.mode,'model');
+ await assert.rejects(f.service.save(actor,'Bearer user',{vehicleId:'unknown',loadout:rewards.defaults,presentation:{mode:'model'}}),{status:403});
+});
