@@ -27,6 +27,13 @@ const stub=fs.readFileSync(path.join(repo,'scripts/community-ui-qa.mjs'),'utf8')
     };
     await plusUI.refresh();localGarage[0].photo='https://fixture.invalid/car.webp';openPage('garage');await vehicleRewardsUI.refresh();
    });
+   await page.evaluate(()=>{authSession.user.user_metadata.chs_pet={breed:'husky',coat:'gray',eyes:'blue'};openPage('home');petUI.greeting();referenceUI.renderCrew(Array.from({length:8},(_,i)=>({peer_id:'friend-'+i,username:'Freund '+i,status:'accepted'})));});
+   check(await page.locator('#homePetPortrait').evaluate(el=>el.previousElementSibling?.id==='homeGreeting'),'Pet portrait follows greeting name');
+   check(await page.locator('#homeCrewPeople .referenceCrewPerson').count()===8,'All accepted friends visible beyond six-person limit');
+   await page.screenshot({path:out+'/greeting-'+width+'.png',fullPage:false});
+   const avatar=await page.evaluate(()=>{const el=document.createElement('div');el.innerHTML=parkingAvatarMarkup({name:'Juline',vehicle:'VW Golf',photoUrl:'https://fixture.invalid/car.webp'});return {photos:el.querySelectorAll('img').length,models:el.querySelectorAll('svg').length};});
+   check(avatar.photos===1&&avatar.models===0,'Uploaded vehicle avatar contains one photo and no model');
+   await page.evaluate(()=>{referenceUI.renderCrew(socialRows);openPage('garage');});
    check(await page.locator('.garageSceneCar [data-showroom-photo]').count()===1,'Own photo preferred by default');
    await page.locator('[data-garage-view=tuning]').click();check(await page.locator('.garageSceneCar [data-showroom-photo]').count()===0,'Tuning editor always renders model');
    await page.locator('[data-garage-view=vehicle]').click();await page.locator('[data-vehicle-mode=model]').click();await page.locator('.vehiclePresentation [data-save-vehicle-rewards]').click();await page.waitForFunction(()=>localGarage[0].presentation?.mode==='model');

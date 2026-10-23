@@ -2826,6 +2826,7 @@ function safeCarPhoto(value) {
 function carPhotoMarkup(car,context='garage') {
   car=window.vehicleConfiguration?.normalize(car)||car;
   const source = car?.presentation?.mode==='model'?'':vehiclePhotoSource(car?.photo);
+  if(source&&context==='avatar')return '<img class="vehicleAvatarPhoto" src="'+esc(source)+'" alt="" loading="lazy" decoding="async">';
   if(source&&['home-hero','profile','lobby','result-scene','avatar'].includes(context))return '<figure class="vehicleIllustration showroomPhoto" data-vehicle-scale="'+car.customVehicleTransform.scale+'" data-vehicle-translate-x="'+car.customVehicleTransform.translateX+'"><div class="vehicleRender"><svg data-showroom-photo viewBox="0 0 400 240" preserveAspectRatio="xMidYMax meet" role="img" aria-label="Foto von '+esc([car?.brand,car?.model].filter(Boolean).join(' '))+'"><image href="'+esc(source)+'" width="400" height="240" preserveAspectRatio="xMidYMax meet"/></svg></div></figure>';
   return source
     ? `<img src="${esc(source)}" alt="Foto von ${esc(`${car?.brand || ''} ${car?.model || ''}`.trim())}" ${context==='home-hero'?'class="lobbyModelCar"':''} style="display:block;width:100%;max-height:240px;object-fit:contain" loading="lazy" decoding="async">`
