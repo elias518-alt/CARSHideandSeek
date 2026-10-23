@@ -25,8 +25,9 @@ alter table chs_friendships add column id uuid default gen_random_uuid();
 create table chs_direct_messages(id uuid,sender uuid,recipient uuid,created_at timestamptz);
 create table chs_dm_receipts(user_id uuid,peer_id uuid,read_at timestamptz,read_id uuid);`);
 await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261021100000_unified_vehicle_crew.sql',import.meta.url),'utf8'));
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261022070000_vehicle_glow_colors.sql',import.meta.url),'utf8'));
 // Project only permitted cosmetic fields and clamp user-editable presentation metadata.
-await db.query('update auth.users set raw_user_meta_data=$1 where id=$2',[JSON.stringify({private_note:'never-public',chs_appearance:{collection:'studio',figure:'luca',gender:'male',top:4,pants:9,face:{path:'private'},traits:{private:true}},chs_pet:{breed:'husky',coat:'gray',secret:'private'},chs_vehicle_loadouts:{[id(99)]:{rims:'mesh',package:'track',glow:'cyan'}},chs_vehicle_presentations:{[id(99)]:{mode:'model',customVehicleTransform:{scale:999,translateX:-999}}}}),id(2)]);
+await db.query('update auth.users set raw_user_meta_data=$1 where id=$2',[JSON.stringify({private_note:'never-public',chs_appearance:{collection:'studio',figure:'luca',gender:'male',top:4,pants:9,face:{path:'private'},traits:{private:true}},chs_pet:{breed:'husky',coat:'gray',secret:'private'},chs_vehicle_loadouts:{[id(99)]:{rims:'mesh',package:'track',glow:'pink'}},chs_vehicle_presentations:{[id(99)]:{mode:'model',customVehicleTransform:{scale:999,translateX:-999}}}}),id(2)]);
 let projected=(await db.query('select chs_private.active_vehicle_presentation($1) v,chs_private.companion_presentation($1) c',[id(2)])).rows[0];
 check(projected.v.cosmetics.rims==='stock'&&projected.v.cosmetics.package==='stock','Untrusted metadata cannot bypass levels');
 check(projected.v.presentation.mode==='model'&&Number(projected.v.presentation.customVehicleTransform.scale)===1.15&&Number(projected.v.presentation.customVehicleTransform.translateX)===-.08,'Presentation clamped in public projection');
@@ -34,6 +35,7 @@ check(projected.c.appearance.collection==='classic'&&projected.c.pet===null,'PLU
 await db.query("insert into chs_plus_entitlements values($1,now()+interval '1 day')",[id(2)]);
 await db.query('update profiles set level=15 where id=$1',[id(2)]);
 projected=(await db.query('select chs_private.active_vehicle_presentation($1) v,chs_private.companion_presentation($1) c',[id(2)])).rows[0];
+check(projected.v.cosmetics.glow==='pink','New underglow color survives public projection');
 check(projected.v.cosmetics.rims==='mesh'&&projected.v.cosmetics.package==='track','Valid levels preserve loadout for legacy missing-series car');
 check(projected.c.appearance.figure==='luca'&&!projected.c.appearance.face&&!projected.c.appearance.traits&&!projected.c.private_note&&!projected.c.pet.secret,'Private metadata excluded from PLUS projection');
 await db.query("update chs_plus_entitlements set expires_at=now()-interval '1 day' where user_id=$1",[id(2)]);

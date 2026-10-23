@@ -1,0 +1,13 @@
+-- Preserve the expanded level-3 underglow palette in public vehicle projections.
+create or replace function chs_private.active_vehicle_presentation(uid uuid) returns jsonb
+language sql stable set search_path='' as $$
+ select jsonb_build_object('id',v.id,'brand',v.brand,'model',v.model,'series',v.series,'body_type',v.body_type,'model_year',v.model_year,'color',v.color,'photo_path',v.photo_path,
+ -- Level gates are authoritative here; calibrated asset support is resolved by the shared renderer.
+ 'cosmetics',jsonb_build_object('rims',case when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'rims'='silver' and p.level>=2 then 'silver' when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'rims'='graphite' and p.level>=8 then 'graphite' when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'rims'='mesh' and p.level>=12 then 'mesh' else 'stock' end,'package',case when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'package'='sport' and p.level>=5 then 'sport' when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'package'='clean' and p.level>=10 then 'clean' when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'package'='track' and p.level>=15 then 'track' else 'stock' end,'glow',case when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'glow'='cyan' and p.level>=3 then 'cyan' when u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'glow' in ('amber','pink','violet','green','red','white') and p.level>=3 then u.raw_user_meta_data->'chs_vehicle_loadouts'->v.id::text->>'glow' else 'off' end),
+ 'presentation',jsonb_build_object('mode',case when u.raw_user_meta_data->'chs_vehicle_presentations'->v.id::text->>'mode'='model' then 'model' else 'photo' end,
+ 'customVehicleTransform',jsonb_build_object('scale',case when jsonb_typeof(u.raw_user_meta_data->'chs_vehicle_presentations'->v.id::text->'customVehicleTransform'->'scale')='number' then greatest(.75,least(1.15,(u.raw_user_meta_data->'chs_vehicle_presentations'->v.id::text->'customVehicleTransform'->>'scale')::numeric)) else 1 end,'translateX',case when jsonb_typeof(u.raw_user_meta_data->'chs_vehicle_presentations'->v.id::text->'customVehicleTransform'->'translateX')='number' then greatest(-.08,least(.08,(u.raw_user_meta_data->'chs_vehicle_presentations'->v.id::text->'customVehicleTransform'->>'translateX')::numeric)) else 0 end)))
+ from public.profiles p join auth.users u on u.id=p.id join public.vehicles v on v.user_id=p.id
+ where p.id=uid and (v.id=p.active_vehicle_id or v.is_active)
+ order by (v.id=p.active_vehicle_id) desc nulls last,v.updated_at desc,v.id limit 1
+$$;
+revoke all on function chs_private.active_vehicle_presentation(uuid) from public,anon,authenticated;
