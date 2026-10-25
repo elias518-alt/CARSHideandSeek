@@ -40,8 +40,10 @@
   const pet=host.querySelector('[data-pet]'),character=host.querySelector('.lobbyCrewCharacter'),cfg=root.sceneLayout;
   const layout=cfg?cfg.layout({width,ratio:box.width/box.height,pet:pet?.dataset.pet,petRatio:parseFloat(pet?.style.getPropertyValue('--pet-ratio'))||1,petScale:parseFloat(pet?.style.getPropertyValue('--pet-scale'))/(root.pets?.breeds[pet?.dataset.pet]?.height||1),petFlip:pet?.querySelector('svg')?.style.transform==='scaleX(-1)',pose:Number(character?.dataset.pose),mode:profile?'profile':'home',hasCharacter:!!character,scale:Number(figure.dataset.vehicleScale)||1,translateX:Number(figure.dataset.vehicleTranslateX)||0}):composition(width,box.width/box.height,profile);
   host.classList.add('unifiedScene');if(host.classList.contains('parkingVehicleStage'))set(host.closest('.parkingPlayer'),'--parking-scene-height',layout.sceneHeight);if(pet)pet.dataset.anchor=layout.petKind||'ground';
+  const originalPersonLeft=layout.personLeft;
   if(!profile&&host.querySelector('.wardrobeAvatar'))layout.personLeft=Math.min(layout.personLeft,width-layout.personHeight*.265);
   if(!profile&&!host.querySelector('.wardrobeStudio'))layout.personLeft=Math.min(layout.personLeft,width-layout.personHeight/3);
+  if(layout.petKind==='shoulder')layout.petLeft+=layout.personLeft-originalPersonLeft;
   for(const [key,value]of Object.entries(layout))if(typeof value==='number')set(host,'--showroom-'+key,value);
   if(!profile)set(host.closest('.homeStage'),'--showroom-height',Math.max(width<600?330:400,Math.max(layout.carHeight,layout.personHeight+layout.personDepth)+layout.ground+(width<600?100:112)));
   else set(host,'--showroom-height',layout.sceneHeight||layout.carHeight);

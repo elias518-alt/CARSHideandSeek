@@ -1,6 +1,6 @@
 /* Shared scene coordinates. This layer replaces divergent per-page positioning. */
 .unifiedScene{position:relative;isolation:isolate;min-height:var(--showroom-sceneHeight,220px)}
-:is(#home #homeOwnScene,#profile #profileVehicleStage,#game.freshWaiting #players .parkingPlayer .parkingVehicleStage,#referenceResultScene .resultCrewVisual,#lobbyPlayerCardDialog .lobbyPlayerCardVehicle,#crewProfileDialog .communityFriendScene,#crewMemberProfileDialog .communityFriendScene) .vehicleIllustration{position:absolute!important;width:var(--showroom-carWidth)!important;height:var(--showroom-carHeight)!important;max-width:none!important;left:var(--showroom-center)!important;bottom:var(--showroom-ground)!important;top:auto!important;transform:translateX(-50%)!important;margin:0!important;z-index:2!important;filter:drop-shadow(0 3px 2px #0008) drop-shadow(0 5px 4px var(--unified-glow,transparent))}
+:is(#home #homeOwnScene,#profile #profileVehicleStage,#game.freshWaiting #players .parkingPlayer .parkingVehicleStage,#referenceResultScene .resultCrewVisual,#lobbyPlayerCardDialog .lobbyPlayerCardVehicle,#crewProfileDialog .communityFriendScene,#crewMemberProfileDialog .communityFriendScene) .vehicleIllustration{position:absolute!important;width:var(--showroom-carWidth)!important;height:var(--showroom-carHeight)!important;max-width:none!important;left:var(--showroom-center)!important;bottom:var(--showroom-ground)!important;top:auto!important;transform:translateX(-50%)!important;margin:0!important;z-index:2!important;filter:drop-shadow(0 1px 1px #000b)}
 :is(#home #homeOwnScene,#profile #profileVehicleStage,#game.freshWaiting #players .parkingPlayer .parkingVehicleStage,#referenceResultScene .resultCrewVisual,#lobbyPlayerCardDialog .lobbyPlayerCardVehicle,#crewProfileDialog .communityFriendScene,#crewMemberProfileDialog .communityFriendScene) .vehicleIllustration::before{content:'';position:absolute;inset:12% -4% 0;background:radial-gradient(ellipse,#bbb5e426,transparent 72%);z-index:-1;pointer-events:none}
 :is(#home #homeOwnScene,#profile #profileVehicleStage,#game.freshWaiting #players .parkingPlayer .parkingVehicleStage,#referenceResultScene .resultCrewVisual,#lobbyPlayerCardDialog .lobbyPlayerCardVehicle,#crewProfileDialog .communityFriendScene,#crewMemberProfileDialog .communityFriendScene) .vehicleRender,:is(#home #homeOwnScene,#profile #profileVehicleStage,#game.freshWaiting #players .parkingPlayer .parkingVehicleStage,#referenceResultScene .resultCrewVisual,#lobbyPlayerCardDialog .lobbyPlayerCardVehicle,#crewProfileDialog .communityFriendScene,#crewMemberProfileDialog .communityFriendScene) .vehicleRender svg{width:100%!important;height:100%!important;overflow:hidden!important}
 :is(#home #homeOwnScene,#profile #profileVehicleStage,#game.freshWaiting #players .parkingPlayer .parkingVehicleStage,#referenceResultScene .resultCrewVisual,#lobbyPlayerCardDialog .lobbyPlayerCardVehicle,#crewProfileDialog .communityFriendScene,#crewMemberProfileDialog .communityFriendScene) .vehicleIllustration figcaption{display:none!important}
@@ -81,3 +81,23 @@
 .vehicleIllustration[data-glow=white],.garageSceneCar[data-glow=white]{--unified-glow:#e8f8ffbb}
 .garageSceneCar:is([data-glow=pink],[data-glow=violet],[data-glow=green],[data-glow=red],[data-glow=white])::before{content:'';position:absolute;z-index:-1;bottom:-5px;left:15%;width:70%;height:18px;border-radius:50%;background:var(--unified-glow);filter:blur(12px)}
 .rewardSample--pink{background:#ff49bd;box-shadow:0 0 14px #ff49bd}.rewardSample--violet{background:#aa75ff;box-shadow:0 0 14px #aa75ff}.rewardSample--green{background:#8cff47;box-shadow:0 0 14px #8cff47}.rewardSample--red{background:#ff4141;box-shadow:0 0 14px #ff4141}.rewardSample--white{background:#e8f8ff;box-shadow:0 0 14px #e8f8ff}
+
+/* One image plane and one shared, edge-to-edge scrim for all profile destinations. */
+#profile .profileDestination{background-size:cover!important;background-position:center!important;box-shadow:inset 0 1px 0 #ffffff35,0 4px 0 #070b12,0 7px 12px #0005!important;border:1px solid #8b9aad55!important}
+#profile .profileDestination::before{content:none!important}
+#profile .profileDestination::after{inset:0!important;border-radius:inherit;background:linear-gradient(0deg,#0d1422e8 0%,#0d142260 42%,#0d142210 78%)!important;pointer-events:none}
+#profile .profileDestination[data-destination=garage]{background-image:url('assets/lobby-meetup.webp')!important}
+#profile .profileDestination[data-destination=look]{background-image:url('assets/profile/wardrobe.webp')!important;background-position:82% center!important}
+#profile .profileDestination[data-destination=pets]{background-image:url('assets/profile/pets.webp')!important;background-position:70% center!important}
+#profile .profileDestination[data-destination=statistik]{background-image:url('assets/scenes/skyline.webp')!important}
+/* Tactile controls: highlight, bevel and a short pressed travel. */
+body button:not(.profileDestination){box-shadow:inset 0 1px 0 #ffffff36,inset 0 -2px 0 #0003,0 3px 0 #080d15,0 5px 9px #0003;border-top-color:#ffffff38;transition:box-shadow .12s ease,translate .12s ease}
+body button:not(:disabled):not([aria-disabled=true]):active{translate:0 2px;box-shadow:inset 0 1px 3px #0004,0 1px 0 #080d15!important}
+body button:disabled,body button[aria-disabled=true]{box-shadow:inset 0 1px #ffffff12;opacity:.6}
+body button:focus-visible{outline:3px solid #ffc18a;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){body button{transition:none!important}}
+/* Ground illumination is a thin pool below the chassis, never a glowing car outline. */
+.unifiedScene .vehicleIllustration{filter:drop-shadow(0 1px 1px #000b)!important}
+.vehicleIllustration[data-glow]:not([data-glow=off])::after{content:'';position:absolute;left:15%;right:12%;bottom:0;height:5%;min-height:3px;max-height:10px;border-radius:50%;background:radial-gradient(ellipse,var(--unified-glow,transparent),transparent 72%);filter:blur(2px);z-index:-1;pointer-events:none;opacity:.8}
+.garageSceneCar[data-glow]::before{content:none!important}
+#home #homeOwnScene .petCompanion[data-anchor=shoulder],#profile #profileVehicleStage .petCompanion[data-anchor=shoulder],#game.freshWaiting #players .parkingPlayer .parkingVehicleStage .petCompanion[data-anchor=shoulder]{max-width:none!important}
