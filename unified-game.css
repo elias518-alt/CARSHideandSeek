@@ -90,11 +90,29 @@
 #profile .profileDestination[data-destination=look]{background-image:url('assets/profile/wardrobe.webp')!important;background-position:82% center!important}
 #profile .profileDestination[data-destination=pets]{background-image:url('assets/profile/pets.webp')!important;background-position:70% center!important}
 #profile .profileDestination[data-destination=statistik]{background-image:url('assets/scenes/skyline.webp')!important}
-/* Tactile controls: highlight, bevel and a short pressed travel. */
-body button:not(.profileDestination){box-shadow:inset 0 1px 0 #ffffff36,inset 0 -2px 0 #0003,0 3px 0 #080d15,0 5px 9px #0003;border-top-color:#ffffff38;transition:box-shadow .12s ease,translate .12s ease}
-body button:not(:disabled):not([aria-disabled=true]):active{translate:0 2px;box-shadow:inset 0 1px 3px #0004,0 1px 0 #080d15!important}
-body button:disabled,body button[aria-disabled=true]{box-shadow:inset 0 1px #ffffff12;opacity:.6}
-body button:focus-visible{outline:3px solid #ffc18a;outline-offset:3px}
+/* Sculpted game controls: bright top bevel, solid side wall and grounded shadow. */
+body button{
+ --button-depth:4px;--button-side:#080d17;
+ box-shadow:inset 0 2px 0 #ffffff42,inset 1px 0 0 #ffffff18,inset -1px 0 0 #0004,inset 0 -3px 0 #0003,0 var(--button-depth) 0 var(--button-side),0 7px 10px #0005!important;
+ transition:box-shadow .12s ease,translate .12s ease,filter .12s ease;
+ text-shadow:0 1px 1px #0006;
+}
+body :is(.hubButton,.primaryButton,.vehicleRewardActions button,.garageViewTabs button,.gameSettingsGroup button,.sheetBack,.dialogClose){
+ background-image:linear-gradient(180deg,#ffffff20 0%,#ffffff08 44%,#00000010 45%,#00000028 100%);
+ border:1px solid #a5b8cf45;border-radius:12px;min-height:44px;
+}
+body :is(.primaryButton,.hubButton.primary,#homeQuickJoin){
+ --button-depth:5px;--button-side:color-mix(in srgb,var(--game-accent,#ff873c) 42%,#321b16);
+ background-color:var(--game-accent,#ff873c);
+ background-image:linear-gradient(180deg,#ffffff52,#ffffff0a 46%,#0000000a 47%,#00000022)!important;
+ border:1px solid #ffffff65;font-weight:800;letter-spacing:.025em;
+}
+#profile .profileDestination{box-shadow:inset 0 2px 0 #ffffff60,inset 2px 0 0 #ffffff18,inset -2px 0 0 #0005,inset 0 -3px 0 #0006,0 5px 0 #080d17,0 9px 14px #0006!important}
+body button[aria-pressed=true],#bottomNav button.active{box-shadow:inset 0 2px 4px #0007,inset 0 -1px 0 #ffffff25,0 1px 0 #060b12!important;border-color:var(--game-accent,#ff873c)}
+@media(hover:hover) and (pointer:fine){body button:not(:disabled):not([aria-disabled=true]):hover{filter:brightness(1.08)}}
+body button:not(:disabled):not([aria-disabled=true]):active,#profile .profileDestination:active{translate:0 3px;box-shadow:inset 0 2px 4px #0005,inset 0 -1px 0 #ffffff20,0 1px 0 var(--button-side,#080d17)!important}
+body button:disabled,body button[aria-disabled=true]{box-shadow:inset 0 1px #ffffff12!important;opacity:.6;text-shadow:none}
+body button:focus-visible{outline:3px solid var(--game-accent,#ffc18a);outline-offset:4px}
 @media(prefers-reduced-motion:reduce){body button{transition:none!important}}
 /* Ground illumination is a thin pool below the chassis, never a glowing car outline. */
 .unifiedScene .vehicleIllustration{filter:drop-shadow(0 1px 1px #000b)!important}
