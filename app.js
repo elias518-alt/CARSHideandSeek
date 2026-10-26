@@ -1092,6 +1092,7 @@ function renderGarage() {
             : ''
         }">
 
+          <details class="garageManage"><summary>Foto & Fahrzeugverwaltung</summary>
           <div class="garageCarTop">
 
             ${
@@ -1143,6 +1144,7 @@ function renderGarage() {
           <div class="garageActions"><button type="button" data-edit-car="${esc(car.id)}">Bearbeiten</button><button type="button" class="deleteVehicle" data-delete-car="${esc(car.id)}">Löschen</button></div>
           ${car.active ? '' : `<button class="activateVehicle" data-car-id="${esc(car.id)}" type="button">ALS AKTIVES FAHRZEUG WÄHLEN</button>`}
 
+          </details>
         </section>
       `)
       .join('');
