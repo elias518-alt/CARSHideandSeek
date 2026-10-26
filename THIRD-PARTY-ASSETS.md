@@ -41,3 +41,7 @@ Zusätzlich: `assets/vehicles/bmw-e36-coupe.webp`, eigenständige generierte, vi
 # Profilkarten-Motive (22.10.2026)
 
 `assets/profile/wardrobe.webp` und `assets/profile/pets.webp` sind für dieses Projekt generierte Originalmotive. Die PNG-Originale liegen unter `/workspace/generated_images/exec-f9ca1aa3-f684-474d-8860-645372cf22fa.png` und `/workspace/generated_images/exec-5e2861e4-f6f2-4daf-9d11-838ab99cc8a5.png`; die WebP-Dateien wurden mit Qualität 86 konvertiert. Keine fremden Logos oder Textvorlagen verwendet.
+
+## Wortmarke – Open Sans ExtraBold Italic (26.10.2026)
+
+`assets/fonts/chs-wordmark.ttf` ist ein auf die Buchstaben der Wortmarke reduzierter Zeichensatz von Open Sans ExtraBold Italic, Copyright 2010–2011 Google Corporation, Apache-2.0. Lokal aus dem Debian-Paket `fonts-open-sans` erstellt; Ursprung https://www.opensans.com/. Vollständige Lizenz und Änderungshinweis liegen in `assets/fonts/LICENSE.txt` und `NOTICE.txt`. Keine externe Schriftabfrage zur Laufzeit.
