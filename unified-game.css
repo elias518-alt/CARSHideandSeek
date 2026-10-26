@@ -136,7 +136,7 @@ body button:focus-visible{outline:3px solid var(--game-accent,#ff8a1f);outline-o
 /* Tactile game controls: satin face, fine rim and a short solid sidewall.
    Keep image cards, color swatches and the navigation on their own materials. */
 body :is(.hubButton,.primaryButton,.vehicleRewardActions button,.gameSettingsGroup button,.readyButton,.gpsButton,.lobbySettingsFooter button),
-#home .homeAction,#home #openPlay,#home #homeCreateLobby.homeAction,#home #homeCodeJoin.homeAction,#home .hubSceneButton{
+#home .homeAction,#home #openPlay,#home #homeCreateLobby.homeAction,#home #homeCodeJoin.homeAction,#home .hubSceneButton,#profile .hubSceneButton{
  --face:var(--game-accent,#ff8a1f);--edge:color-mix(in srgb,var(--face) 58%,#241b18);--rim:color-mix(in srgb,var(--face) 60%,white);
  background:linear-gradient(165deg,color-mix(in srgb,var(--face) 78%,white) 0%,var(--face) 40%,var(--face) 75%,color-mix(in srgb,var(--face) 92%,#251b16) 100%)!important;
  border:1px solid color-mix(in srgb,var(--rim) 70%,var(--face))!important;border-radius:15px!important;
@@ -148,7 +148,11 @@ body :is(.primaryButton,.hubButton.primary,.readyButton,.lobbySettingsFooter but
  --face:var(--game-accent,#ff8a1f);--edge:color-mix(in srgb,var(--face) 55%,#52300f);--rim:color-mix(in srgb,var(--face) 45%,#fff5d6);
 }
 #home #openPlay{border-radius:18px!important;min-height:76px}
-#home :is(#homeCreateLobby,#homeCodeJoin).homeAction{--face:color-mix(in srgb,var(--game-accent,#ff8a1f) 72%,white)}
+/* Secondary actions share one cool material on Start and Profile. */
+#home :is(#homeCreateLobby,#homeCodeJoin).homeAction,#home .hubSceneButton,#profile .hubSceneButton{
+ --face:#a9d9f4;--edge:#416c89;--rim:#d6efff;
+ color:#071824!important;
+}
 #home .homeAction .actionCopy strong{font-weight:800!important;letter-spacing:.01em;text-shadow:none!important}
 #home .homeAction .actionCopy small{font-size:12px;line-height:1.4;opacity:1!important}
 #home .homeAction:not(#openPlay) .actionSymbol{color:#102b3c!important;text-shadow:none}
@@ -172,7 +176,7 @@ body :is(.sheetBack,.dialogClose,.backButton,.settingsButton){
  box-shadow:inset 0 1px #ffffff30,0 2px 0 #080e16,0 4px 7px #0003;border-radius:12px;min-height:44px;min-width:44px;
 }
 body :is(.hubButton,.primaryButton,.vehicleRewardActions button,.gameSettingsGroup button,.readyButton,.gpsButton,.lobbySettingsFooter button):not(:disabled):not([aria-disabled=true]):active,
-#home .homeAction:not(:disabled):active,#home #openPlay:not(:disabled):active,#home .hubSceneButton:active{
+#home .homeAction:not(:disabled):active,#home #openPlay:not(:disabled):active,#home .hubSceneButton:active,#profile .hubSceneButton:active{
  translate:0 2px;box-shadow:inset 0 1px 3px #0002,0 1px 0 var(--edge)!important;
 }
 body :is(.hubButton,.primaryButton,.vehicleRewardActions button,.gameSettingsGroup button,.readyButton,.gpsButton,.lobbySettingsFooter button):is(:disabled,[aria-disabled=true]){
