@@ -93,12 +93,12 @@
 /* Modern controls: clean surfaces and short, soft contact shadows. */
 body button{box-shadow:none;text-shadow:none;transition:background-color .15s ease,box-shadow .15s ease,translate .12s ease}
 body :is(.hubButton,.vehicleRewardActions button,.garageViewTabs button,.gameSettingsGroup button,.sheetBack,.dialogClose){background:#162333;border:1px solid #91afce25;border-radius:14px;min-height:44px;box-shadow:0 3px 8px #0002}
-body :is(.primaryButton,.hubButton.primary){background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent,#ffac42) 72%,#fff0be),var(--game-accent,#ffac42))!important;border:1px solid #ffffff35;border-radius:16px;box-shadow:0 4px 12px #0003;font-weight:800;text-shadow:none}
-body button[aria-pressed=true]{border-color:var(--game-accent,#ffac42);box-shadow:0 0 0 1px var(--game-accent,#ffac42)}
+body :is(.primaryButton,.hubButton.primary){background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent,#ff8a1f) 72%,#fff0be),var(--game-accent,#ff8a1f))!important;border:1px solid #ffffff35;border-radius:16px;box-shadow:0 4px 12px #0003;font-weight:800;text-shadow:none}
+body button[aria-pressed=true]{border-color:var(--game-accent,#ff8a1f);box-shadow:0 0 0 1px var(--game-accent,#ff8a1f)}
 @media(hover:hover) and (pointer:fine){body button:not(:disabled):not([aria-disabled=true]):hover{filter:brightness(1.06)}}
 body button:not(:disabled):not([aria-disabled=true]):active{translate:0 1px;box-shadow:0 1px 3px #0003}
 body button:disabled,body button[aria-disabled=true]{box-shadow:none;opacity:.6;text-shadow:none}
-body button:focus-visible{outline:3px solid var(--game-accent,#ffac42);outline-offset:4px}
+body button:focus-visible{outline:3px solid var(--game-accent,#ff8a1f);outline-offset:4px}
 @media(prefers-reduced-motion:reduce){body button{transition:none!important}}
 /* Ground illumination is a thin pool below the chassis, never a glowing car outline. */
 .unifiedScene .vehicleIllustration{filter:drop-shadow(0 1px 1px #000b)!important}
@@ -113,19 +113,19 @@ body button:focus-visible{outline:3px solid var(--game-accent,#ffac42);outline-o
 .appHeader button.brand span{color:var(--game-accent,#ff873c)!important;font-size:17px;text-shadow:0 1px 0 #b34d16,0 2px 0 #7f3413,1px 3px 0 #542712,2px 4px 3px #0007}
 .appHeader button.brand .brandCar{font-size:28px;letter-spacing:-.055em}
 #headerAvatar{background:radial-gradient(ellipse at 30% 18%,#56616e 0%,#222b36 42%,#10161e 85%)!important;border:1px solid #84909e!important;box-shadow:inset 0 1px 2px #ffffff60,inset 0 -2px 3px #0009,0 2px 0 #070c12,0 4px 7px #0005!important}
-#home #openPlay{border-radius:20px!important;border:1px solid #ffe7b966!important;background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent,#ffac42) 55%,#ffe6a0),var(--game-accent,#ffac42) 70%)!important;box-shadow:inset 0 1px #fff8,0 3px 0 color-mix(in srgb,var(--game-accent,#ffac42) 75%,#783d0d),0 7px 18px #0003!important;text-shadow:none}
+#home #openPlay{border-radius:20px!important;border:1px solid #ffe7b966!important;background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent,#ff8a1f) 55%,#ffe6a0),var(--game-accent,#ff8a1f) 70%)!important;box-shadow:inset 0 1px #fff8,0 3px 0 color-mix(in srgb,var(--game-accent,#ff8a1f) 75%,#783d0d),0 7px 18px #0003!important;text-shadow:none}
 #home #openPlay .actionCopy strong{color:#23170a!important;font-weight:850;letter-spacing:.025em;text-shadow:none}
 #home #openPlay .actionCopy small{color:#4b3016!important}
 #home #openPlay .actionSymbol,#home #openPlay .actionChevron{color:#291909!important;text-shadow:none}
 #home #openPlay:not(:disabled):active{translate:0 2px;box-shadow:inset 0 1px 2px #672e0018,0 1px 0 #b87a28!important}
 #home .homeAction:not(#openPlay){background:#132337!important;border:1px solid #8fbfff30!important;box-shadow:0 3px 10px #0002!important;border-radius:16px!important}
-#home .homeAction:not(#openPlay) .actionSymbol{color:var(--game-accent,#ffac42)!important}
+#home .homeAction:not(#openPlay) .actionSymbol{color:var(--game-accent,#ff8a1f)!important}
 #home .hubSceneButton{background:#132337!important;border:1px solid #8fbfff25!important;box-shadow:none!important;border-radius:14px}
 #bottomNav{background:#0d1a2bf2!important;border:1px solid #89b9ee24!important;border-top-color:#89b9ee38!important;border-radius:26px!important;box-shadow:0 8px 26px #0006!important;backdrop-filter:blur(22px);gap:5px!important;padding:8px 8px max(8px,env(safe-area-inset-bottom))!important}
 #bottomNav button.navButton{box-shadow:none!important;background:transparent!important;border-radius:19px!important;text-shadow:none;translate:none!important;color:#a8b9cd!important}
-#bottomNav button.navButton.active{background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent,#ffac42) 18%,#17243a),#17243a)!important;color:var(--game-accent,#ffac42)!important;box-shadow:inset 0 1px #ffffff12!important}
+#bottomNav button.navButton.active{background:linear-gradient(145deg,color-mix(in srgb,var(--game-accent,#ff8a1f) 18%,#17243a),#17243a)!important;color:var(--game-accent,#ff8a1f)!important;box-shadow:inset 0 1px #ffffff12!important}
 #bottomNav .navButton svg{filter:none!important;width:24px;height:24px}
-#bottomNav .navButton.active svg{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--game-accent,#ffac42) 28%,transparent))!important}
+#bottomNav .navButton.active svg{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--game-accent,#ff8a1f) 28%,transparent))!important}
 /* Portrait and text actions have no rectangular button slab. */
 #home .referenceCrewPerson,#home .referenceSectionHeading button,#home .referenceSectionHeading button:active{box-shadow:none!important;background:transparent!important;border:0!important;text-shadow:none;translate:none!important}
 #home .referenceCrewPortrait .socialAvatar{border:1px solid #9da8b680;box-shadow:inset 0 1px 2px #ffffff38,0 2px 0 #080d14,0 4px 7px #0004}
@@ -137,19 +137,18 @@ body button:focus-visible{outline:3px solid var(--game-accent,#ffac42);outline-o
    Keep image cards, color swatches and the navigation on their own materials. */
 body :is(.hubButton,.primaryButton,.vehicleRewardActions button,.gameSettingsGroup button,.readyButton,.gpsButton,.lobbySettingsFooter button),
 #home .homeAction,#home #openPlay,#home #homeCreateLobby.homeAction,#home #homeCodeJoin.homeAction,#home .hubSceneButton{
- --face:#a9d9f4;--edge:#416c89;--rim:#d6efff;
- background:linear-gradient(165deg,color-mix(in srgb,var(--face) 65%,white) 0%,var(--face) 48%,color-mix(in srgb,var(--face) 92%,#38617a) 100%)!important;
+ --face:var(--game-accent,#ff8a1f);--edge:color-mix(in srgb,var(--face) 58%,#241b18);--rim:color-mix(in srgb,var(--face) 60%,white);
+ background:linear-gradient(165deg,color-mix(in srgb,var(--face) 78%,white) 0%,var(--face) 40%,var(--face) 75%,color-mix(in srgb,var(--face) 92%,#251b16) 100%)!important;
  border:1px solid color-mix(in srgb,var(--rim) 70%,var(--face))!important;border-radius:15px!important;
- box-shadow:inset 0 1px 0 #ffffffb3,inset 0 -2px 0 #00000012,0 3px 0 var(--edge),0 6px 10px #00000038!important;
+ box-shadow:inset 0 1px 0 #ffffffb3,inset 1px 0 0 #ffffff25,inset 0 -2px 0 #00000018,0 3px 0 var(--edge),0 5px 0 #080e1626,0 8px 12px #00000038!important;
  color:#071824!important;font-weight:750;text-shadow:none!important;line-height:1.4;min-height:44px;
  transition:translate .12s ease,box-shadow .12s ease,filter .12s ease;
 }
 body :is(.primaryButton,.hubButton.primary,.readyButton,.lobbySettingsFooter button),#home #openPlay{
- --face:var(--game-accent,#ffac42);--edge:color-mix(in srgb,var(--face) 55%,#52300f);--rim:color-mix(in srgb,var(--face) 45%,#fff5d6);
+ --face:var(--game-accent,#ff8a1f);--edge:color-mix(in srgb,var(--face) 55%,#52300f);--rim:color-mix(in srgb,var(--face) 45%,#fff5d6);
 }
 #home #openPlay{border-radius:18px!important;min-height:76px}
-#home #homeCreateLobby.homeAction{--face:#83ded3;--edge:#346f70;--rim:#c6fff2}
-#home #homeCodeJoin.homeAction{--face:#a3d6fb;--edge:#426f99;--rim:#d5efff}
+#home :is(#homeCreateLobby,#homeCodeJoin).homeAction{--face:color-mix(in srgb,var(--game-accent,#ff8a1f) 72%,white)}
 #home .homeAction .actionCopy strong{font-weight:800!important;letter-spacing:.01em;text-shadow:none!important}
 #home .homeAction .actionCopy small{font-size:12px;line-height:1.4;opacity:1!important}
 #home .homeAction:not(#openPlay) .actionSymbol{color:#102b3c!important;text-shadow:none}
@@ -165,8 +164,8 @@ body :is(.garageViewTabs,.studioTabs,.petCategories,.friendsTabs,.hubTabs) butto
 }
 body :is(.garageViewTabs,.studioTabs,.petCategories,.friendsTabs,.hubTabs) button:is([aria-pressed=true],[aria-selected=true],.active),
 #lobbySettingsPanel .settingSegments:not(#lobbyPresetControls) button[aria-pressed=true]{
- background:linear-gradient(155deg,#fff4d7,var(--game-accent,#ffac42))!important;color:#101820!important;
- border-color:#fff0c4!important;box-shadow:inset 0 0 0 1px #10182045,0 2px 0 #805121,0 4px 6px #0003!important;font-weight:800;
+ background:linear-gradient(155deg,color-mix(in srgb,var(--game-accent,#ff8a1f) 70%,white),var(--game-accent,#ff8a1f))!important;color:#101820!important;
+ border-color:color-mix(in srgb,var(--game-accent,#ff8a1f) 50%,white)!important;box-shadow:inset 0 0 0 1px #10182045,0 2px 0 color-mix(in srgb,var(--game-accent,#ff8a1f) 50%,#241b18),0 4px 6px #0003!important;font-weight:800;
 }
 body :is(.sheetBack,.dialogClose,.backButton,.settingsButton){
  background:linear-gradient(155deg,#31465d,#1a2939);color:#f0f6ff;border:1px solid #7892ac70;
@@ -182,9 +181,25 @@ body :is(.hubButton,.primaryButton,.vehicleRewardActions button,.gameSettingsGro
 }
 body button:focus-visible{outline:3px solid #f6fbff!important;outline-offset:5px}
 @media(prefers-reduced-motion:reduce){body button{transition:none!important}}
-/* The top edge dips smoothly in the middle, matching the chosen concept. */
-#bottomNav{isolation:isolate;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;filter:drop-shadow(0 6px 12px #0007);padding-top:17px!important}
-#bottomNav::before{content:'';position:absolute;inset:0;z-index:-1;background:url('assets/ui/navigation-notch.svg') center/100% 100% no-repeat;pointer-events:none}
-#bottomNav button.navButton.active{background:linear-gradient(145deg,#ffffff10,#ffffff03)!important;box-shadow:inset 0 1px #ffffff18!important}
+/* The silhouette keeps its notch while its material follows the PLUS theme. */
+#bottomNav{
+ --nav-face:var(--game-accent,#ff8a1f);
+ isolation:isolate;background:transparent!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;backdrop-filter:none!important;
+ filter:drop-shadow(0 3px 0 color-mix(in srgb,var(--nav-face) 50%,#241b18)) drop-shadow(0 7px 10px #0006);
+ padding-top:17px!important;
+}
+#bottomNav::before{
+ content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+ background:linear-gradient(180deg,color-mix(in srgb,var(--nav-face) 66%,white),var(--nav-face) 27%,var(--nav-face) 75%,color-mix(in srgb,var(--nav-face) 85%,#2a1b14))!important;
+ -webkit-mask:url('assets/ui/navigation-notch.svg') center/100% 100% no-repeat;
+ mask:url('assets/ui/navigation-notch.svg') center/100% 100% no-repeat;
+}
+#bottomNav button.navButton{color:#17202b!important;font-weight:700}
+#bottomNav button.navButton.active{
+ color:#fff!important;background:linear-gradient(155deg,#304357,#172332)!important;
+ box-shadow:inset 0 1px #ffffff55,inset 0 -1px #0005,0 2px 0 #0a1420,0 4px 6px #0003!important;
+}
+#bottomNav .navButton.active svg{filter:drop-shadow(0 1px 1px #0004)!important}
 
 #home :is(#homeCreateLobby,#homeCodeJoin).homeAction .actionCopy :is(strong,small){color:#000!important;text-shadow:none!important}
