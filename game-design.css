@@ -1,5 +1,5 @@
 /* Scoped game surfaces: the home screen and lobby waiting room keep their design. */
-:root{--game-bg:#10131b;--game-panel:#1b202b;--game-line:#ffffff18;--game-muted:#b5bdcb;--game-soft:var(--player-accent-soft,#ff985f18);--game-accent:var(--player-accent,#ff985f)}
+:root{--game-bg:#10131b;--game-panel:#1b202b;--game-line:#ffffff18;--game-muted:#b5bdcb;--game-soft:var(--player-accent-soft,#ff985f18);--game-accent:var(--player-accent,#ffac42)}
 
 .gameEyebrow{color:var(--game-accent);font-size:10px;letter-spacing:.15em;font-weight:800}
 .gameSheet,.gameSettingsGroup,.profileDestination,.statsHero,.roleStat{box-sizing:border-box}

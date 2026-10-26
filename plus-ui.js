@@ -1,6 +1,6 @@
 'use strict';
 (function(){
- const palette={orange:['Orange','#ff985f'],pink:['Rosa','#f599cf'],purple:['Lila','#bea4ff'],blue:['Blau','#8fc5ff'],turquoise:['Türkis','#79e0ce'],white:['Weiß','#eff3fa']};
+ const palette={orange:['Orange','#ffac42'],pink:['Rosa','#f599cf'],purple:['Lila','#bea4ff'],blue:['Blau','#8fc5ff'],turquoise:['Türkis','#79e0ce'],white:['Weiß','#eff3fa']};
  let owner='',epoch=0,data=null,timer=null,expiryTimer=null,busy=false,refreshing=false;
  const $=id=>document.getElementById(id);
  const eligible=()=>!!authSession?.user?.id&&!!window.accountUI?.currentAccount&&!accountUI.currentAccount.banned&&!accountUI.currentAccount.onboardingRequired&&(accountUI.currentAccount.accepted||accountUI.currentAccount.developerPreview);
