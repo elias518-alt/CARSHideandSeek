@@ -66,3 +66,17 @@ test('photo preference persists per owned car and a new session reads the same c
  assert.equal((await f.service.read(actor,'Bearer user')).presentations.a.mode,'model');
  await assert.rejects(f.service.save(actor,'Bearer user',{vehicleId:'unknown',loadout:rewards.defaults,presentation:{mode:'model'}}),{status:403});
 });
+
+
+test('ground light follows calibrated tyre contacts and renders behind the body',()=>{
+ const studio=require('./vehicle-studio');
+ const car={brand:'BMW',model:'3er',series:'E36',year:1996,body:'Limousine'};
+ for(const glow of ['cyan','amber','pink','violet','green','red','white']){
+  const html=studio.render({...car,cosmetics:{glow}});
+  assert.ok(html.indexOf('data-ground-light')<html.indexOf('<image'));
+  assert.match(html,/transform="rotate\(-/);
+  assert.doesNotMatch(html,/NaN|undefined/);
+ }
+ assert.doesNotMatch(studio.render({...car,cosmetics:{glow:'off'}}),/data-ground-light/);
+ assert.doesNotMatch(studio.render({...car,cosmetics:{glow:'invalid'}}),/data-ground-light/);
+});
