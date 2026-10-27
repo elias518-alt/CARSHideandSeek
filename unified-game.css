@@ -270,3 +270,9 @@ body button:focus-visible{outline:3px solid #f6fbff!important;outline-offset:5px
 #garageShowroom[data-view=tuning][data-tuning-error=false] .vehicleRewardActions [data-refresh-vehicle-rewards]{display:none}
 #garageShowroom[data-view=tuning] #vehicleRewardStatus{min-height:20px;font-size:11px}
 @media(max-width:430px){#garageShowroom[data-view=tuning] .garageSceneCar{height:155px}#garageShowroom[data-view=tuning] .garageScene p{display:none}}
+/* Detail cards show the actual selected vehicle's sill and a readable rim face. */
+#garageShowroom[data-view=tuning] [data-tuning-panel=package] .vehicleRewardChoices>button{flex-basis:210px}
+#garageShowroom[data-view=tuning] [data-tuning-panel=rims] .vehicleRewardChoices>button{flex-basis:158px}
+#garageShowroom[data-view=tuning] :is([data-tuning-panel=package],[data-tuning-panel=rims]) .tuningPreview{height:104px}
+#garageShowroom .tuningPartDetail{display:block;font-size:11px;line-height:1.5;color:#d3dfeb;margin-top:5px;font-weight:400}
+#garageShowroom [data-part-detail=sill]{background:radial-gradient(ellipse at 50% 90%,#61708633,transparent 70%);border-radius:9px}

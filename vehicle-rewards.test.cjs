@@ -54,7 +54,7 @@ test('backend failure grants nothing',async()=>{
 test('calibrated wheel rendering changes only the supported illustration',()=>{
  const studio=require('./vehicle-studio'),f=fixture(),car=f.cars[0];
  assert.equal(rewards.supports(car),true);assert.equal(rewards.supports(f.cars[1]),false);
- assert.match(studio.render({...car,cosmetics:{rims:'silver',package:'sport'}}),/Velocity|scale\(17 31\)/);
+ assert.match(studio.render({...car,cosmetics:{rims:'silver',package:'sport'}}),/data-fitted-rim="silver"/);
  const original=studio.render(car).replace(/studio-car-\d+/g,'id'),stock=studio.render({...car,cosmetics:rewards.defaults}).replace(/studio-car-\d+/g,'id');
  assert.equal(original,stock);
 });
@@ -74,9 +74,25 @@ test('ground light follows calibrated tyre contacts and renders behind the body'
  for(const glow of ['cyan','amber','pink','violet','green','red','white']){
   const html=studio.render({...car,cosmetics:{glow}});
   assert.ok(html.indexOf('data-ground-light')<html.indexOf('<image'));
-  assert.match(html,/transform="rotate\(-/);
+  assert.match(html,/transform="rotate\(-/);assert.match(html,/data-front-ground-light="true"/);
   assert.doesNotMatch(html,/NaN|undefined/);
  }
  assert.doesNotMatch(studio.render({...car,cosmetics:{glow:'off'}}),/data-ground-light/);
  assert.doesNotMatch(studio.render({...car,cosmetics:{glow:'invalid'}}),/data-ground-light/);
+});
+
+test('all rim styles keep the same model-specific mounting perspective',()=>{
+ for(const [code,mounts] of Object.entries(rewards.mounts)){
+  const transforms=['silver','graphite','mesh'].map(rims=>[...rewards.overlay(code,[0,0,1536,1024],{rims}).matchAll(/data-fitted-rim="[^"]+" transform="([^"]+)"/g)].map(m=>m[1]));
+  assert.equal(transforms[0].length,2,code);assert.deepEqual(transforms[1],transforms[0]);assert.deepEqual(transforms[2],transforms[0]);
+  assert.ok(mounts.every(p=>p.every(Number.isFinite)));
+ }
+});
+test('package detail previews use the selected car and include only the advertised sill',()=>{
+ const car={brand:'BMW',model:'3er',series:'E36',year:1996,body:'Limousine'};
+ for(const value of ['stock','clean','sport','track']){
+  const html=rewards.preview('package',value,car);assert.match(html,/data-part-detail="sill"/);assert.match(html,/data-studio-generation="E36"/);
+  if(value==='stock')assert.doesNotMatch(html,/data-fitted-package/);else assert.ok(html.includes('data-fitted-package="'+value+'"'));
+  assert.doesNotMatch(html,/NaN|undefined/);
+ }
 });
