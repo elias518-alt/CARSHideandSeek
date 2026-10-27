@@ -1,6 +1,6 @@
 /* A shared parking scene, built from existing artwork. No generated assets. */
 .vehicleRender--template{background:none;aspect-ratio:384/280;border-radius:0;}
-.vehicleRender--template svg{display:block;width:100%;height:100%;overflow:hidden;}
+.vehicleRender--template > svg{display:block;width:100%;height:100%;overflow:hidden;}
 #game.freshLobby.active.freshWaiting{
   --chs-lime:#ff5a12;--chs-lime-2:#ff7a21;--orange:#ff5a12;--orange2:#ff7a21;
   background:#0b1018; padding-bottom:110px;
