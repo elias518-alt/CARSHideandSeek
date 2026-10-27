@@ -1,5 +1,6 @@
 'use strict';
 (function(root){
+ let wheelSerial=0;
  const catalog={
   rims:[{id:'stock',label:'Originalfelgen',level:1},{id:'silver',label:'Velocity · Silber',level:2},{id:'graphite',label:'Velocity · Graphit',level:8},{id:'mesh',label:'Crossline · Schmiedelook',level:12}],
   package:[{id:'stock',label:'Serienpaket',level:1},{id:'sport',label:'Street Sport · Schweller',level:5},{id:'clean',label:'Clean · dezente Schweller',level:10},{id:'track',label:'Track · markante Schweller',level:15}],
@@ -22,14 +23,19 @@
  function overlay(code,crop,input){
   const v=normalize(input),points=mounts[code];if(!points)return '';
   const [x,y]=crop,wheels=points.map(([cx,cy,rx,ry])=>[cx-x,cy-y,rx,ry]);
-  const paint=v.rims==='graphite'?'#687482':'#c7d2de';
   let html='';
   if(v.package!=='stock'){
    const [front,rear]=wheels,thickness=Math.min(front[3],rear[3])*(v.package==='clean'?.065:v.package==='track'?.13:.10);
    const ax=front[0]+front[2]*.9,ay=front[1]+front[3]*.55,bx=rear[0]-rear[2]*.9,by=rear[1]+rear[3]*.65;
    html+='<path d="M'+ax+' '+ay+' L'+bx+' '+by+' L'+bx+' '+(by+thickness*.65)+' L'+ax+' '+(ay+thickness)+'Z" fill="#303640" stroke="#151b23" stroke-width=".6"/><path d="M'+ax+' '+ay+' L'+bx+' '+by+'" fill="none" stroke="#858b93" stroke-opacity=".55" stroke-width=".65"/>';
   }
-  if(v.rims!=='stock')html+=wheels.map(([cx,cy,rx,ry])=>'<g transform="translate('+cx+' '+cy+') scale('+rx+' '+ry+')"><g transform="scale(.78)"><ellipse rx="1" ry="1" fill="#20262d" stroke="#12161b" stroke-width=".10"/><circle r=".87" fill="#535b65"/><circle r=".77" fill="#101820"/><circle r=".63" fill="#58616a"/><circle r=".53" fill="none" stroke="#242d36" stroke-width=".035" stroke-dasharray=".045 .09"/><path d="M.41-.4Q.68-.3.66.12L.46.23Z" fill="#353f48" stroke="#86919a" stroke-width=".025"/><ellipse rx=".94" ry=".94" fill="none" stroke="'+paint+'" stroke-width=".045"/>'+Array.from({length:v.rims==='mesh'?16:10},(_,i)=>'<path d="M-.07-.86 L.07-.86 L.045-.17 L-.045-.17Z" fill="'+paint+'" transform="rotate('+i*(v.rims==='mesh'?22.5:36)+')"/>').join('')+'<path d="M-.7-.55A.89.89 0 0 1 .5-.74" fill="none" stroke="#ffffff" stroke-opacity=".65" stroke-width=".035"/><circle r=".19" fill="'+paint+'"/><circle r=".07" fill="#1d242d"/></g></g>').join('');
+  if(v.rims!=='stock')html+=wheels.map(([cx,cy,rx,ry],index)=>{
+   const id='fitted-rim-'+(++wheelSerial),source=v.rims==='mesh'?[283,287,18,32]:[783,690,76,116];
+   const file=v.rims==='mesh'?'bmw-3':'bmw-e36-coupe';
+   const [sx,sy,sw,sh]=source,shade=v.rims==='graphite'?.52:1;
+   // Use photographed metal/spokes, fitted to the complete rim face; tyre and body stay untouched.
+   return `<g data-fitted-rim="${v.rims}" transform="translate(${cx} ${cy}) rotate(${v.rims==='mesh'?(index?5:8):0})"><g transform="scale(${rx} ${ry})"><defs><clipPath id="${id}-face"><circle r="1"/></clipPath><filter id="${id}-finish" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${shade} 0 0 0 0 0 ${shade} 0 0 0 0 0 ${shade} 0 0 0 0 0 1 0"/></filter><radialGradient id="${id}-shade" cx=".35" cy=".25" r=".95"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></radialGradient></defs><g clip-path="url(#${id}-face)"><svg x="-1" y="-1" width="2" height="2" viewBox="${sx-sw} ${sy-sh} ${sw*2} ${sh*2}" preserveAspectRatio="none"><image href="assets/vehicles/${file}.webp" width="1536" height="1024" filter="url(#${id}-finish)"/></svg><circle r="1" fill="url(#${id}-shade)"/></g></g></g>`;
+  }).join('');
   return html;
  }
  const glowColors={cyan:'#36d8ff',amber:'#ffb23c',pink:'#ff51b5',violet:'#a889ff',green:'#8be747',red:'#ff514c',white:'#eaf7ff'};
@@ -43,8 +49,10 @@
  }
  function preview(key,value){
   if(key==='rims'){
-   const paint=value==='graphite'?'#8995a5':'#dce7f0',count=value==='mesh'?16:value==='stock'?5:10;
-   return `<svg viewBox="0 0 100 72" aria-hidden="true"><ellipse cx="50" cy="67" rx="27" ry="3" fill="#0006"/><g transform="translate(50 34)"><circle r="30" fill="#0a1018" stroke="#44505e" stroke-width="2"/><circle r="25" fill="#24313f" stroke="${paint}" stroke-width="2"/><circle r="20" fill="#121c28"/>${Array.from({length:count},(_,i)=>`<path d="M-2-23L3-23L2-6L-2-6Z" fill="${paint}" transform="rotate(${i*360/count})"/>`).join('')}<circle r="7" fill="${paint}"/><circle r="3" fill="#283848"/></g></svg>`;
+   const id='rim-preview-'+(++wheelSerial),mesh=value==='mesh',source=mesh?[265,255,36,64]:[707,574,152,232];
+   const shade=value==='graphite'?.52:1;
+   return `<svg viewBox="0 0 100 72" aria-hidden="true"><defs><clipPath id="${id}"><circle cx="50" cy="34" r="28"/></clipPath><filter id="${id}-finish" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="${shade}"/><feFuncG type="linear" slope="${shade}"/><feFuncB type="linear" slope="${shade}"/></feComponentTransfer></filter></defs><ellipse cx="50" cy="66" rx="28" ry="3" fill="#0005"/><circle cx="50" cy="34" r="30" fill="#111923" stroke="#607184"/><g clip-path="url(#${id})"><svg x="22" y="6" width="56" height="56" viewBox="${source.join(' ')}" preserveAspectRatio="none"><image href="assets/vehicles/${mesh?'bmw-3':'bmw-e36-coupe'}.webp" width="1536" height="1024" filter="url(#${id}-finish)"/></svg></g></svg>`;
+
   }
   const glow=glowColors[value],depth=value==='track'?5:value==='sport'?3:1;
   return `<svg viewBox="0 0 120 72" aria-hidden="true">${key==='glow'&&glow?`<ellipse cx="60" cy="55" rx="45" ry="7" fill="${glow}" opacity=".15"/><ellipse cx="60" cy="52" rx="32" ry="3" fill="${glow}" opacity=".65"/>`:''}<path d="M12 40L21 34L37 32L48 21H75L90 32L105 35L109 46H12Z" fill="#7791a7" stroke="#b9cedf"/><path d="M42 32L51 24H72L84 32Z" fill="#132536"/><circle cx="30" cy="46" r="9" fill="#0b121c" stroke="#899bad"/><circle cx="91" cy="46" r="9" fill="#0b121c" stroke="#899bad"/>${key==='package'&&value!=='stock'?`<path d="M40 44H80L78 ${46+depth}H42Z" fill="#d1dfeb" stroke="#40566b"/>`:''}</svg>`;

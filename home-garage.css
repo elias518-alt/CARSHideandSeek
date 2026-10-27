@@ -14,7 +14,7 @@
  transform:translateX(-50%);z-index:3;filter:drop-shadow(0 2px 1px #0009);
 }
 #home #homeOwnScene .vehicleRender,#profile #profileVehicleStage .vehicleRender{display:block;aspect-ratio:auto;height:100%;width:100%;background:none;overflow:visible}
-#home #homeOwnScene .vehicleIllustration svg,#profile #profileVehicleStage svg{display:block;width:100%;height:100%;filter:none}
+#home #homeOwnScene .vehicleRender > svg,#profile #profileVehicleStage .vehicleRender > svg,#profile #profileVehicleStage .wardrobeStudio > svg,#profile #profileVehicleStage .petCompanion > svg{display:block;width:100%;height:100%;filter:none}
 #home #homeOwnScene figcaption,#profile #profileVehicleStage figcaption{display:none}
 #home #homeOwnScene .lobbyCrewCharacter,#home #homeOwnScene .wardrobeStudio{
  height:var(--showroom-personHeight)!important;width:calc(var(--showroom-personHeight)*.667)!important;max-height:none;max-width:none;

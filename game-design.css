@@ -36,7 +36,7 @@
 
 #profile #profileVehicleStage .vehicleIllustration{width:80%!important;height:auto!important;aspect-ratio:2;left:42%;bottom:22px!important;display:block;transform:translateX(-50%);max-width:none}
 
-#profile #profileVehicleStage .vehicleIllustration svg{height:100%;width:100%;overflow:visible}
+#profile #profileVehicleStage .vehicleIllustration > .vehicleRender > svg{height:100%;width:100%;overflow:visible}
 
 #profile #profileVehicleStage::before{left:42%;bottom:17px;width:76%;height:15px;z-index:0}
 
@@ -263,7 +263,7 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 .resultCrewCard.isWinner{border-color:#c4945a80}
 .resultCrewVisual{position:relative;height:145px;isolation:isolate}
 .resultCrewVisual>.vehicleIllustration{position:absolute;bottom:12px;left:4%;width:75%;height:auto;margin:0}
-.resultCrewVisual>.vehicleIllustration svg{width:100%;height:100%}
+.resultCrewVisual>.vehicleIllustration > .vehicleRender > svg{width:100%;height:100%}
 .resultCrewVisual>.vehicleIllustration figcaption{display:none}
 .resultCrewVisual>.lobbyModelCar{position:absolute;bottom:12px;left:3%;width:75%;height:90px;object-fit:contain}
 .resultCrewVisual>.lobbyCrewCharacter{position:absolute!important;width:55px!important;height:110px!important;left:70%!important;bottom:14px!important;transform:none!important}
@@ -324,7 +324,7 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 .garageSceneCar{position:relative;isolation:isolate;height:270px;display:flex;align-items:flex-end;justify-content:center}
 .garageSceneCar>.vehicleIllustration{width:94%;height:88%;margin:0;position:relative}
 .garageSceneCar .vehicleRender{height:100%;width:100%;filter:drop-shadow(0 8px 3px #0009)}
-.garageSceneCar svg{width:100%;height:100%;overflow:hidden}
+.garageSceneCar > .vehicleIllustration > .vehicleRender > svg{width:100%;height:100%;overflow:hidden}
 .garageSceneCar figcaption{display:none}
 .garageScene h2{font-size:clamp(20px,5vw,30px);margin:20px 0 7px}
 .garageScene p{font-size:11px;line-height:1.6;color:#b5bdcb;margin:0}
@@ -333,7 +333,7 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 .garageSelector>button[aria-pressed=true]{border-color:var(--game-accent);background:var(--game-soft)}
 .garageSelector .vehicleIllustration{height:65px;margin:0 0 8px}
 .garageSelector .vehicleRender{height:65px}
-.garageSelector svg{width:100%;height:100%}
+.garageSelector .vehicleRender > svg{width:100%;height:100%}
 .garageSelector figcaption{display:none}
 .garageSelector strong,.garageSelector small{display:block;font-size:11px;overflow-wrap:anywhere}
 .garageSelector small{color:#aeb9ca;font-size:10px;margin-top:5px}
@@ -413,7 +413,7 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 #wardrobeDialog .studioColors .studioLookChoice>span{display:block!important;position:static!important;width:auto!important;height:auto!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;overflow-wrap:anywhere;color:#d8dfe8;font-size:10px}
 #wardrobeDialog .studioColors .studioLookChoice{padding:9px 5px!important;min-width:59px;flex:0 0 auto;border-radius:12px!important}
 .garageSceneCar .vehicleRender{display:block!important}
-.garageSceneCar .vehicleRender svg{display:block!important}
+.garageSceneCar .vehicleRender > svg{display:block!important}
 .profileUtilityMenu:empty{display:none}
 .socialMapPreviewCanvas{overflow:hidden}
 #profile .profileHero{position:relative!important}
@@ -500,7 +500,7 @@ body:has(#game.roundImmersive.active) #bottomNav{display:none!important}
 #profile #profileVehicleStage{isolation:isolate;background:linear-gradient(0deg,#10131b66,transparent 32%),var(--personal-scene,url('assets/lobby-meetup.webp')) center bottom/cover;border-radius:16px;overflow:hidden}
 #profile #profileVehicleStage .vehicleIllustration{width:var(--showroom-carWidth,78%)!important;height:var(--showroom-carHeight,160px)!important;aspect-ratio:auto;left:42%;bottom:18px!important;margin:0;z-index:1}
 #profile #profileVehicleStage .vehicleRender{height:100%!important;background:none!important;border:0!important;box-shadow:none!important;overflow:hidden}
-#profile #profileVehicleStage .vehicleIllustration svg{overflow:hidden!important;display:block;object-fit:contain}
+#profile #profileVehicleStage .vehicleIllustration > .vehicleRender > svg{overflow:hidden!important;display:block;object-fit:contain}
 #profile #profileVehicleStage::before{left:42%;bottom:13px;width:calc(var(--showroom-carWidth,78%)*.86);height:12px;z-index:0}
 #profile #profileVehicleStage>.lobbyCrewCharacter{height:var(--showroom-personHeight,160px)!important;width:calc(var(--showroom-personHeight,160px)*.45)!important;bottom:18px!important;left:78%!important;transform:translateX(-25%)!important}
 #profile #profileVehicleStage>.lobbyCrewCharacter::after{content:'';position:absolute;left:12%;right:12%;bottom:-3px;height:7px;border-radius:50%;background:#0007;filter:blur(2px);z-index:-1}
