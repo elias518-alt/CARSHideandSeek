@@ -5,21 +5,21 @@ import {RoomEnvironment} from './assets/vendor/three/RoomEnvironment.js';
 let assetPromise;
 const poses=new Map();
 export async function mount(host,car,look){
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
- renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor('#111a25');
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setClearColor(0x000000,0);
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,.1,200);
- camera.position.set(-4.2,2.2,4.7);
+ camera.position.set(-4.5,2.4,5.0);
  const canvas=renderer.domElement;canvas.setAttribute('aria-label','CHS Coupé 96. Zum Drehen ziehen; mit zwei Fingern zoomen.');canvas.tabIndex=0;
  host.replaceChildren(canvas);
- const controls=new OrbitControls(camera,canvas);controls.target.set(0,.65,0);controls.enablePan=false;controls.minDistance=3.8;controls.maxDistance=9;controls.maxPolarAngle=Math.PI*.48;controls.minPolarAngle=.3;controls.enableDamping=false;
+ const controls=new OrbitControls(camera,canvas);controls.target.set(0,1.15,0);controls.enablePan=false;controls.minDistance=3.8;controls.maxDistance=9;controls.maxPolarAngle=Math.PI*.48;controls.minPolarAngle=.3;controls.enableDamping=false;
  if(poses.has(car.id)){const p=poses.get(car.id);camera.position.fromArray(p.position);controls.target.fromArray(p.target);}controls.update();
  const environment=new RoomEnvironment(),pmrem=new THREE.PMREMGenerator(renderer),env=pmrem.fromScene(environment,.04);scene.environment=env.texture;scene.environmentIntensity=.65;environment.dispose();pmrem.dispose();
  scene.add(new THREE.HemisphereLight(0xd9e8ff,0x4f4142,3));
  const sun=new THREE.DirectionalLight(0xffecd6,5);sun.position.set(-3,6,4);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-4;sun.shadow.camera.right=4;sun.shadow.camera.top=4;sun.shadow.camera.bottom=-4;sun.shadow.normalBias=.025;scene.add(sun);
  const rim=new THREE.DirectionalLight(0xc5ddff,3);rim.position.set(3,3,-4);scene.add(rim);
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(1000,1000),new THREE.MeshStandardMaterial({color:0x0c121b,roughness:.8}));floor.rotation.x=-Math.PI/2;floor.position.y=-.01;floor.receiveShadow=true;scene.add(floor);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(1000,1000),new THREE.ShadowMaterial({color:0x03060a,opacity:.38}));floor.rotation.x=-Math.PI/2;floor.position.y=-.01;floor.receiveShadow=true;scene.add(floor);
  let disposed=false,model;const materials=new Set();let glowTexture;
  const draw=()=>{if(!disposed&&host.isConnected&&host.getBoundingClientRect().width)renderer.render(scene,camera);};
  const resize=()=>{const {width,height}=host.getBoundingClientRect();if(!width||!height)return;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();draw();};
@@ -31,7 +31,7 @@ export async function mount(host,car,look){
  const dispose=()=>{if(disposed)return;disposed=true;observer.disconnect();controls.dispose();canvas.removeEventListener('keydown',keys);canvas.removeEventListener('webglcontextlost',lost);canvas.removeEventListener('webglcontextrestored',restored);materials.forEach(m=>m.dispose());env.dispose();floor.geometry.dispose();floor.material.dispose();glowTexture?.dispose();scene.traverse(o=>{if(o.userData.localGeometry)o.geometry.dispose();});renderer.dispose();renderer.forceContextLoss();};
  host.dispose3D=dispose;host.get3DState=()=>({disposed,visible:model?model.children.filter(o=>o.visible).map(o=>o.name):[],camera:camera.position.toArray(),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles});
  try{
-  assetPromise ||= new GLTFLoader().loadAsync('./assets/vehicles/3d/chs-coupe-96.glb').catch(e=>{assetPromise=null;throw e;});
+  assetPromise ||= new GLTFLoader().loadAsync('./assets/vehicles/3d/chs-coupe-96.glb?v=20261028-shape-2').catch(e=>{assetPromise=null;throw e;});
   const asset=await assetPromise;if(disposed)return;
   model=asset.scene.clone(true);
   model.traverse(o=>{
