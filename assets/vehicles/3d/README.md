@@ -8,7 +8,7 @@ Metres, source Z-up, front -X. Blender exports glTF Y-up. Stable replacement nod
 
 This first version activates only for the E36 coupé mapping in garage tuning. It is an original game model, not a licensed or exact E36 replica. The other vehicle views retain the existing photo/model presentation. Saved cosmetic keys and server-side unlock validation are reused. Package changes in this 3D view include bumpers and, for Track, a rear wing; legacy 2D views still display their existing sill details.
 
-Runtime budget: GLB approximately 1.8 MB, tested Track + mesh view approximately 59k rendered triangles including shadows, 88 draw calls. Texture-free vehicle materials, 1024px shadow, DPR capped at 1.5, on-demand rendering with no idle animation. No compression decoder dependency is needed for this initial asset. Further detail/optimization and real-device performance testing are needed before extending the catalog.
+Runtime budget: GLB approximately 1.9 MB, tested Track + mesh view approximately 70k rendered triangles including shadows, 28 draw calls. Fixed coachwork is batched by shared materials. Transparent WebGL compositing and a shadow-only floor place the car directly over the garage image. Texture-free vehicle materials, 1024px shadow, DPR capped at 1.5, on-demand rendering with no idle animation. No compression decoder dependency is needed for this initial asset. Further detail/optimization and real-device performance testing are needed before extending the catalog.
 
 Three.js r186 is self-hosted under `assets/vendor/three` with its MIT license. No runtime CDN is used for the viewer. Renderer and materials are disposed when replacing or closing the view. Load/WebGL failure retains the existing model illustration with an explanatory hint.
 

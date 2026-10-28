@@ -30,44 +30,82 @@ def hull(name,sections,m):
  for i in range(len(sections)-1):
   for j in range(6):faces.append((i*6+j,i*6+(j+1)%6,(i+1)*6+(j+1)%6,(i+1)*6+j))
  return mesh(name,vs,faces,m,.025)
-body=hull('body',[(-2.2,.78,.42,.77,.83),(-1.92,.86,.38,.85,.91),(-.78,.88,.38,.91,.98),(.85,.87,.38,.92,.97),(1.92,.82,.42,.87,.91),(2.18,.77,.47,.8,.84)],paint)
+# Sculpted cross-sections: crowned bonnet, shoulder crease, curved flanks and tucked sill.
+sections=[(-2.24,.745,.42,.73,.79),(-2.14,.80,.35,.78,.815),(-1.94,.848,.32,.835,.86),(-1.56,.862,.31,.875,.90),(-1.12,.856,.31,.89,.94),(-.67,.842,.31,.905,.965),(-.30,.836,.31,.91,.96),(.38,.836,.31,.91,.96),(.95,.85,.31,.91,.965),(1.40,.86,.33,.90,.955),(1.88,.828,.37,.87,.915),(2.12,.80,.40,.82,.865),(2.21,.755,.44,.78,.82)]
+verts=[]
+for x,w,b,z,t in sections:
+ # Clockwise cross section with multiple top samples, avoiding a flat slab bonnet.
+ ring=[(-w*.93,b),(w*.93,b),(w,b+.12),(w,z-.08),(w*.99,z),(w*.87,t-.018),(w*.50,t+.006),(0,t+.016),(-w*.50,t+.006),(-w*.87,t-.018),(-w*.99,z),(-w,z-.08),(-w,b+.12)]
+ verts.extend((x,y,h) for y,h in ring)
+n=13;faces=[tuple(reversed(range(n))),tuple(range(len(verts)-n,len(verts)))]
+for i in range(len(sections)-1):
+ for j in range(n):faces.append((i*n+j,i*n+(j+1)%n,(i+1)*n+(j+1)%n,(i+1)*n+j))
+body=mesh('body',verts,faces,paint,.012)
 # Cut real arches so wheels are separate geometry, rather than floating over the body.
 for x in [-1.35,1.35]:
  bpy.ops.mesh.primitive_cylinder_add(vertices=48,radius=.405,depth=3,location=(x,0,.38),rotation=(math.pi/2,0,0));cut=bpy.context.object
  bpy.context.view_layer.objects.active=body;mod=body.modifiers.new('Wheel opening','BOOLEAN');mod.object=cut;mod.operation='DIFFERENCE';bpy.ops.object.modifier_apply(modifier=mod.name);bpy.data.objects.remove(cut,do_unlink=True)
-# Coupe cabin, inset windows and roof.
-hull('cabin',[(-.82,.79,.87,.91,.96),(-.22,.68,.9,1.35,1.42),(.65,.68,.9,1.36,1.43),(1.27,.78,.9,.95,1.0)],paint)
-mesh('windshield',[(-.79,-.71,1.005),(-.79,.71,1.005),(-.23,.60,1.445),(-.23,-.60,1.445)],[(0,1,2,3)],glass)
-mesh('rear_window',[(.69,-.6,1.445),(.69,.6,1.445),(1.22,.70,1.025),(1.22,-.70,1.025)],[(0,1,2,3)],glass)
+# Low coupe greenhouse with curved glazing, narrow pillars and a rounded roof.
+def patch(name,front,back,m,crown=0):
+ vs=[];steps=12
+ for u in range(steps+1):
+  q=u/steps;x=front[0]*(1-q)+back[0]*q;w=front[1]*(1-q)+back[1]*q;z=front[2]*(1-q)+back[2]*q
+  for v in range(steps+1):
+   r=-1+2*v/steps;vs.append((x,w*r,z+crown*(1-r*r)))
+ fs=[]
+ for i in range(steps):
+  for j in range(steps):k=i*(steps+1)+j;fs.append((k,k+1,k+steps+2,k+steps+1))
+ return mesh(name,vs,fs,m)
+patch('windshield',(-.70,.735,.975),(-.12,.627,1.335),glass,.018)
+patch('roof',(-.14,.66,1.343),(.77,.66,1.355),paint,.034)
+patch('rear_window',(.79,.622,1.34),(1.40,.728,.977),glass,.012)
+# Pillars are surfaces bordering the windows rather than a solid painted cabin behind them.
 for side in [-1,1]:
- mesh('side_window',[(-.69,side*.793,1.00),(-.18,side*.687,1.36),(.39,side*.687,1.36),(.48,side*.795,1.00)],[(0,1,2,3)],glass)
- mesh('quarter_window',[(.46,side*.687,1.36),(.64,side*.687,1.36),(1.13,side*.785,1.0),(.55,side*.795,1.0)],[(0,1,2,3)],glass)
- box('waist_trim',(0,side*.878,.75),(1.85,.025,.055),trim,.008)
- box('door_handle',(.48,side*.872,.87),(.16,.025,.035),trim,.008)
- box('mirror',(-.65,side*.96,1.01),(.23,.19,.115),paint,.04)
- # door shutline, vertical aft edge
- box('door_seam',(.66,side*.878,.63),(.008,.009,.40),trim,.002)
+ def panel(name,points,m):return mesh(name,[(x,side*y,z) for x,y,z in points],[(0,1,2,3)],m)
+ panel('A_pillar',[(-.75,.775,.962),(-.17,.664,1.35),(-.10,.626,1.338),(-.68,.738,.976)],paint)
+ panel('C_pillar',[(.76,.659,1.355),(1.46,.778,.957),(1.31,.80,.96),(.70,.665,1.32)],paint)
+ panel('side_window',[(-.66,.782,.972),(-.10,.662,1.32),(.49,.662,1.33),(.57,.827,.964)],glass)
+ panel('quarter_window',[(.55,.663,1.33),(.71,.663,1.33),(1.25,.786,.975),(.64,.827,.964)],glass)
+ panel('B_pillar',[(.49,.664,1.333),(.55,.664,1.333),(.64,.829,.96),(.57,.829,.96)],trim)
+ # Beltline and door shutlines run with the shoulder, with no oversized floating strips.
+ box('waist_trim',(0,side*.844,.705),(1.87,.018,.035),trim,.006)
+ box('door_handle',(.40,side*.846,.855),(.145,.022,.027),trim,.006)
+ mirror=box('mirror',(-.61,side*.92,.99),(.22,.15,.095),paint,.035);mirror.rotation_euler[2]=side*.12
+ box('door_seam',(.65,side*.845,.68),(.005,.006,.40),trim,.001)
+ # Bonnet shutline.
+ panel('bonnet_seam',[(-2.06,.64,.833),(-.70,.72,.97),(-.70,.725,.97),(-2.06,.645,.833)],trim)
 # Bumpers and actual swappable packages, stable node prefixes.
 for variant in ['stock','clean','sport','track']:
  depth={'stock':.18,'clean':.20,'sport':.25,'track':.29}[variant]
- for x in [-2.08,2.08]:
+ for x in [-2.19,2.10]:
   box('package_'+variant,(x,0,.48),( .23,1.62,depth),paint,.045)
   box('package_'+variant,(x+(-.121 if x<0 else .121),0,.49),(.016,1.45,.065),trim,.008)
  for side in [-1,1]:box('package_'+variant,(0,side*.855,.37),(1.88,.10,depth*.45),paint if variant=='clean' else trim,.015)
  if variant in ['sport','track']:
-  box('package_'+variant,(-2.13,0,.335),(.36,1.74,.045),trim,.012)
-  box('package_'+variant,(-2.205,0,.43),(.025,.72,.09),rubber,.012)
+  box('package_'+variant,(-2.23,0,.335),(.36,1.74,.045),trim,.012)
+  box('package_'+variant,(-2.315,0,.43),(.025,.72,.09),rubber,.012)
  if variant=='track':
   for sy in [-.55,.55]:box('package_track',(1.85,sy,1.03),(.10,.055,.25),trim,.01)
   box('package_track',(1.87,0,1.16),(.30,1.62,.055),paint,.02)
-# Front face, lights, grille, rear lamps and plate.
-box('front_grille',(-2.207,0,.69),(.025,.62,.17),trim,.012)
-for sy in [-.24,-.16,-.08,0,.08,.16,.24]:box('grille_slats',(-2.225,sy,.69),(.015,.012,.14),chrome,.002)
+# Bumper optics and recesses are attached to the actual front face.
+box('lower_intake',(-2.32,0,.435),(.018,.66,.105),trim,.012)
+box('front_plate',(-2.325,0,.555),(.018,.34,.078),trim,.006)
 for side in [-1,1]:
- box('headlamp',(-2.20,side*.55,.73),(.045,.40,.155),white,.025)
- box('indicator',(-2.21,side*.77,.72),(.045,.07,.14),amber,.015)
- box('taillamp',(2.17,side*.52,.74),(.055,.42,.15),red,.025)
-box('rear_plate',(2.19,0,.68),(.025,.33,.10),trim,.008)
+ box('fog_recess',(-2.32,side*.61,.445),(.018,.20,.10),trim,.012)
+ box('fog_lens',(-2.335,side*.61,.447),(.014,.12,.056),white,.008)
+# Recessed paired grille, twin optics behind dark headlamp surrounds and slim indicators.
+box('front_surround',(-2.24,0,.705),(.028,1.46,.16),paint,.025)
+for side in [-1,1]:
+ box('grille_rim',(-2.262,side*.145,.705),(.025,.235,.145),chrome,.025)
+ box('grille_recess',(-2.279,side*.145,.705),(.017,.205,.123),trim,.020)
+ for offset in [-.065,-.032,0,.032,.065]:box('grille_slats',(-2.291,side*.145+offset,.705),(.008,.009,.105),dark,.002)
+ box('headlamp_surround',(-2.252,side*.51,.715),(.032,.40,.145),trim,.018)
+ for yy in [side*.425,side*.585]:
+  bpy.ops.mesh.primitive_uv_sphere_add(segments=20,ring_count=12,radius=1,location=(-2.28,yy,.72));o=bpy.context.object;o.scale=(.017,.063,.058);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);finish(o,'headlamp_optic',white)
+ box('indicator',(-2.256,side*.748,.715),(.035,.07,.135),amber,.012)
+ box('taillamp',(2.208,side*.51,.748),(.035,.43,.13),red,.018)
+ box('reverse_lamp',(2.23,side*.43,.73),(.015,.15,.035),white,.005)
+box('rear_plate',(2.23,0,.66),(.015,.33,.10),trim,.008)
 # Road wheels; cylinders along Y. Every style shares the same hub and diameter.
 def cyl(name,loc,r,depth,m):
  bpy.ops.mesh.primitive_cylinder_add(vertices=40,radius=r,depth=depth,location=loc,rotation=(math.pi/2,0,0));return finish(bpy.context.object,name,m,.003)
@@ -91,6 +129,11 @@ for prefix in ['rims_stock','rims_silver','rims_graphite','rims_mesh','package_s
  bpy.ops.object.select_all(action='DESELECT')
  for o in objs:o.select_set(True)
  bpy.context.view_layer.objects.active=objs[0];bpy.ops.object.join();objs[0].name=prefix
+# Batch fixed coachwork into shared-material primitives for mobile draw-call cost.
+static=[o for o in bpy.context.scene.objects if o.type=='MESH' and not o.name.startswith(('rims_','package_'))]
+bpy.ops.object.select_all(action='DESELECT')
+for o in static:o.select_set(True)
+bpy.context.view_layer.objects.active=body;bpy.ops.object.join();body.name='coachwork'
 out=os.path.abspath('assets/vehicles/3d');os.makedirs(out,exist_ok=True)
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=out+'/chs-coupe-96.blend')
