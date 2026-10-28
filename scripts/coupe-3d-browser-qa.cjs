@@ -1,0 +1,19 @@
+const fs=require('node:fs'),http=require('node:http'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.CHS_QA_PLAYWRIGHT||'playwright');
+const stub=fs.readFileSync(__dirname+'/community-ui-qa.mjs','utf8').match(/const stub=`([\s\S]*?)`;/)[1];
+(async()=>{const server=http.createServer(require('../server').handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
+try{browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader']});
+for(const width of [390,1000]){const page=await browser.newPage({viewport:{width,height:900}}),errors=[];let saved={rims:'stock',package:'stock',glow:'off'};page.on('pageerror',e=>errors.push(e.message));
+await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:stub}));
+await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();if(action==='vehicle-rewards'&&r.request().method()==='POST')saved=r.request().postDataJSON().loadout;return r.fulfill({json:action==='vehicle-rewards'?{level:20,loadouts:{'car-a':saved}}:action==='account-status'?{accepted:true,legal:{ready:true}}:action==='ads-status'?{enabled:false,reward:{}}:{ok:true}});});
+await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'networkidle'});await page.waitForFunction(()=>document.getElementById('homeGreeting').textContent.includes('Elias'));
+await page.evaluate(()=>openPage('garage'));await page.locator('[data-garage-view=tuning]').click();await page.waitForSelector('[data-vehicle-3d][data-ready=true]').catch(async e=>{console.log(await page.locator('.garageScene').innerHTML());throw e;});
+const state=()=>page.locator('[data-vehicle-3d]').evaluate(e=>e.get3DState());
+let before=await state();assert.ok(before.visible.includes('rims_stock'));assert.ok(before.visible.includes('package_stock'));assert.ok(before.triangles<150000);
+await page.locator('[data-vehicle-3d] canvas').focus();await page.keyboard.press('ArrowLeft');assert.notDeepEqual((await state()).camera,before.camera);
+for(const [key,value] of [['rims','mesh'],['package','track'],['glow','cyan']]){await page.locator('[data-tuning-category='+key+']').click();await page.locator('[data-vehicle-reward='+key+'][data-value='+value+']').click();await page.waitForSelector('[data-vehicle-3d][data-ready=true]');}
+let after=await state();assert.ok(after.visible.includes('rims_mesh'));assert.ok(!after.visible.includes('rims_stock'));assert.ok(after.visible.includes('package_track'));assert.ok(!after.visible.includes('package_stock'));assert.equal(await page.locator('[data-vehicle-3d] canvas').count(),1);
+await page.locator('[data-save-vehicle-rewards]').click();await page.waitForSelector('[data-vehicle-3d][data-ready=true]');assert.deepEqual(saved,{rims:'mesh',package:'track',glow:'cyan'});
+await page.locator('.garageScene').scrollIntoViewIfNeeded();await page.locator('.garageScene').screenshot({path:'/tmp/chs-coupe-'+width+'.png'});
+console.log(JSON.stringify({width,...await state(),errors}));const oldHost=await page.locator('[data-vehicle-3d]').elementHandle();await page.locator('[data-garage-view=vehicle]').click();assert.equal(await oldHost.evaluate(e=>e.get3DState().disposed),true);await page.route('**/chs-coupe-96.glb',r=>r.abort());await page.reload({waitUntil:'networkidle'});await page.waitForFunction(()=>document.getElementById('homeGreeting').textContent.includes('Elias'));await page.evaluate(()=>openPage('garage'));await page.locator('[data-garage-view=tuning]').click();await page.waitForFunction(()=>document.querySelector('.vehicle3DHint')?.textContent.includes('nicht verfügbar'));assert.equal(await page.locator('.garageSceneCar .vehicleRender').count(),1);assert.deepEqual(errors,[]);await page.close();}
+}finally{await browser?.close();server.closeAllConnections();await new Promise(r=>server.close(r));}})().catch(e=>{console.error(e);process.exitCode=1;});
