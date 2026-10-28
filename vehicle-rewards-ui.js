@@ -4,7 +4,8 @@
  let owner='',epoch=0,loading=false,busy=false,verified=false,level=1,loadouts={},selected='',draft=null,error='',tuning=false,tuningCategory='rims';
  const $=id=>document.getElementById(id);
  const valid=data=>{if(!Number.isFinite(data?.level)||!data?.loadouts||typeof data.loadouts!=='object'||Array.isArray(data.loadouts))throw Error('Fahrzeugbelohnungen sind auf dem Server noch nicht verfügbar.');return data;};
- function reset(){epoch++;owner='';loading=busy=verified=false;level=1;loadouts={};presentations={};presentationDraft=null;selected='';draft=null;error='';tuning=false;tuningCategory='rims';$('garageShowroom')?.remove();for(const car of localGarage){delete car.cosmetics;delete car.presentation;}}
+ function clear3D(){document.querySelectorAll('[data-vehicle-3d]').forEach(el=>el.dispose3D?.());}
+ function reset(){clear3D();epoch++;owner='';loading=busy=verified=false;level=1;loadouts={};presentations={};presentationDraft=null;selected='';draft=null;error='';tuning=false;tuningCategory='rims';$('garageShowroom')?.remove();for(const car of localGarage){delete car.cosmetics;delete car.presentation;}}
  function identity(){const id=authSession?.user?.id;if(owner!==id){reset();owner=id||'';}return !!id;}
  function vehicle(){return localGarage.find(car=>car.id===selected)||activeCar()||localGarage[0];}
  function apply(){for(const car of localGarage){car.cosmetics=loadouts[car.id]||vehicleRewards.defaults;car.presentation=presentations[car.id]||vehicleConfiguration.presentation();}window.referenceUI?.renderOwn();}
@@ -15,6 +16,7 @@
   finally{if(owner===actor&&version===epoch){loading=false;render();}}
  }
  function render(){
+  clear3D();
   if(!identity())return;
   let box=$('garageShowroom');if(!box){box=document.createElement('section');box.id='garageShowroom';box.setAttribute('aria-label','Dein Fahrzeug und Belohnungen');$('garageCars')?.before(box);}
   const optionScroll=box.querySelector('[data-tuning-panel="'+tuningCategory+'"] .vehicleRewardChoices')?.scrollLeft||0;
@@ -30,6 +32,17 @@
   if(car.photo){box.querySelector('.garageQuickActions').insertAdjacentHTML('afterend','<fieldset class="vehiclePresentation"><legend>Dein Fahrzeug auf allen Seiten</legend><div class="garageViewTabs"><button type="button" data-vehicle-mode="photo" aria-pressed="'+(presentation.mode==='photo')+'">Eigenes Foto</button><button type="button" data-vehicle-mode="model" aria-pressed="'+(presentation.mode==='model')+'">Getuntes Spielmodell</button></div><p>Die gespeicherte Auswahl gilt auch auf Startseite, Profil und in der Lobby. Tuningteile sind am Spielmodell sichtbar.</p><label>Fotogröße <input type="range" data-photo-scale min="75" max="115" value="'+Math.round(presentation.customVehicleTransform.scale*100)+'"></label><label>Fotoposition <input type="range" data-photo-x min="-8" max="8" value="'+Math.round(presentation.customVehicleTransform.translateX*100)+'"></label><small>Die Räder bleiben auf dem Boden; der Platz für Figur und Tier bleibt frei.</small><button type="button" data-save-vehicle-rewards '+(busy||loading||!verified||!presentationDraft||gameSession?'disabled':'')+'>Darstellung speichern</button></fieldset>');}
   box.querySelectorAll('.garageSceneCar .vehicleRender > svg').forEach(svg=>svg.setAttribute('preserveAspectRatio','xMidYMax meet'));
   const activeChoices=box.querySelector('[data-tuning-panel="'+tuningCategory+'"] .vehicleRewardChoices');if(activeChoices)activeChoices.scrollLeft=optionScroll;
+  const generation=window.vehicleStudio?.select(car);
+  if(tuning&&generation?.wheelKey==='E36_COUPE'){
+   const stage=box.querySelector('.garageSceneCar');stage.setAttribute('data-vehicle-3d','true');
+   const fallback=stage.innerHTML;stage.innerHTML='<p role="status">3D-Coupé wird geladen …</p>';
+   box.querySelector('.garageSceneLabel').textContent='CHS COUPÉ 96 · 3D-TUNING';
+   box.querySelector('.garageScene h2').textContent='Eigenes Spielmodell · 90er Coupé';
+   const hint=document.createElement('small');hint.className='vehicle3DHint';hint.textContent='Ziehen zum Drehen · Zwei Finger zum Zoomen';stage.after(hint);
+   const descriptions={stock:'Serienstoßfänger und Schweller',clean:'Glatter Abschluss und lackierte Schweller',sport:'Frontlippe und sportliche Stoßfänger',track:'Frontlippe, tiefe Schweller und Heckflügel'};
+   box.querySelectorAll('[data-vehicle-reward="package"]').forEach(button=>{button.querySelector('.tuningPreview').remove();button.querySelector('.tuningPartDetail').textContent=descriptions[button.dataset.value];});
+   import('./vehicle-3d.js?v=20261028-1').then(module=>{if(stage.isConnected)return module.mount(stage,car,current);}).catch(err=>{console.warn('3D vehicle unavailable',err);if(stage.isConnected){stage.innerHTML=fallback;hint.textContent='3D derzeit nicht verfügbar · Modellvorschau';}});
+  }
   if(busy)box.querySelectorAll('button').forEach(node=>node.disabled=true);
   $('garageCars')?.querySelectorAll('.garageCar').forEach(node=>{node.hidden=node.querySelector('[data-edit-car]')?.dataset.editCar!==car.id;});
  }
