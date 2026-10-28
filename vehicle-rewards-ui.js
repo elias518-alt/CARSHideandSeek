@@ -39,9 +39,9 @@
    box.querySelector('.garageSceneLabel').textContent='CHS COUPÉ 96 · 3D-TUNING';
    box.querySelector('.garageScene h2').textContent='Eigenes Spielmodell · 90er Coupé';
    const hint=document.createElement('small');hint.className='vehicle3DHint';hint.textContent='Ziehen zum Drehen · Zwei Finger zum Zoomen';stage.after(hint);
-   const descriptions={stock:'Serienstoßfänger und Schweller',clean:'Glatter Abschluss und lackierte Schweller',sport:'Frontlippe und sportliche Stoßfänger',track:'Frontlippe, tiefe Schweller und Heckflügel'};
+   const descriptions={stock:'Serienstoßfänger und Schweller',clean:'Glatter Abschluss und lackierte Schweller',sport:'Sportstoßfänger und Schweller · 40 mm tiefer',track:'Sportpaket und Heckflügel · 55 mm tiefer'};
    box.querySelectorAll('[data-vehicle-reward="package"]').forEach(button=>{button.querySelector('.tuningPreview').remove();button.querySelector('.tuningPartDetail').textContent=descriptions[button.dataset.value];});
-   import('./vehicle-3d.js?v=20261028-shape-2').then(module=>{if(stage.isConnected)return module.mount(stage,car,current);}).catch(err=>{console.warn('3D vehicle unavailable',err);if(stage.isConnected){stage.innerHTML=fallback;hint.textContent='3D derzeit nicht verfügbar · Modellvorschau';}});
+   import('./vehicle-3d.js?v=20261028-reference-3').then(module=>{if(stage.isConnected)return module.mount(stage,car,current);}).catch(err=>{console.warn('3D vehicle unavailable',err);if(stage.isConnected){stage.innerHTML=fallback;hint.textContent='3D derzeit nicht verfügbar · Modellvorschau';}});
   }
   if(busy)box.querySelectorAll('button').forEach(node=>node.disabled=true);
   $('garageCars')?.querySelectorAll('.garageCar').forEach(node=>{node.hidden=node.querySelector('[data-edit-car]')?.dataset.editCar!==car.id;});
