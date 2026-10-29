@@ -11,7 +11,7 @@ const stub=fs.readFileSync(path.join(repo,'scripts/community-ui-qa.mjs'),'utf8')
   for(const width of [1200]){
    page=await browser.newPage({viewport:{width,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
    let presentations={},loadouts={'car-a':{rims:'silver',package:'sport',glow:'cyan'}};
-   await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:stub}));
+   await page.route('**/supabase-js-*.js',r=>r.fulfill({contentType:'text/javascript',body:stub}));
    await page.route('https://fixture.invalid/**',r=>r.fulfill({contentType:'image/webp',body:fs.readFileSync(path.join(repo,'assets/crew-characters.png'))}));
    await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();if(action==='vehicle-rewards'){if(r.request().method()==='POST'){const d=r.request().postDataJSON();if(d.presentation)presentations[d.vehicleId]=d.presentation;if(d.loadout)loadouts[d.vehicleId]=d.loadout;}return r.fulfill({json:{level:15,loadouts,presentations}});}return r.fulfill({json:action==='account-status'?{accepted:true,legal:{ready:true}}:action==='wardrobe-access'?{plus:true}:action==='invites'?{invites:[]}:action==='ads-status'?{enabled:false,reward:{permanent:true,progress:10}}:{}});});
    await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'networkidle'});await page.waitForFunction(()=>document.getElementById('homeGreeting').textContent.includes('Elias'));

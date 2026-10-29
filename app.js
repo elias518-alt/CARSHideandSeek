@@ -29,11 +29,20 @@ const esc = value =>
 let authSession = null;
 let dbProfile = null;
 
-let gameSession =
-  JSON.parse(localStorage.getItem('chs') || 'null');
-
-let localGarage =
-  JSON.parse(localStorage.getItem('chsGarage') || '[]');
+// A damaged local cache must not prevent the login handler from being installed.
+// Preserve the original entry; signed-in data is reloaded from the server.
+function readLocalState(key, fallback, valid) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || 'null');
+    return valid(value) ? value : fallback;
+  } catch {
+    return fallback;
+  }
+}
+let gameSession = readLocalState('chs', null, value =>
+  value && typeof value === 'object' && typeof value.code === 'string' && typeof value.userId === 'string');
+let localGarage = readLocalState('chsGarage', [], value =>
+  Array.isArray(value) && value.every(car => car && typeof car === 'object' && !Array.isArray(car)));
 
 let pendingCarPhoto = '';
 let carPhotoBusy = false;
@@ -416,42 +425,18 @@ function openPage(page) {
    AUTH
 ========================================================= */
 
-async function googleLogin() {
+function googleLogin() {
+  // The client uses Supabase's implicit OAuth flow. A native link starts that
+  // same flow even if the SDK or another app script failed to initialise.
+  // Do not preventDefault or disable the control: retry/back must remain usable.
   const button = $('#googleLogin');
-
   if (button) {
-    button.disabled = true;
+    const authorize = new URL('/auth/v1/authorize', SUPABASE_URL);
+    authorize.searchParams.set('provider', 'google');
+    authorize.searchParams.set('redirect_to', `${window.location.origin}/`);
+    button.href = authorize.href;
   }
-
-  if ($('#authStatus')) {
-    $('#authStatus').textContent =
-      'Google wird geöffnet…';
-  }
-
-  const { error } =
-    await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-
-      options: {
-        redirectTo:
-          `${window.location.origin}/`
-      }
-    });
-
-  if (error) {
-    console.error(error);
-
-    if (button) {
-      button.disabled = false;
-    }
-
-    if ($('#authStatus')) {
-      $('#authStatus').textContent =
-        error.message;
-    }
-
-    toast(error.message);
-  }
+  if ($('#authStatus')) $('#authStatus').textContent = 'Google wird geöffnet…';
 }
 
 

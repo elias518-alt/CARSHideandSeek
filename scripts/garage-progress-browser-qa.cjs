@@ -13,7 +13,7 @@ fs.mkdirSync(out,{recursive:true});
   for(const width of [360,390,430,1024]){
    const page=await browser.newPage({viewport:{width,height:850}}),errors=[];
    page.on('pageerror',e=>errors.push(e.message));
-   await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:stub}));
+   await page.route('**/supabase-js-*.js',r=>r.fulfill({contentType:'text/javascript',body:stub}));
    await page.route('https://fixture.invalid/**',r=>r.fulfill({contentType:'image/webp',body:fs.readFileSync(path.join(repo,'assets/crew-characters.png'))}));
    await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();return r.fulfill({json:action==='account-status'?{accepted:true,legal:{ready:true}}:action==='vehicle-rewards'?{level:3,loadouts:{}}:action==='personal-stats'?{seekerRounds:2,hiderRounds:3}:action==='invites'?{invites:[]}:action==='ads-status'?{enabled:false,reward:{}}:{}});});
    await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'networkidle'});
