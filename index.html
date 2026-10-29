@@ -18,7 +18,7 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260930-gameplay">
+    href="style.css?v=20261029-login-1">
 
 
   <title>CAR HIDE & SEEK</title>
@@ -73,10 +73,10 @@
       werden mit deinem Konto verbunden.
     </p>
 
-    <button
+    <a
       id="googleLogin"
       class="googleButton"
-      type="button">
+      href="https://yyvljkzitodxhtkilsxm.supabase.co/auth/v1/authorize?provider=google&amp;redirect_to=https%3A%2F%2Fcarshideandseek.onrender.com%2F">
 
       <span class="googleG">
         G
@@ -84,11 +84,12 @@
 
       MIT GOOGLE ANMELDEN
 
-    </button>
+    </a>
 
     <div
       id="authStatus"
-      class="authStatus">
+      class="authStatus"
+      role="status" aria-live="polite">
 
       Anmeldung erforderlich
 
@@ -2677,7 +2678,7 @@
 ====================================================== -->
 
 <script
-  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+  src="assets/vendor/supabase/supabase-js-2.118.0.js">
 </script>
 
 <script src="vehicle-paint.js?v=20261007-crew-1"></script>
@@ -2704,7 +2705,7 @@
 <script src="scene-layout.js?v=20261025-visual-fit-1"></script>
 <script src="showroom.js?v=20261025-visual-fit-1"></script>
 <script src="reference-ui.js?v=20261022-social-scene-1"></script>
-<script src="app.js?v=20261026-garage-polish-8"></script>
+<script src="app.js?v=20261029-login-1"></script>
 
 <script src="garage-actions.js?v=20261015-mini-1"></script>
 <script src="social.js?v=20261021-unified-1"></script>

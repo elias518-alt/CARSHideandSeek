@@ -40,7 +40,7 @@ try{
  for(const width of [390,360,430,1000]){
   const page=await browser.newPage({viewport:{width,height:844}}),errors=[];let adPermanent=false;page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://qa.invalid/portrait.svg',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="160" height="320"><rect width="160" height="320" fill="#508caf"/><circle cx="80" cy="130" r="44" fill="#f5c7a2"/><path d="M0 310Q80 140 160 310" fill="#17293a"/></svg>'}));
-  await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:'('+fixture.toString()+')()'}));
+  await page.route('**/supabase-js-*.js',r=>r.fulfill({contentType:'text/javascript',body:'('+fixture.toString()+')()'}));
   await page.route('**/maplibre-gl@5.6.0/dist/maplibre-gl.js',r=>r.fulfill({contentType:'text/javascript',body:fs.readFileSync(maplibre)}));
   await page.route('**/maplibre-gl@5.6.0/dist/maplibre-gl.css',r=>r.fulfill({contentType:'text/css',body:fs.readFileSync(maplibre.replace(/\.js$/,'.css'))}));
   await page.route('https://tiles.openfreemap.org/**',r=>r.fulfill({json:{version:8,sources:{},layers:[{id:'qa-background',type:'background',paint:{'background-color':'#25303a'}}]}}));

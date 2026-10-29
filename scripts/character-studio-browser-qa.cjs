@@ -11,7 +11,7 @@ stub+=`;const originalClient=window.supabase.createClient;window.supabase.create
   for(const width of [360,390,1000]){
    page=await browser.newPage({viewport:{width,height:900}});const errors=[],modelLoads=[];let metadata={},appearance,pet,saveCount=0;
    page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/face-api/'))modelLoads.push(r.url());});
-   await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:stub}));await page.route('https://fixture.invalid/**',r=>r.fulfill({contentType:'image/webp',body:fs.readFileSync(path.join(repo,'assets/crew-characters.png'))}));
+   await page.route('**/supabase-js-*.js',r=>r.fulfill({contentType:'text/javascript',body:stub}));await page.route('https://fixture.invalid/**',r=>r.fulfill({contentType:'image/webp',body:fs.readFileSync(path.join(repo,'assets/crew-characters.png'))}));
    await page.route('**/api/**',async r=>{
     const action=new URL(r.request().url()).pathname.split('/').pop();if(action==='wardrobe-access')return r.fulfill({json:{plus:await page.evaluate(()=>qaPlus===true)}});
     if(['wardrobe-save','pets-save'].includes(action)){

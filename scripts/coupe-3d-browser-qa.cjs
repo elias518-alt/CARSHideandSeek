@@ -4,7 +4,7 @@ const stub=fs.readFileSync(__dirname+'/community-ui-qa.mjs','utf8').match(/const
 (async()=>{const server=http.createServer(require('../server').handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
 try{browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader']});
 for(const width of [390,1000]){const page=await browser.newPage({viewport:{width,height:900}}),errors=[];let saved={rims:'stock',package:'stock',glow:'off'};page.on('pageerror',e=>errors.push(e.message));
-await page.route('**/supabase-js@2',r=>r.fulfill({contentType:'text/javascript',body:stub}));
+await page.route('**/supabase-js-*.js',r=>r.fulfill({contentType:'text/javascript',body:stub}));
 await page.route('**/api/**',r=>{const action=new URL(r.request().url()).pathname.split('/').pop();if(action==='vehicle-rewards'&&r.request().method()==='POST')saved=r.request().postDataJSON().loadout;return r.fulfill({json:action==='vehicle-rewards'?{level:20,loadouts:{'car-a':saved}}:action==='account-status'?{accepted:true,legal:{ready:true}}:action==='ads-status'?{enabled:false,reward:{}}:{ok:true}});});
 await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'networkidle'});await page.waitForFunction(()=>document.getElementById('homeGreeting').textContent.includes('Elias'));
 await page.evaluate(()=>openPage('garage'));await page.locator('[data-garage-view=tuning]').click();await page.waitForSelector('[data-vehicle-3d][data-ready=true]').catch(async e=>{console.log(await page.locator('.garageScene').innerHTML());throw e;});
