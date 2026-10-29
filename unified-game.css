@@ -283,3 +283,6 @@ body button:focus-visible{outline:3px solid #f6fbff!important;outline-offset:5px
 .vehicle3DHint{display:block;color:#d0dbe7;font-size:11px;text-align:center;margin-top:8px}
 @media(max-width:430px){#garageShowroom[data-view=tuning] .garageSceneCar[data-vehicle-3d]{height:240px}}
 .vehicle3DError{position:absolute;inset:20px;padding:16px;background:#111c2eee;color:white;font-size:13px;z-index:2}
+/* The taller 3D scene stays in document flow so it cannot cover part choices. */
+#garageShowroom[data-view=tuning]:has([data-vehicle-3d]) .garageScene{position:relative;top:auto}
+#garageShowroom:has([data-vehicle-3d]) .vehicleRewardChoices>button{scroll-margin-top:80px;scroll-margin-bottom:125px}
