@@ -8,7 +8,7 @@ Metres, source Z-up, front -X. Blender exports glTF Y-up. Stable replacement nod
 
 This first version activates only for the E36 coupé mapping in garage tuning. It is an original game model, not a licensed or exact E36 replica. The other vehicle views retain the existing photo/model presentation. Saved cosmetic keys and server-side unlock validation are reused. Package changes in this 3D view include bumpers and, for Track, a rear wing; legacy 2D views still display their existing sill details.
 
-Runtime budget: GLB approximately 2.4 MB, tested Track + mesh view approximately 91k rendered triangles including shadows, 32 draw calls. Fixed coachwork is batched by shared materials. Transparent WebGL compositing and a shadow-only floor place the car directly over the garage image. Texture-free vehicle materials, 1024px shadow, DPR capped at 1.5, on-demand rendering with no idle animation. No compression decoder dependency is needed for this initial asset. Further detail/optimization and real-device performance testing are needed before extending the catalog.
+Runtime budget: GLB approximately 3.0 MB, tested Track + mesh view approximately 123k rendered triangles including shadows, 40 draw calls. Fixed coachwork is batched by shared materials. Transparent WebGL compositing and a shadow-only floor place the car directly over the garage image. Texture-free vehicle materials, 1024px shadow, DPR capped at 1.5, on-demand rendering with no idle animation. No compression decoder dependency is needed for this initial asset. Further detail/optimization and real-device performance testing are needed before extending the catalog.
 
 Three.js r186 is self-hosted under `assets/vendor/three` with its MIT license. No runtime CDN is used for the viewer. Renderer and materials are disposed when replacing or closing the view. Load/WebGL failure retains the existing model illustration with an explanatory hint.
 
@@ -25,3 +25,18 @@ The revised silhouette uses the supplied red 1990s sport-coupe photograph as a v
 `rolling_gear` stays fixed at the ground plane. `coachwork` and the selected package lower by 20mm (Clean), 40mm (Sport), or 55mm (Track). The cosmetic save keys are unchanged. Exact root-name matching is essential: glTF may split each multi-material package into child meshes named `package_sport_1` etc.; those children must inherit root visibility rather than be independently hidden.
 
 `node scripts/coupe-reference-render.cjs` (with CHS_QA_PLAYWRIGHT configured) produces a red Sport / five-spoke / no-glow comparison render at `/tmp/chs-coupe-reference.png`. Browser QA checks that each selected package has actually visible child geometry and that lowering the body does not move the tyre contact plane.
+
+## Detail pass, 29 October 2026
+
+The bonnet leading edge now clears physical headlight recesses. Swept nose corners,
+reflectors, indicators, continuous glass seals, panel seams and wraparound bumper
+mouldings replace detached-looking flat details. Tyres use a revolved profile with
+flat tread and rounded shoulders. Rims have tapered, concave spokes and hub bolts;
+small bolts intentionally use low tessellation. Runtime lighting was softened.
+
+This remains a stylized, original procedural asset. The comparison render is an
+actual WebGL capture; it is not a claim of a photorealistic or exact E36 replica.
+Browser QA exercises every rim and package root, body lowering, tyre contact,
+saving and failure fallback at 390px and 1000px. The viewer resolves the GLB URL
+relative to its module, so the standalone reference renderer also works from a
+nested document URL.

@@ -24,6 +24,14 @@ def box(name,loc,scale,m,bevel=.02):
  bpy.ops.mesh.primitive_cube_add(size=1,location=loc);o=bpy.context.object;o.dimensions=scale;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);return finish(o,name,m,bevel)
 def mesh(name,verts,faces,m,bevel=0):
  d=bpy.data.meshes.new(name);d.from_pydata(verts,[],faces);d.update();o=bpy.data.objects.new(name,d);bpy.context.collection.objects.link(o);return finish(o,name,m,bevel)
+def line(name,points,m,radius=.004):
+ # Small physical seals and panel gaps follow the coachwork instead of floating rectangular decals.
+ d=bpy.data.curves.new(name,'CURVE');d.dimensions='3D';d.resolution_u=2;d.bevel_depth=radius;d.bevel_resolution=2
+ p=d.splines.new('POLY');p.points.add(len(points)-1)
+ for v,co in zip(p.points,points):v.co=(*co,1)
+ o=bpy.data.objects.new(name,d);bpy.context.collection.objects.link(o);o.data.materials.append(m)
+ bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o;bpy.ops.object.convert(target='MESH')
+ return bpy.context.object
 def hull(name,sections,m):
  # section x, half-width, lower height, shoulder height, crown height
  vs=[]
@@ -45,11 +53,13 @@ def smooth_rows(rows,steps=5):
     v.append((2*t**3-3*t*t+1)*a[k]+(t**3-2*t*t+t)*ma+(-2*t**3+3*t*t)*b[k]+(t**3-t*t)*mb)
    out.append(v)
  out.append(rows[-1]);return out
-sections=smooth_rows([(-2.20,.750,.625,.735,.790),(-2.12,.803,.625,.77,.815),(-1.95,.845,.61,.81,.842),(-1.72,.854,.235,.84,.865),(-1.35,.858,.225,.855,.88),(-.77,.843,.225,.874,.918),(-.25,.835,.225,.875,.912),(.58,.836,.225,.88,.914),(1.20,.853,.235,.885,.925),(1.62,.851,.27,.89,.929),(1.99,.811,.32,.865,.905),(2.20,.755,.39,.80,.855)])
+sections=smooth_rows([(-2.20,.750,.625,.785,.845),(-2.12,.803,.625,.815,.860),(-1.95,.845,.61,.84,.880),(-1.72,.854,.235,.85,.895),(-1.35,.858,.225,.86,.903),(-.77,.843,.225,.874,.918),(-.25,.835,.225,.875,.912),(.58,.836,.225,.88,.914),(1.20,.853,.235,.885,.925),(1.62,.851,.27,.89,.929),(1.99,.811,.32,.865,.905),(2.20,.755,.39,.80,.855)])
 verts=[]
 for x,w,b,z,t in sections:
  ring=[(-w*.93,b),(w*.93,b),(w*.965,b+.025),(w*.99,max(b+.03,.42)),(w,max(b+.04,.56)),(w*.997,max(b+.05,.62)),(w*.988,z-.035),(w*.96,z),(w*.87,t-.012),(w*.55,t+.006),(0,t+.016),(-w*.55,t+.006),(-w*.87,t-.012),(-w*.96,z),(-w*.988,z-.035),(-w*.997,max(b+.05,.62)),(-w,max(b+.04,.56)),(-w*.99,max(b+.03,.42)),(-w*.965,b+.025)]
- verts.extend((x,y,h) for y,h in ring)
+ # Swept nose corners keep the lamps within the wing, not on a flat vertical wall.
+ sweep=max(0,1-(x+2.20)/.22)*.085 if x< -1.98 else 0
+ verts.extend((x+sweep*(abs(y)/w)**3,y,h) for y,h in ring)
 n=19;faces=[tuple(reversed(range(n))),tuple(range(len(verts)-n,len(verts)))]
 for i in range(len(sections)-1):
  for j in range(n):faces.append((i*n+j,i*n+(j+1)%n,(i+1)*n+(j+1)%n,(i+1)*n+j))
@@ -85,7 +95,9 @@ def window(name,side,points):
   prev=points[i-1];nxt=points[(i+1)%len(points)];a=(x*.92+prev[0]*.08,z*.92+prev[1]*.08);b=(x*.92+nxt[0]*.08,z*.92+nxt[1]*.08)
   for j in range(5):
    t=j/4;xx=(1-t)**2*a[0]+2*(1-t)*t*x+t*t*b[0];zz=(1-t)**2*a[1]+2*(1-t)*t*z+t*t*b[1];vs.append((xx,side*(.805-(zz-.91)*.34),zz))
- return mesh(name,vs,[tuple(range(len(vs)))],glass)
+ o=mesh(name,vs,[tuple(range(len(vs)))],glass)
+ line('window_seal',vs+[vs[0]],trim,.007)
+ return o
 for side in [-1,1]:
  sidepanel('A_pillar',side,[(-.815,.774,.918),(-.18,.669,1.333),(-.10,.625,1.323),(-.755,.741,.937)],paint)
  sidepanel('C_pillar',side,[(.82,.654,1.335),(1.55,.775,.93),(1.35,.79,.93),(.76,.669,1.30)],paint)
@@ -95,14 +107,14 @@ for side in [-1,1]:
  sidepanel('B_pillar',side,[(.57,.669,1.318),(.61,.669,1.318),(.68,.802,.92),(.64,.802,.92)],trim)
  for x,length,y in [(-1.945,.32,.835),(0,1.94,.843),(1.95,.30,.826)]:box('side_moulding',(x,side*y,.565),(length,.022,.045),trim,.009)
  box('door_handle',(.50,side*.841,.818),(.14,.022,.035),trim,.01)
- box('door_seam',(.78,side*.841,.60),(.006,.006,.52),trim,.001)
+ line('door_seam',[(-.75,side*.841,.91),(-.78,side*.847,.77),(-.78,side*.85,.43),(-.70,side*.838,.32),(.61,side*.838,.32),(.72,side*.845,.39),(.78,side*.845,.78),(.78,side*.81,.92)],trim,.0025)
  box('sill_crease',(0,side*.824,.335),(1.9,.012,.009),paint,.003)
  bpy.ops.mesh.primitive_uv_sphere_add(segments=24,ring_count=12,radius=1,location=(-.64,side*.916,.96));o=bpy.context.object;o.scale=(.17,.108,.065);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);finish(o,'mirror',paint)
- sidepanel('bonnet_seam',side,[(-2.06,.63,.834),(-.78,.72,.938),(-.78,.725,.938),(-2.06,.635,.834)],trim)
+ line('bonnet_seam',[(-2.16,side*.596,.859),(-1.95,side*.66,.882),(-1.72,side*.69,.894),(-1.35,side*.71,.90),(-.78,side*.72,.912)],trim,.002)
 # Rounded wraparound bumpers, with openings cut through the actual mesh.
 def bumper(name,front,low):
  if front:rows=[(-2.255,.745,low,.59,.635),(-2.21,.805,low-.004,.60,.64),(-2.08,.843,low,.61,.645),(-1.90,.849,low+.01,.61,.64),(-1.71,.850,low+.04,.60,.625)]
- else:rows=[(1.91,.85,low+.02,.60,.65),(2.09,.835,low,.59,.64),(2.245,.763,low,.57,.625)]
+ else:rows=[(1.78,.837,low+.035,.60,.65),(1.96,.845,low+.015,.60,.65),(2.12,.812,low,.59,.64),(2.24,.75,low+.025,.57,.625)]
  return hull(name,smooth_rows(rows,4),paint)
 def cut_box(obj,loc,size,radius):
  cut=box('temporary_cut',loc,size,trim,radius);bpy.context.view_layer.objects.active=obj;mod=obj.modifiers.new('Recess','BOOLEAN');mod.object=cut;mod.operation='DIFFERENCE';bpy.ops.object.modifier_apply(modifier=mod.name);bpy.data.objects.remove(cut,do_unlink=True)
@@ -116,46 +128,86 @@ for variant in ['stock','clean','sport','track']:
  for side in [-1,1]:
   cut_box(front,(-2.20,side*.59,low+.115),(.45,.22,.13),.018)
   box(name,(-2.225,side*.59,low+.115),(.025,.17,.084),white,.012)
-  box(name,(0,side*.833,low+.048),(1.98,.045,.095),paint,.025)
- box(name,(-2.268,0,.565),(.028,1.49,.055),trim,.010)
- box(name,(-2.292,0,.49),(.018,.48,.10),white,.004)
+ hull(name,[(-.985,.839,low+.012,low+.075,low+.105),(-.85,.844,low,low+.065,low+.09),(.85,.844,low,low+.065,low+.09),(.985,.839,low+.012,low+.075,low+.105)],paint)
+ # Follow the front/rear corners instead of fitting a straight full-width bar.
+ line(name,[(-1.74,-.852,.565),(-2.07,-.846,.565),(-2.22,-.805,.565),(-2.267,-.69,.565),(-2.267,.69,.565),(-2.22,.805,.565),(-2.07,.846,.565),(-1.74,.852,.565)],trim,.020)
+ line(name,[(1.81,-.849,.565),(2.1,-.833,.565),(2.257,-.72,.565),(2.257,.72,.565),(2.1,.833,.565),(1.81,.849,.565)],trim,.021)
+ box(name,(-2.274,0,.511),(.018,.48,.102),white,.004)
  if variant in ['sport','track']:
   box(name,(-2.20,0,low+.008),(.23,1.53,.025),trim,.010)
  if variant=='track':
   for sy in [-.56,.56]:box(name,(1.87,sy,1.03),(.11,.052,.18),paint,.014)
   box(name,(1.87,0,1.13),(.24,1.53,.045),paint,.022)
-# Lamp recesses sit within the face rather than on top of a solid square nose.
-
+# Continuous nose panel: lights and grille follow its swept face.
+# The optics are set into shallow chrome reflectors, with a thin outer glazing.
+reflector=mat('reflector',(.47,.50,.53),.85,.18)
+lens=mat('headlight_glass',(.48,.55,.59),.38,.16)
 for side in [-1,1]:
- box('grille_rim',(-2.24,side*.145,.72),(.025,.235,.158),chrome,.025)
- box('grille_recess',(-2.257,side*.145,.72),(.017,.207,.135),trim,.020)
- for offset in [-.066,-.033,0,.033,.066]:box('grille_slats',(-2.266,side*.145+offset,.72),(.010,.008,.116),dark,.002)
- box('headlamp_surround',(-2.207,side*.515,.728),(.032,.405,.156),trim,.012)
- for yy in [side*.425,side*.587]:
-  # Reflector rings and dark glass centres preserve twin-round optics inside rectangular housings.
-  bpy.ops.mesh.primitive_torus_add(major_radius=.052,minor_radius=.005,major_segments=32,minor_segments=8,location=(-2.229,yy,.73),rotation=(0,math.pi/2,0));finish(bpy.context.object,'optic_ring',chrome)
-  bpy.ops.mesh.primitive_uv_sphere_add(segments=20,ring_count=12,radius=1,location=(-2.229,yy,.73));o=bpy.context.object;o.scale=(.009,.047,.049);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);finish(o,'optic_lens',glass)
- box('indicator',(-2.177,side*.744,.725),(.035,.064,.14),white,.015)
+ cut_box(body,(-2.18,side*.516,.724),(.28,.434,.160),.013)
+ box('grille_rim',(-2.215,side*.142,.722),(.022,.235,.147),chrome,.026)
+ box('grille_recess',(-2.231,side*.142,.722),(.014,.208,.122),trim,.023)
+ for offset in [-.066,-.033,0,.033,.066]:box('grille_slats',(-2.240,side*.142+offset,.722),(.008,.007,.102),dark,.002)
+ # Sweep outward with the front of the bonnet; no floating full-width faceplate.
+ housing=box('headlamp_surround',(-2.169,side*.509,.723),(.040,.411,.147),trim,.014);housing.rotation_euler[2]=side*-.12
+ for yy in [side*.423,side*.585]:
+  xx=-2.197+(abs(yy)-.423)*.12
+  bpy.ops.mesh.primitive_uv_sphere_add(segments=28,ring_count=16,radius=1,location=(xx,yy,.724));o=bpy.context.object;o.scale=(.014,.066,.061);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);finish(o,'optic_reflector',reflector)
+  bpy.ops.mesh.primitive_uv_sphere_add(segments=24,ring_count=12,radius=1,location=(xx-.013,yy,.724));o=bpy.context.object;o.scale=(.007,.043,.042);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);finish(o,'optic_lens',lens)
+  box('optic_bulb',(xx-.021,yy,.724),(.005,.012,.012),white,.004)
+ # Small ribs in the indicator lens, inset and swept around the wing corner.
+ indicator=box('indicator',(-2.121,side*.741,.721),(.044,.069,.129),lens,.013);indicator.rotation_euler[2]=-side*.22
+ for dz in [-.035,0,.035]:line('indicator_rib',[(-2.148,side*.713,.721+dz),(-2.129,side*.771,.721+dz)],chrome,.0015)
  box('taillamp',(2.206,side*.51,.755),(.035,.43,.135),red,.022)
  box('reverse_lamp',(2.227,side*.43,.75),(.014,.15,.035),white,.005)
+ line('windscreen_seal',[(-.78,side*.736,.934),(-.46,side*.698,1.142),(-.12,side*.622,1.322)],trim,.009)
+ line('rear_glass_seal',[(.88,side*.604,1.319),(1.16,side*.665,1.157),(1.50,side*.728,.947)],trim,.008)
+# A curved cowl and glass seals close the gap at the foot of the windscreen.
+for x,w,z in [(-.78,.736,.934),(-.12,.622,1.322),(.88,.604,1.319),(1.5,.728,.947)]:
+ line('glass_cross_seal',[(x,w*u,z+.014*(1-u*u)) for u in [i/16 for i in range(-16,17)]],trim,.007)
+for side in [-1,1]:
+ line('wiper',[(-.77,side*.59,.951),(-.69,side*.38,.999),(-.64,side*.10,1.038)],trim,.005)
 box('rear_plate',(2.228,0,.69),(.012,.33,.10),trim,.008)
 # All four styles use the same 17-inch-scale mounting geometry.
 def cyl(name,loc,r,depth,m):
- bpy.ops.mesh.primitive_cylinder_add(vertices=40,radius=r,depth=depth,location=loc,rotation=(math.pi/2,0,0));return finish(bpy.context.object,name,m,.003)
+ # Small bolt sockets do not need the tessellation/bevel of a visible wheel barrel.
+ bpy.ops.mesh.primitive_cylinder_add(vertices=12 if r<.015 else 24 if r<.07 else 40,radius=r,depth=depth,location=loc,rotation=(math.pi/2,0,0));return finish(bpy.context.object,name,m,0 if r<.015 else .003)
 for x in [-1.35,1.35]:
  for side in [-1,1]:
   y=side*.775;z=.315
-  bpy.ops.mesh.primitive_torus_add(major_radius=.255,minor_radius=.060,major_segments=56,minor_segments=12,location=(x,y,z),rotation=(math.pi/2,0,0));o=bpy.context.object;o.scale.z=1.7;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);finish(o,'tyre',rubber)
+  # Revolved radial tyre profile: flat tread, rounded shoulders, proper sidewalls.
+  profile=[(-.103,.232),(-.108,.270),(-.100,.296),(-.083,.311),(-.060,.315),(.060,.315),(.083,.311),(.100,.296),(.108,.270),(.103,.232)]
+  vs=[];segments=64
+  for offset,radius in profile:
+   for j in range(segments):
+    a=2*math.pi*j/segments;vs.append((x+math.sin(a)*radius,y+offset,z+math.cos(a)*radius))
+  fs=[]
+  for k in range(len(profile)-1):
+   for j in range(segments):a=k*segments+j;b=k*segments+(j+1)%segments;fs.append((a,b,b+segments,a+segments))
+  mesh('tyre',vs,fs,rubber)
+  for offset in [-.05,0,.05]:
+   bpy.ops.mesh.primitive_torus_add(major_radius=.3126,minor_radius=.0018,major_segments=64,minor_segments=6,location=(x,y+offset,z),rotation=(math.pi/2,0,0));finish(bpy.context.object,'tyre_groove',trim)
   cyl('brake',(x,side*.845,z),.195,.025,dark)
   for style in ['stock','silver','graphite','mesh']:
    metal=dark if style=='graphite' else chrome;n={'stock':5,'silver':5,'graphite':5,'mesh':12}[style]
    prefix='rims_'+style;oy=side*.883
    bpy.ops.mesh.primitive_torus_add(major_radius=.225,minor_radius=.010,major_segments=48,minor_segments=8,location=(x,oy,z),rotation=(math.pi/2,0,0));finish(bpy.context.object,prefix,metal)
    cyl(prefix,(x,oy,z),.060,.03,metal)
+   # Broad, tapered spokes with concave roots; sockets and bolt heads sit in the hub.
+   for j in range(5):
+    a=j*2*math.pi/5;cyl(prefix,(x+math.sin(a)*.039,oy+side*.018,z+math.cos(a)*.039),.008,.009,dark)
+    cyl(prefix,(x+math.sin(a)*.039,oy+side*.024,z+math.cos(a)*.039),.0045,.01,chrome)
+   cyl(prefix,(x,oy+side*.018,z),.023,.014,dark)
    for j in range(n):
     angle=j*2*math.pi/n
     for delta in ([-.065,.065] if style in ['silver','graphite'] else [0]):
-     a=angle+delta;ob=box(prefix,(x+math.sin(a)*.14,oy,z+math.cos(a)*.14),(.019 if n==12 else .045 if style=='stock' else .025,.026,.18),metal,.007);ob.rotation_euler[1]=a
+     a=angle+delta;vs=[]
+     width=.069 if style=='stock' else .018 if style=='mesh' else .028
+     for r,w,depth in [(.048,width*.65,-.016),(.095,width*.94,-.012),(.16,width,.002),(.217,width*.63,.004)]:
+      for sign in [-1,1]:vs.append((x+math.sin(a)*r+math.cos(a)*w*sign/2,oy+side*depth,z+math.cos(a)*r-math.sin(a)*w*sign/2))
+     o=mesh(prefix,vs,[(0,1,3,2),(2,3,5,4),(4,5,7,6)],metal)
+     mod=o.modifiers.new('Spoke thickness','SOLIDIFY');mod.thickness=.018
+     bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name)
+     mod=o.modifiers.new('Spoke edges','BEVEL');mod.width=.004;mod.segments=2;bpy.ops.object.modifier_apply(modifier=mod.name)
 # Join objects by named variant or material; GLB keeps replacement groups compact.
 for prefix in ['rims_stock','rims_silver','rims_graphite','rims_mesh','package_stock','package_clean','package_sport','package_track']:
  objs=[o for o in bpy.context.scene.objects if o.name.startswith(prefix)]
